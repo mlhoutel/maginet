@@ -134,7 +134,7 @@ export default function Canvas() {
     origin: number[];
   } | null>(null);
 
-  const [mode, setMode] = React.useState<Mode>("create");
+  const [mode, setMode] = React.useState<Mode>("select");
   const [shapeType, setShapeType] = React.useState<ShapeType>("rectangle");
   const [selectedShapeId, setSelectedShapeId] = React.useState<string | null>(
     null
@@ -241,6 +241,9 @@ export default function Canvas() {
         onPointerDown={onPointerDownCanvas}
         onPointerMove={onPointerMoveCanvas}
         onPointerUp={onPointerUpCanvas}
+        onClick={() => {
+          setSelectedShapeId(null);
+        }}
       >
         <g style={{ transform }}>
           {Object.values(shapes).map((shape) => (
@@ -268,6 +271,7 @@ export default function Canvas() {
             />
           )}
           <Handles
+            shapes={shapes}
             selectedShape={selectedShape}
             setShapes={setShapes}
             camera={camera}
@@ -328,10 +332,12 @@ function Handles({
   selectedShape,
   setShapes,
   camera,
+  shapes,
 }: {
   selectedShape: Shape | null;
   setShapes: React.Dispatch<React.SetStateAction<Record<string, Shape>>>;
   camera: Camera;
+  shapes: Record<string, Shape>;
 }) {
   const rDragging = React.useRef<{
     shape: Shape;
@@ -339,24 +345,12 @@ function Handles({
   } | null>(null);
 
   if (selectedShape === null) return null;
-  function onPointerMove(e: React.PointerEvent<SVGElement>) {
-    const dragging = rDragging.current;
 
-    if (!dragging) return;
+  const [x, y] = selectedShape.point;
+  const width = selectedShape.size[0];
+  const height = selectedShape.size[1];
+  // user can resize the shape by dragging the handles
 
-    const shape = dragging.shape;
-    const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
-    const point = [x, y];
-    const delta = sub(point, dragging.origin);
-
-    setShapes((prev) => ({
-      ...prev,
-      [shape.id]: {
-        ...shape,
-        size: add(dragging.shape.size, delta),
-      },
-    }));
-  }
   function onPointerDown(e: React.PointerEvent<SVGElement>) {
     e.currentTarget.setPointerCapture(e.pointerId);
 
@@ -369,74 +363,153 @@ function Handles({
     };
   }
 
+  function onPointerMove(e: React.PointerEvent<SVGElement>) {
+    const dragging = rDragging.current;
+
+    if (!dragging) return;
+
+    const shape = shapes[dragging.shape.id];
+    const handleId = e.currentTarget.id;
+    const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
+    const point = [x, y];
+    const delta = sub(point, dragging.origin);
+    // resize based on handleId
+
+    switch (handleId) {
+      case "handleAtTopLeft": {
+        setShapes({
+          ...shapes,
+          [shape.id]: {
+            ...shape,
+            point: add(dragging.shape.point, delta),
+            size: add(dragging.shape.size, [-delta[0], -delta[1]]),
+          },
+        });
+        break;
+      }
+      case "handleAtTopRight": {
+        setShapes({
+          ...shapes,
+          [shape.id]: {
+            ...shape,
+            point: add(dragging.shape.point, [0, delta[1]]),
+            size: add(dragging.shape.size, [delta[0], -delta[1]]),
+          },
+        });
+        break;
+      }
+      case "handleAtBottomLeft": {
+        setShapes({
+          ...shapes,
+          [shape.id]: {
+            ...shape,
+            point: add(dragging.shape.point, [delta[0], 0]),
+            size: add(dragging.shape.size, [-delta[0], delta[1]]),
+          },
+        });
+        break;
+      }
+      case "handleAtBottomRight": {
+        setShapes({
+          ...shapes,
+          [shape.id]: {
+            ...shape,
+            size: add(dragging.shape.size, delta),
+          },
+        });
+        break;
+      }
+    }
+  }
+
   const onPointerUp = (e: React.PointerEvent<SVGElement>) => {
     e.currentTarget.releasePointerCapture(e.pointerId);
     rDragging.current = null;
   };
 
-  if (selectedShape.type === "rectangle") {
-    // draw at the four corners of the rectangle
-    // if user drags one of the corners, the rectangle should resize
+  const handleProps = { onPointerDown, onPointerMove, onPointerUp };
 
-    return (
-      <g>
-        <circle
-          cx={selectedShape.point[0]}
-          cy={selectedShape.point[1]}
-          r={5}
-          fill="red"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-        />
-        <circle
-          cx={selectedShape.point[0] + selectedShape.size[0]}
-          cy={selectedShape.point[1]}
-          r={5}
-          fill="red"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-        />
-        <circle
-          cx={selectedShape.point[0]}
-          cy={selectedShape.point[1] + selectedShape.size[1]}
-          r={5}
-          fill="red"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-        />
-        <circle
-          cx={selectedShape.point[0] + selectedShape.size[0]}
-          cy={selectedShape.point[1] + selectedShape.size[1]}
-          r={5}
-          fill="red"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-        />
-      </g>
-    );
+  switch (selectedShape.type) {
+    case "rectangle":
+      return (
+        <>
+          <Handle
+            id="handleAtTopLeft"
+            additionalClasses="handleAtTopLeft"
+            {...handleProps}
+            x={x - 5}
+            y={y - 5}
+          />
+          <Handle
+            id="handleAtTopRight"
+            additionalClasses="handleAtTopRight"
+            {...handleProps}
+            x={x + width - 5}
+            y={y - 5}
+          />
+          <Handle
+            id="handleAtBottomLeft"
+            additionalClasses="handleAtBottomLeft"
+            {...handleProps}
+            x={x - 5}
+            y={y + height - 5}
+          />
+          <Handle
+            id="handleAtBottomRight"
+            additionalClasses="handleAtBottomRight"
+            {...handleProps}
+            x={x + width - 5}
+            y={y + height - 5}
+          />
+        </>
+      );
+    case "arrow":
+      return (
+        <>
+          <Handle
+            additionalClasses="handleArrow"
+            id="handleAtTopLeft"
+            {...handleProps}
+            x={x - 5}
+            y={y - 5}
+          />
+          <Handle
+            id="handleAtBottomRight"
+            additionalClasses="handleArrow"
+            {...handleProps}
+            x={x + width - 5}
+            y={y + height - 5}
+          />
+        </>
+      );
   }
-  if (selectedShape.type === "arrow") {
-    // draw at the top and tail or the arrow
-    return (
-      <g>
-        <circle
-          cx={selectedShape.point[0]}
-          cy={selectedShape.point[1]}
-          r={5}
-          fill="red"
-        />
-        <circle
-          cx={selectedShape.point[0] + selectedShape.size[0]}
-          cy={selectedShape.point[1] + selectedShape.size[1]}
-          r={5}
-          fill="red"
-        />
-      </g>
-    );
-  }
+
   return null;
+}
+
+function Handle({
+  id,
+  x,
+  y,
+  ...props
+}: {
+  id: string;
+  x: number;
+  y: number;
+  additionalClasses?: string;
+}) {
+  return (
+    <rect
+      id={id}
+      className={`handle ${props.additionalClasses || ""}`}
+      fill="#fff"
+      stroke="#000"
+      {...props}
+      onClick={(e) => {e.stopPropagation();}}
+      x={x}
+      y={y}
+      width={10}
+      height={10}
+    />
+  );
 }

@@ -18,3 +18,23 @@ svg {
   position: relative;
   z-index: 9999;
 }
+
+.handleAtTopLeft {
+  cursor: nw-resize;
+}
+
+.handleAtTopRight {
+  cursor: ne-resize;
+}
+
+.handleAtBottomLeft {
+  cursor: sw-resize;
+}
+
+.handleAtBottomRight {
+  cursor: se-resize;
+}
+
+.handleArrow {
+  cursor: pointer !important;
+}

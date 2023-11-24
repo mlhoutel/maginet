@@ -92,6 +92,7 @@ export function Shape({
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      z={100}
       key={shape.id + "-arrowhead"}
       id={shape.id + "-arrowhead"}
       d={`M ${x + width} ${y + height} L ${
@@ -105,7 +106,7 @@ export function Shape({
     />
   );
 
-  const drawArrowHead =
+  const drawArrowHead = true &&
     shape.type === "arrow" &&
     Math.abs(x) > arrowLength * 2 &&
     Math.abs(height) > arrowLength * 2;
@@ -122,6 +123,7 @@ export function Shape({
           width={width}
           height={height}
           fill="rgba(0, 0, 0, 0.1)"
+          onClick={(e) => {e.stopPropagation();}}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -137,6 +139,7 @@ export function Shape({
             stroke="black"
             strokeWidth="5"
             fill="none"
+            onClick={(e) => {e.stopPropagation();}}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
