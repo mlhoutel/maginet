@@ -84,7 +84,6 @@ export function Shape({
   }
 
   // handle negative width and height for ellipses
-  
 
   // take into account the angle of the arrow, its position, and size
   const lineAngle = Math.atan2(height, width);
@@ -115,25 +114,29 @@ export function Shape({
     Math.abs(x) > arrowLength * 2 &&
     Math.abs(height) > arrowLength * 2;
 
+  const shapeProps = {
+    key: shape.id,
+    id: shape.id,
+    onClick: (e: React.MouseEvent<SVGElement, MouseEvent>) => {
+      e.stopPropagation();
+    },
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+  };
+
   switch (shape.type) {
     case "circle":
       // x y is the top left corner of the bounding box
       // width height is the width and height of the bounding box
       return (
         <ellipse
-          key={shape.id}
-          id={shape.id}
           cx={x + width / 2}
           cy={y + height / 2}
           rx={width / 2}
           ry={height / 2}
           fill="rgba(0, 0, 0, 0.1)"
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
+          {...shapeProps}
         />
       );
 
@@ -141,37 +144,23 @@ export function Shape({
       // opacity background
       return (
         <rect
-          key={shape.id}
-          id={shape.id}
           x={x}
           y={y}
           width={width}
           height={height}
           fill="rgba(0, 0, 0, 0.1)"
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
+          {...shapeProps}
         />
       );
     case "arrow":
       return (
         <>
           <path
-            key={shape.id}
-            id={shape.id}
             d={`M ${x} ${y} L ${x + width} ${y + height}`}
             stroke="black"
             strokeWidth="5"
             fill="none"
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
+            {...shapeProps}
           />
         </>
       );
