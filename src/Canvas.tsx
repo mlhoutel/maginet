@@ -31,13 +31,14 @@ export function screenToCanvas(point: Point, camera: Camera): Point {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+/*
 function canvasToScreen(point: Point, camera: Camera): Point {
   return {
     x: (point.x - camera.x) * camera.z,
     y: (point.y - camera.y) * camera.z,
   };
 }
+*/
 
 interface Box {
   minX: number;

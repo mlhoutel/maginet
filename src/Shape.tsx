@@ -86,6 +86,8 @@ export function Shape({
   // handle negative width and height for ellipses
 
   // take into account the angle of the arrow, its position, and size
+  /*
+
   const lineAngle = Math.atan2(height, width);
   const arrowAngle = Math.PI / 8;
   const arrowLength = 20;
@@ -113,7 +115,7 @@ export function Shape({
     shape.type === "arrow" &&
     Math.abs(x) > arrowLength * 2 &&
     Math.abs(height) > arrowLength * 2;
-
+ */
   const shapeProps = {
     key: shape.id,
     id: shape.id,
