@@ -14,7 +14,9 @@ export function Shape({
   camera,
   rDragging,
   mode,
+  setSelectedShapeId,
 }: {
+  setSelectedShapeId: React.Dispatch<React.SetStateAction<string | null>>;
   shape: ShapeType;
   shapes: Record<string, ShapeType>;
   setShapes: React.Dispatch<React.SetStateAction<Record<string, ShapeType>>>;
@@ -54,7 +56,9 @@ export function Shape({
     if (mode !== "select") return;
     e.currentTarget.setPointerCapture(e.pointerId);
 
-    const id = e.currentTarget.id;
+    const id = shape.id;
+    setSelectedShapeId(id);
+
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
 
@@ -85,6 +89,9 @@ export function Shape({
   const arrowLength = 20;
   const arrowHead = (
     <path
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
       key={shape.id + "-arrowhead"}
       id={shape.id + "-arrowhead"}
       d={`M ${x + width} ${y + height} L ${
@@ -93,8 +100,8 @@ export function Shape({
         x + width - arrowLength * Math.cos(lineAngle - arrowAngle)
       } ${y + height - arrowLength * Math.sin(lineAngle - arrowAngle)} Z`}
       stroke="black"
-      strokeWidth="2"
-      fill="black"
+      strokeWidth="5"
+      fill="gray"
     />
   );
 
@@ -128,7 +135,7 @@ export function Shape({
             id={shape.id}
             d={`M ${x} ${y} L ${x + width} ${y + height}`}
             stroke="black"
-            strokeWidth="2"
+            strokeWidth="5"
             fill="none"
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}

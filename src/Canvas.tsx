@@ -136,6 +136,11 @@ export default function Canvas() {
 
   const [mode, setMode] = React.useState<Mode>("create");
   const [shapeType, setShapeType] = React.useState<ShapeType>("rectangle");
+  const [selectedShapeId, setSelectedShapeId] = React.useState<string | null>(
+    null
+  );
+
+  const selectedShape = selectedShapeId ? shapes[selectedShapeId] : null;
 
   function onPointerDownCanvas(e: React.PointerEvent<SVGElement>) {
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
@@ -247,6 +252,7 @@ export default function Canvas() {
               camera={camera}
               mode={mode}
               rDragging={rDragging}
+              setSelectedShapeId={setSelectedShapeId}
             />
           ))}
           {shapeInCreation && (
@@ -258,8 +264,14 @@ export default function Canvas() {
               camera={camera}
               mode={mode}
               rDragging={rDragging}
+              setSelectedShapeId={setSelectedShapeId}
             />
           )}
+          <Handles
+            selectedShape={selectedShape}
+            setShapes={setShapes}
+            camera={camera}
+          />
         </g>
       </svg>
       <div>
@@ -277,6 +289,7 @@ export default function Canvas() {
         <div>height: {Math.floor(viewport.height)}</div>
       </div>
       {JSON.stringify(shapeInCreation)}
+      {JSON.stringify(selectedShapeId)}
       {JSON.stringify(mode)}
     </div>
   );
@@ -309,4 +322,121 @@ function SelectionPanel({
       <button onClick={() => setCamera(zoomOut)}>Zoom Out</button>
     </div>
   );
+}
+
+function Handles({
+  selectedShape,
+  setShapes,
+  camera,
+}: {
+  selectedShape: Shape | null;
+  setShapes: React.Dispatch<React.SetStateAction<Record<string, Shape>>>;
+  camera: Camera;
+}) {
+  const rDragging = React.useRef<{
+    shape: Shape;
+    origin: number[];
+  } | null>(null);
+
+  if (selectedShape === null) return null;
+  function onPointerMove(e: React.PointerEvent<SVGElement>) {
+    const dragging = rDragging.current;
+
+    if (!dragging) return;
+
+    const shape = dragging.shape;
+    const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
+    const point = [x, y];
+    const delta = sub(point, dragging.origin);
+
+    setShapes((prev) => ({
+      ...prev,
+      [shape.id]: {
+        ...shape,
+        size: add(dragging.shape.size, delta),
+      },
+    }));
+  }
+  function onPointerDown(e: React.PointerEvent<SVGElement>) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+
+    const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
+    const point = [x, y];
+
+    rDragging.current = {
+      shape: { ...selectedShape! },
+      origin: point,
+    };
+  }
+
+  const onPointerUp = (e: React.PointerEvent<SVGElement>) => {
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    rDragging.current = null;
+  };
+
+  if (selectedShape.type === "rectangle") {
+    // draw at the four corners of the rectangle
+    // if user drags one of the corners, the rectangle should resize
+
+    return (
+      <g>
+        <circle
+          cx={selectedShape.point[0]}
+          cy={selectedShape.point[1]}
+          r={5}
+          fill="red"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+        />
+        <circle
+          cx={selectedShape.point[0] + selectedShape.size[0]}
+          cy={selectedShape.point[1]}
+          r={5}
+          fill="red"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+        />
+        <circle
+          cx={selectedShape.point[0]}
+          cy={selectedShape.point[1] + selectedShape.size[1]}
+          r={5}
+          fill="red"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+        />
+        <circle
+          cx={selectedShape.point[0] + selectedShape.size[0]}
+          cy={selectedShape.point[1] + selectedShape.size[1]}
+          r={5}
+          fill="red"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+        />
+      </g>
+    );
+  }
+  if (selectedShape.type === "arrow") {
+    // draw at the top and tail or the arrow
+    return (
+      <g>
+        <circle
+          cx={selectedShape.point[0]}
+          cy={selectedShape.point[1]}
+          r={5}
+          fill="red"
+        />
+        <circle
+          cx={selectedShape.point[0] + selectedShape.size[0]}
+          cy={selectedShape.point[1] + selectedShape.size[1]}
+          r={5}
+          fill="red"
+        />
+      </g>
+    );
+  }
+  return null;
 }
