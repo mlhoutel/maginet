@@ -128,6 +128,12 @@ export default function Canvas() {
       size: [100, 100],
       type: "rectangle",
     },
+    d: {
+      id: "d",
+      point: [50, 70],
+      size: [100, 100],
+      type: "circle",
+    },
   });
   const [shapeInCreation, setShapeInCreation] = React.useState<{
     shape: Shape;
@@ -315,6 +321,7 @@ function SelectionPanel({
     <div className="selection-panel">
       <button onClick={() => setShapeType("rectangle")}>Rectangle</button>
       <button onClick={() => setShapeType("arrow")}>Arrow</button>
+      <button onClick={() => setShapeType("circle")}>Circle</button>
       <button
         onClick={() => {
           setMode((prev) => (prev === "create" ? "select" : "create"));
@@ -482,6 +489,39 @@ function Handles({
           />
         </>
       );
+    case "circle":
+      return (
+        <>
+          <Handle
+            id="handleAtTopLeft"
+            additionalClasses="handleAtTopLeft"
+            {...handleProps}
+            x={x - 5}
+            y={y - 5}
+          />
+          <Handle
+            id="handleAtTopRight"
+            additionalClasses="handleAtTopRight"
+            {...handleProps}
+            x={x + width - 5}
+            y={y - 5}
+          />
+          <Handle
+            id="handleAtBottomLeft"
+            additionalClasses="handleAtBottomLeft"
+            {...handleProps}
+            x={x - 5}
+            y={y + height - 5}
+          />
+          <Handle
+            id="handleAtBottomRight"
+            additionalClasses="handleAtBottomRight"
+            {...handleProps}
+            x={x + width - 5}
+            y={y + height - 5}
+          />
+        </>
+      );
   }
 
   return null;
@@ -491,6 +531,7 @@ function Handle({
   id,
   x,
   y,
+  additionalClasses,
   ...props
 }: {
   id: string;
@@ -501,11 +542,13 @@ function Handle({
   return (
     <rect
       id={id}
-      className={`handle ${props.additionalClasses || ""}`}
+      className={`handle ${additionalClasses || ""}`}
       fill="#fff"
       stroke="#000"
       {...props}
-      onClick={(e) => {e.stopPropagation();}}
+      onClick={(e) => {
+        e.stopPropagation();
+      }}
       x={x}
       y={y}
       width={10}

@@ -72,7 +72,7 @@ export function Shape({
   let width = shape.size[0];
   let height = shape.size[1];
 
-  if (shape.type === "rectangle") {
+  if (shape.type === "rectangle" || shape.type === "circle") {
     if (width < 0) {
       x = x + width;
       width = -width;
@@ -82,6 +82,9 @@ export function Shape({
       height = -height;
     }
   }
+
+  // handle negative width and height for ellipses
+  
 
   // take into account the angle of the arrow, its position, and size
   const lineAngle = Math.atan2(height, width);
@@ -106,12 +109,34 @@ export function Shape({
     />
   );
 
-  const drawArrowHead = true &&
+  const drawArrowHead =
+    true &&
     shape.type === "arrow" &&
     Math.abs(x) > arrowLength * 2 &&
     Math.abs(height) > arrowLength * 2;
 
   switch (shape.type) {
+    case "circle":
+      // x y is the top left corner of the bounding box
+      // width height is the width and height of the bounding box
+      return (
+        <ellipse
+          key={shape.id}
+          id={shape.id}
+          cx={x + width / 2}
+          cy={y + height / 2}
+          rx={width / 2}
+          ry={height / 2}
+          fill="rgba(0, 0, 0, 0.1)"
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+        />
+      );
+
     case "rectangle":
       // opacity background
       return (
@@ -123,7 +148,9 @@ export function Shape({
           width={width}
           height={height}
           fill="rgba(0, 0, 0, 0.1)"
-          onClick={(e) => {e.stopPropagation();}}
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -139,12 +166,13 @@ export function Shape({
             stroke="black"
             strokeWidth="5"
             fill="none"
-            onClick={(e) => {e.stopPropagation();}}
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
           />
-          {drawArrowHead && arrowHead}
         </>
       );
       throw new Error(`Unknown shape type: ${shape.type}`);
