@@ -17,6 +17,7 @@ export interface Shape {
   point: number[];
   size: number[];
   type: ShapeType;
+  rotation?: number;
 }
 
 type ShapeType = "rectangle" | "circle" | "arrow";
@@ -447,6 +448,7 @@ function Handles({
             {...handleProps}
             x={x - 5}
             y={y - 5}
+            selectedShape={selectedShape}
           />
           <Handle
             id="handleAtTopRight"
@@ -454,6 +456,7 @@ function Handles({
             {...handleProps}
             x={x + width - 5}
             y={y - 5}
+            selectedShape={selectedShape}
           />
           <Handle
             id="handleAtBottomLeft"
@@ -461,6 +464,7 @@ function Handles({
             {...handleProps}
             x={x - 5}
             y={y + height - 5}
+            selectedShape={selectedShape}
           />
           <Handle
             id="handleAtBottomRight"
@@ -468,6 +472,13 @@ function Handles({
             {...handleProps}
             x={x + width - 5}
             y={y + height - 5}
+            selectedShape={selectedShape}
+          />
+          <RotationHandle
+            selectedShape={selectedShape}
+            setShapes={setShapes}
+            camera={camera}
+            shapes={shapes}
           />
         </>
       );
@@ -477,6 +488,7 @@ function Handles({
           <Handle
             additionalClasses="handleArrow"
             id="handleAtTopLeft"
+            selectedShape={selectedShape}
             {...handleProps}
             x={x - 5}
             y={y - 5}
@@ -485,6 +497,7 @@ function Handles({
             id="handleAtBottomRight"
             additionalClasses="handleArrow"
             {...handleProps}
+            selectedShape={selectedShape}
             x={x + width - 5}
             y={y + height - 5}
           />
@@ -497,12 +510,14 @@ function Handles({
             id="handleAtTopLeft"
             additionalClasses="handleAtTopLeft"
             {...handleProps}
+            selectedShape={selectedShape}
             x={x - 5}
             y={y - 5}
           />
           <Handle
             id="handleAtTopRight"
             additionalClasses="handleAtTopRight"
+            selectedShape={selectedShape}
             {...handleProps}
             x={x + width - 5}
             y={y - 5}
@@ -510,6 +525,7 @@ function Handles({
           <Handle
             id="handleAtBottomLeft"
             additionalClasses="handleAtBottomLeft"
+            selectedShape={selectedShape}
             {...handleProps}
             x={x - 5}
             y={y + height - 5}
@@ -517,9 +533,16 @@ function Handles({
           <Handle
             id="handleAtBottomRight"
             additionalClasses="handleAtBottomRight"
+            selectedShape={selectedShape}
             {...handleProps}
             x={x + width - 5}
             y={y + height - 5}
+          />
+          <RotationHandle
+            selectedShape={selectedShape}
+            setShapes={setShapes}
+            camera={camera}
+            shapes={shapes}
           />
         </>
       );
@@ -528,24 +551,104 @@ function Handles({
   return null;
 }
 
+function RotationHandle({
+  selectedShape,
+  setShapes,
+  camera,
+  shapes,
+}: {
+  selectedShape: Shape | null;
+  setShapes: React.Dispatch<React.SetStateAction<Record<string, Shape>>>;
+  camera: Camera;
+  shapes: Record<string, Shape>;
+}) {
+  // user can rotate the shape by dragging the rotation handle
+  // rotation handle is a circle that is outside the shape
+  // rotation handle is only visible when the shape is selected
+  const rDragging = React.useRef<{
+    shape: Shape;
+  } | null>(null);
+
+  if (selectedShape === null) return null;
+  if (selectedShape.type === "arrow") return null;
+
+  const [x, y] = selectedShape.point;
+  const width = selectedShape.size[0];
+  const height = selectedShape.size[1];
+
+  const rotation = selectedShape.rotation || 0;
+
+  const transform = `rotate(${rotation} ${x + width / 2} ${y + height / 2})`;
+  return (
+    <circle
+      cx={x + width / 2}
+      cy={y - 20}
+      r={5}
+      transform={transform}
+      fill="transparent"
+      stroke="#000"
+      onPointerDown={(e) => {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        rDragging.current = {
+          shape: { ...selectedShape! },
+        };
+      }}
+      onPointerMove={(e) => {
+        const dragging = rDragging.current;
+
+        if (!dragging) return;
+
+        const shape = shapes[dragging.shape.id];
+        const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
+
+        const dx = x - (shape.point[0] + shape.size[0] / 2);
+        const dy = y - (shape.point[1] + shape.size[1] / 2);
+        const angle = Math.atan2(dy, dx);
+        const rotation = angle * (180 / Math.PI) + 90;
+
+        setShapes({
+          ...shapes,
+          [shape.id]: {
+            ...shape,
+            rotation,
+          },
+        });
+      }}
+      onPointerUp={(e) => {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+        rDragging.current = null;
+      }}
+    />
+  );
+}
+
 function Handle({
   id,
   x,
   y,
   additionalClasses,
+  selectedShape,
   ...props
 }: {
   id: string;
   x: number;
   y: number;
   additionalClasses?: string;
+  selectedShape: Shape;
 }) {
+  const rotate = selectedShape.rotation
+    ? `rotate(${selectedShape.rotation} ${
+        selectedShape.point[0] + selectedShape.size[0] / 2
+      } ${selectedShape.point[1] + selectedShape.size[1] / 2})`
+    : undefined;
+
   return (
     <rect
       id={id}
       className={`handle ${additionalClasses || ""}`}
       fill="#fff"
       stroke="#000"
+      transform={rotate}
       {...props}
       onClick={(e) => {
         e.stopPropagation();

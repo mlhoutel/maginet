@@ -127,6 +127,10 @@ export function Shape({
     onPointerUp,
   };
 
+  const rotate = shape.rotation
+    ? `rotate(${shape.rotation} ${x + width / 2} ${y + height / 2})`
+    : "";
+
   switch (shape.type) {
     case "circle":
       // x y is the top left corner of the bounding box
@@ -138,21 +142,24 @@ export function Shape({
           rx={width / 2}
           ry={height / 2}
           fill="rgba(0, 0, 0, 0.1)"
+          transform={rotate}
           {...shapeProps}
         />
       );
 
     case "rectangle":
-      // opacity background
       return (
+        <>
         <rect
           x={x}
           y={y}
           width={width}
           height={height}
+          transform={rotate}
           fill="rgba(0, 0, 0, 0.1)"
           {...shapeProps}
         />
+        </>
       );
     case "arrow":
       return (
