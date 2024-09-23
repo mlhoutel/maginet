@@ -17,9 +17,10 @@ export interface Shape {
   point: number[];
   size: number[];
   type: ShapeType;
+  text?: string; // Add text property
 }
 
-type ShapeType = "rectangle" | "circle" | "arrow";
+type ShapeType = "rectangle" | "circle" | "arrow" | "text";
 
 export const add = (a: number[], b: number[]) => [a[0] + b[0], a[1] + b[1]];
 export const sub = (a: number[], b: number[]) => [a[0] - b[0], a[1] - b[1]];
@@ -128,13 +129,20 @@ export default function Canvas() {
       size: [100, 100],
       type: "rectangle",
     },
+    d: {
+      id: "d",
+      point: [400, 100],
+      size: [100, 100],
+      type: "text",
+      text: "Hello, world!",
+    },
   });
   const [shapeInCreation, setShapeInCreation] = React.useState<{
     shape: Shape;
     origin: number[];
   } | null>(null);
 
-  const [mode, setMode] = React.useState<Mode>("create");
+  const [mode, setMode] = React.useState<Mode>("select");
   const [shapeType, setShapeType] = React.useState<ShapeType>("rectangle");
 
   function onPointerDownCanvas(e: React.PointerEvent<SVGElement>) {
@@ -142,15 +150,32 @@ export default function Canvas() {
     const point = [x, y];
     if (mode === "create") {
       e.currentTarget.setPointerCapture(e.pointerId);
-      setShapeInCreation({
-        shape: {
-          id: generateId(),
-          point,
-          size: [0, 0],
-          type: shapeType,
-        },
-        origin: point,
-      });
+      if (shapeType === "text") {
+        const text = prompt("Enter text:") || ""; // Prompt user for text
+        const textWidth = text.length * 10; // Assuming each character is 10 units wide
+        const textHeight = 100; // Assuming a fixed height for the text
+        const id = generateId();
+        setShapes({
+          ...shapes,
+          [id]: {
+            id,
+            point,
+            size: [textWidth, textHeight], // Dynamically calculating the size of the text
+            type: "text",
+            text,
+          },
+        });
+      } else {
+        setShapeInCreation({
+          shape: {
+            id: generateId(),
+            point,
+            size: [0, 0],
+            type: shapeType,
+          },
+          origin: point,
+        });
+      }
       return;
     }
   }
@@ -298,6 +323,8 @@ function SelectionPanel({
     <div className="selection-panel">
       <button onClick={() => setShapeType("rectangle")}>Rectangle</button>
       <button onClick={() => setShapeType("arrow")}>Arrow</button>
+      <button onClick={() => setShapeType("text")}>Text</button>{" "}
+      {/* Add Text button */}
       <button
         onClick={() => {
           setMode((prev) => (prev === "create" ? "select" : "create"));

@@ -30,6 +30,7 @@ export function Shape({
     const dragging = rDragging.current;
 
     if (!dragging) return;
+    console.log("dragging", dragging);
 
     const shape = shapes[dragging.shape.id];
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
@@ -55,6 +56,7 @@ export function Shape({
     e.currentTarget.setPointerCapture(e.pointerId);
 
     const id = e.currentTarget.id;
+
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
 
@@ -137,6 +139,21 @@ export function Shape({
           {drawArrowHead && arrowHead}
         </>
       );
+    case "text":
+      return (
+        <text
+          key={shape.id}
+          id={shape.id}
+          x={x}
+          y={y}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+        >
+          {shape.text}
+        </text>
+      );
+    default:
       throw new Error(`Unknown shape type: ${shape.type}`);
   }
 }

@@ -1,14 +1,11 @@
-import Canvas from './Canvas'
-import './index.css'
+import Canvas from "./Canvas";
+import "./index.css";
 function App() {
-
   return (
     <>
-      <Canvas/>
+      <Canvas />
     </>
-  )
+  );
 }
 
-
-
-export default App
+export default App;
