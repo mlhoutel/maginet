@@ -14,6 +14,7 @@ export function Shape({
   camera,
   rDragging,
   mode,
+  setEditingText,
 }: {
   shape: ShapeType;
   shapes: Record<string, ShapeType>;
@@ -24,6 +25,12 @@ export function Shape({
     shape: ShapeType;
     origin: number[];
   } | null>;
+  setEditingText: React.Dispatch<
+    React.SetStateAction<{
+      id: string;
+      text: string;
+    } | null>
+  >;
 }) {
   function onPointerMove(e: React.PointerEvent<SVGElement>) {
     if (mode !== "select") return;
@@ -81,30 +88,6 @@ export function Shape({
     }
   }
 
-  // take into account the angle of the arrow, its position, and size
-  const lineAngle = Math.atan2(height, width);
-  const arrowAngle = Math.PI / 8;
-  const arrowLength = 20;
-  const arrowHead = (
-    <path
-      key={shape.id + "-arrowhead"}
-      id={shape.id + "-arrowhead"}
-      d={`M ${x + width} ${y + height} L ${
-        x + width - arrowLength * Math.cos(lineAngle + arrowAngle)
-      } ${y + height - arrowLength * Math.sin(lineAngle + arrowAngle)} L ${
-        x + width - arrowLength * Math.cos(lineAngle - arrowAngle)
-      } ${y + height - arrowLength * Math.sin(lineAngle - arrowAngle)} Z`}
-      stroke="black"
-      strokeWidth="2"
-      fill="black"
-    />
-  );
-
-  const drawArrowHead =
-    shape.type === "arrow" &&
-    Math.abs(x) > arrowLength * 2 &&
-    Math.abs(height) > arrowLength * 2;
-
   switch (shape.type) {
     case "rectangle":
       // opacity background
@@ -136,7 +119,6 @@ export function Shape({
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
           />
-          {drawArrowHead && arrowHead}
         </>
       );
     case "text":
@@ -149,6 +131,9 @@ export function Shape({
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
+          onDoubleClick={() => {
+            setEditingText({ id: shape.id, text: shape.text! });
+          }}
         >
           {shape.text}
         </text>
