@@ -218,6 +218,7 @@ export default function Canvas() {
         [shapeInCreation.shape.id]: shapeInCreation.shape,
       });
       setShapeInCreation(null);
+      setMode("select");
     }
   };
   const [camera, setCamera] = React.useState({
@@ -279,6 +280,7 @@ export default function Canvas() {
 
   function onTextBlur() {
     setEditingText(null);
+    setMode("select");
   }
 
   return (
