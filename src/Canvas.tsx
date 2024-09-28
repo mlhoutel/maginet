@@ -20,6 +20,7 @@ export interface Shape {
   type: ShapeType;
   text?: string; // Add text property
   src?: string; // Add src property
+  rotation?: number; // Add rotation property
 }
 
 type ShapeType = "rectangle" | "circle" | "arrow" | "text" | "image";
@@ -106,6 +107,14 @@ function generateId() {
 
 export type Mode = "select" | "create";
 
+function rotateShape(shape: Shape, angle: number): Shape {
+  console.log("rotateShape", shape);
+  return {
+    ...shape,
+    rotation: (shape.rotation || 0) + angle,
+  };
+}
+
 export default function Canvas() {
   const ref = React.useRef<SVGSVGElement>(null);
   const rDragging = React.useRef<{
@@ -118,18 +127,21 @@ export default function Canvas() {
       point: [200, 200],
       size: [100, 100],
       type: "arrow",
+      rotation: 0,
     },
     b: {
       id: "b",
       point: [320, 200],
       size: [100, 100],
       type: "rectangle",
+      rotation: 0,
     },
     c: {
       id: "c",
       point: [50, 70],
       size: [100, 100],
       type: "rectangle",
+      rotation: 0,
     },
     d: {
       id: "d",
@@ -137,6 +149,7 @@ export default function Canvas() {
       size: [100, 100],
       type: "text",
       text: "Hello, world!",
+      rotation: 0,
     },
     e: {
       id: "e",
@@ -144,6 +157,7 @@ export default function Canvas() {
       size: [100, 100],
       type: "image",
       src: "https://cards.scryfall.io/normal/front/f/a/fab2d8a9-ab4c-4225-a570-22636293c17d.jpg?1654566563",
+      rotation: 0,
     },
   });
   const [shapeInCreation, setShapeInCreation] = React.useState<{
@@ -154,6 +168,7 @@ export default function Canvas() {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [mode, setMode] = React.useState<Mode>("select");
   const [shapeType, setShapeType] = React.useState<ShapeType>("rectangle");
+  const [selectedShape, setSelectedShape] = React.useState<Shape | null>(null);
 
   const [editingText, setEditingText] = React.useState<{
     id: string;
@@ -291,6 +306,28 @@ export default function Canvas() {
     setMode("select");
   }
 
+  function onRotateLeft() {
+    console.log("onRotateLeft", selectedShape);
+    if (mode === "select" && selectedShape) {
+      const shape = shapes[selectedShape.id];
+      setShapes({
+        ...shapes,
+        [shape.id]: rotateShape(shape, -15),
+      });
+    }
+  }
+
+  function onRotateRight() {
+    console.log("onRotateRight", selectedShape);
+    if (mode === "select" && selectedShape) {
+      const shape = shapes[selectedShape.id];
+      setShapes({
+        ...shapes,
+        [shape.id]: rotateShape(shape, 15),
+      });
+    }
+  }
+
   return (
     <div>
       <svg
@@ -309,7 +346,9 @@ export default function Canvas() {
               setEditingText={setEditingText}
               camera={camera}
               mode={mode}
+              onSelectShape={setSelectedShape}
               rDragging={rDragging}
+              selectedShape={selectedShape}
             />
           ))}
           {shapeInCreation && (
@@ -322,6 +361,8 @@ export default function Canvas() {
               camera={camera}
               mode={mode}
               rDragging={rDragging}
+              onSelectShape={setSelectedShape}
+              selectedShape={selectedShape}
             />
           )}
           {editingText && (
@@ -349,6 +390,8 @@ export default function Canvas() {
           mode={mode}
           setShapeType={setShapeType}
           shapeType={shapeType}
+          onRotateLeft={onRotateLeft}
+          onRotateRight={onRotateRight}
         />
       </div>
     </div>
@@ -362,12 +405,16 @@ function SelectionPanel({
   mode,
   shapeType,
   setShapeType,
+  onRotateLeft,
+  onRotateRight,
 }: {
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
   setMode: React.Dispatch<React.SetStateAction<Mode>>;
   mode: Mode;
   shapeType: ShapeType;
   setShapeType: React.Dispatch<React.SetStateAction<ShapeType>>;
+  onRotateLeft: () => void;
+  onRotateRight: () => void;
 }) {
   return (
     <div className="selection-panel">
@@ -379,6 +426,7 @@ function SelectionPanel({
         <option value="circle">Circle</option>
         <option value="arrow">Arrow</option>
         <option value="text">Text</option>
+        <option value="image">Image</option>
       </select>
       <button
         disabled={mode === "create"}
@@ -393,6 +441,8 @@ function SelectionPanel({
       </button>
       <button onClick={() => setCamera(zoomIn)}>Zoom In</button>
       <button onClick={() => setCamera(zoomOut)}>Zoom Out</button>
+      <button onClick={onRotateLeft}>Rotate Left</button>
+      <button onClick={onRotateRight}>Rotate Right</button>
     </div>
   );
 }

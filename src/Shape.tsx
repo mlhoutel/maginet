@@ -15,6 +15,8 @@ export function Shape({
   rDragging,
   mode,
   setEditingText,
+  selectedShape,
+  onSelectShape,
 }: {
   shape: ShapeType;
   shapes: Record<string, ShapeType>;
@@ -31,6 +33,8 @@ export function Shape({
       text: string;
     } | null>
   >;
+  selectedShape: ShapeType | null;
+  onSelectShape: React.Dispatch<React.SetStateAction<ShapeType | null>>;
 }) {
   function onPointerMove(e: React.PointerEvent<SVGElement>) {
     if (mode !== "select") return;
@@ -87,6 +91,9 @@ export function Shape({
       height = -height;
     }
   }
+  const rotate = shape.rotation
+    ? `rotate(${shape.rotation} ${x + width / 2} ${y + height / 2})`
+    : "";
 
   switch (shape.type) {
     case "rectangle":
@@ -100,9 +107,13 @@ export function Shape({
           width={width}
           height={height}
           fill="rgba(0, 0, 0, 0.1)"
+          transform={rotate}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
+          onClick={() => {
+            onSelectShape(shape);
+          }}
         />
       );
     case "arrow":
@@ -112,12 +123,16 @@ export function Shape({
             key={shape.id}
             id={shape.id}
             d={`M ${x} ${y} L ${x + width} ${y + height}`}
+            transform={rotate}
             stroke="black"
             strokeWidth="2"
             fill="none"
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
+            onClick={() => {
+              onSelectShape(shape);
+            }}
           />
         </>
       );
@@ -129,8 +144,12 @@ export function Shape({
           x={x}
           y={y}
           onPointerDown={onPointerDown}
+          transform={rotate}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
+          onClick={() => {
+            onSelectShape(shape);
+          }}
           onDoubleClick={() => {
             setEditingText({ id: shape.id, text: shape.text! });
           }}
@@ -148,9 +167,13 @@ export function Shape({
           width={width}
           height={height}
           href={shape.src}
+          transform={rotate}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
+          onClick={() => {
+            onSelectShape(shape);
+          }}
         />
       );
     default:
