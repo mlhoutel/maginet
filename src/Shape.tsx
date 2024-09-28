@@ -138,6 +138,21 @@ export function Shape({
           {shape.text}
         </text>
       );
+    case "image":
+      return (
+        <image
+          key={shape.id}
+          id={shape.id}
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          href={shape.src}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+        />
+      );
     default:
       throw new Error(`Unknown shape type: ${shape.type}`);
   }

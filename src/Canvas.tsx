@@ -19,9 +19,10 @@ export interface Shape {
   size: number[];
   type: ShapeType;
   text?: string; // Add text property
+  src?: string; // Add src property
 }
 
-type ShapeType = "rectangle" | "circle" | "arrow" | "text";
+type ShapeType = "rectangle" | "circle" | "arrow" | "text" | "image";
 
 export const add = (a: number[], b: number[]) => [a[0] + b[0], a[1] + b[1]];
 export const sub = (a: number[], b: number[]) => [a[0] - b[0], a[1] - b[1]];
@@ -136,6 +137,13 @@ export default function Canvas() {
       size: [100, 100],
       type: "text",
       text: "Hello, world!",
+    },
+    e: {
+      id: "e",
+      point: [400, 100],
+      size: [100, 100],
+      type: "image",
+      src: "https://cards.scryfall.io/normal/front/f/a/fab2d8a9-ab4c-4225-a570-22636293c17d.jpg?1654566563",
     },
   });
   const [shapeInCreation, setShapeInCreation] = React.useState<{
