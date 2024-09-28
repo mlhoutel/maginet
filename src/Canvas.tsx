@@ -35,37 +35,6 @@ export function screenToCanvas(point: Point, camera: Camera): Point {
   };
 }
 
-// Remove the unused canvasToScreen function
-// function canvasToScreen(point: Point, camera: Camera): Point {
-//   return {
-//     x: (point.x - camera.x) * camera.z,
-//     y: (point.y - camera.y) * camera.z,
-//   };
-// }
-
-// interface Box {
-//   minX: number;
-//   minY: number;
-//   maxX: number;
-//   maxY: number;
-//   width: number;
-//   height: number;
-// }
-
-// function getViewport(camera: Camera, box: Box): Box {
-//   const topLeft = screenToCanvas({ x: box.minX, y: box.minY }, camera);
-//   const bottomRight = screenToCanvas({ x: box.maxX, y: box.maxY }, camera);
-
-//   return {
-//     minX: topLeft.x,
-//     minY: topLeft.y,
-//     maxX: bottomRight.x,
-//     maxY: bottomRight.y,
-//     height: bottomRight.x - topLeft.x,
-//     width: bottomRight.y - topLeft.y,
-//   };
-// }
-
 function panCamera(camera: Camera, dx: number, dy: number): Camera {
   return {
     x: camera.x - dx / camera.z,
@@ -168,11 +137,18 @@ export default function Canvas() {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [mode, setMode] = React.useState<Mode>("select");
   const [shapeType, setShapeType] = React.useState<ShapeType>("rectangle");
-  const [selectedShape, setSelectedShape] = React.useState<Shape | null>(null);
+  const [selectedShapeId, setSelectedShapeId] = React.useState<string | null>(
+    null
+  );
 
   const [editingText, setEditingText] = React.useState<{
     id: string;
     text: string;
+  } | null>(null);
+
+  const [selectionRect, setSelectionRect] = React.useState<{
+    start: Point;
+    end: Point;
   } | null>(null);
 
   function onPointerDownCanvas(e: React.PointerEvent<SVGElement>) {
@@ -208,12 +184,18 @@ export default function Canvas() {
         });
       }
       return;
+    } else if (mode === "select" && !rDragging.current) {
+      setSelectionRect({
+        start: { x, y },
+        end: { x, y },
+      });
     }
   }
 
   function onPointerMoveCanvas(e: React.PointerEvent<SVGElement>) {
+    const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
+
     if (mode === "create" && shapeInCreation) {
-      const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
       const point = [x, y];
       const localShapeInCreation = {
         ...shapeInCreation,
@@ -229,6 +211,11 @@ export default function Canvas() {
         },
       });
       return;
+    } else if (mode === "select" && selectionRect) {
+      setSelectionRect({
+        ...selectionRect,
+        end: { x, y },
+      });
     }
   }
 
@@ -242,8 +229,36 @@ export default function Canvas() {
       });
       setShapeInCreation(null);
       setMode("select");
+    } else if (mode === "select" && selectionRect) {
+      const { start, end } = selectionRect;
+      const rect = {
+        x: Math.min(start.x, end.x),
+        y: Math.min(start.y, end.y),
+        width: Math.abs(start.x - end.x),
+        height: Math.abs(start.y - end.y),
+      };
+
+      const selectedShapes = Object.values(shapes).filter((shape) => {
+        const [shapeX, shapeY] = shape.point;
+        const [shapeWidth, shapeHeight] = shape.size;
+        return (
+          shapeX >= rect.x &&
+          shapeY >= rect.y &&
+          shapeX + shapeWidth <= rect.x + rect.width &&
+          shapeY + shapeHeight <= rect.y + rect.height
+        );
+      });
+
+      console.log("selectedShapes", selectedShapes);
+
+      if (selectedShapes.length > 0) {
+        setSelectedShapeId(selectedShapes[0].id);
+      }
+
+      setSelectionRect(null);
     }
   };
+
   const [camera, setCamera] = React.useState({
     x: 0,
     y: 0,
@@ -277,15 +292,6 @@ export default function Canvas() {
 
   const transform = `scale(${camera.z}) translate(${camera.x}px, ${camera.y}px)`;
 
-  // const viewport = getViewport(camera, {
-  //   minX: 0,
-  //   minY: 0,
-  //   maxX: window.innerWidth,
-  //   maxY: window.innerHeight,
-  //   width: window.innerWidth,
-  //   height: window.innerHeight,
-  // });
-
   function onTextChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (editingText) {
       const updatedText = e.target.value;
@@ -307,9 +313,9 @@ export default function Canvas() {
   }
 
   function onRotateLeft() {
-    console.log("onRotateLeft", selectedShape);
-    if (mode === "select" && selectedShape) {
-      const shape = shapes[selectedShape.id];
+    console.log("onRotateLeft", selectedShapeId);
+    if (mode === "select" && selectedShapeId) {
+      const shape = shapes[selectedShapeId];
       setShapes({
         ...shapes,
         [shape.id]: rotateShape(shape, -15),
@@ -318,12 +324,32 @@ export default function Canvas() {
   }
 
   function onRotateRight() {
-    console.log("onRotateRight", selectedShape);
-    if (mode === "select" && selectedShape) {
-      const shape = shapes[selectedShape.id];
+    console.log("onRotateRight", selectedShapeId);
+    if (mode === "select" && selectedShapeId) {
+      const shape = shapes[selectedShapeId];
       setShapes({
         ...shapes,
         [shape.id]: rotateShape(shape, 15),
+      });
+    }
+  }
+
+  function onSizeChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const newSize = parseInt(e.target.value, 10);
+    if (selectedShapeId && !isNaN(newSize)) {
+      const shape = shapes[selectedShapeId];
+      const [x, y] = shape.point;
+      const [width, height] = shape.size;
+      const deltaX = (newSize - width) / 2;
+      const deltaY = (newSize - height) / 2;
+
+      setShapes({
+        ...shapes,
+        [shape.id]: {
+          ...shape,
+          point: [x - deltaX, y - deltaY], // Adjust the point to keep the anchor the same
+          size: [newSize, newSize], // Assuming square shapes for simplicity
+        },
       });
     }
   }
@@ -346,9 +372,9 @@ export default function Canvas() {
               setEditingText={setEditingText}
               camera={camera}
               mode={mode}
-              onSelectShape={setSelectedShape}
+              onSelectShapeId={setSelectedShapeId}
               rDragging={rDragging}
-              selectedShape={selectedShape}
+              selectedShapeId={selectedShapeId}
             />
           ))}
           {shapeInCreation && (
@@ -361,8 +387,8 @@ export default function Canvas() {
               camera={camera}
               mode={mode}
               rDragging={rDragging}
-              onSelectShape={setSelectedShape}
-              selectedShape={selectedShape}
+              onSelectShapeId={setSelectedShapeId}
+              selectedShapeId={selectedShapeId}
             />
           )}
           {editingText && (
@@ -381,6 +407,16 @@ export default function Canvas() {
               />
             </foreignObject>
           )}
+          {selectionRect && (
+            <rect
+              x={Math.min(selectionRect.start.x, selectionRect.end.x)}
+              y={Math.min(selectionRect.start.y, selectionRect.end.y)}
+              width={Math.abs(selectionRect.start.x - selectionRect.end.x)}
+              height={Math.abs(selectionRect.start.y - selectionRect.end.y)}
+              fill="rgba(0, 0, 255, 0.3)"
+              stroke="blue"
+            />
+          )}
         </g>
       </svg>
       <div>
@@ -392,6 +428,9 @@ export default function Canvas() {
           shapeType={shapeType}
           onRotateLeft={onRotateLeft}
           onRotateRight={onRotateRight}
+          sizeInput={selectedShapeId ? shapes[selectedShapeId].size[1] : 0}
+          onSizeChange={onSizeChange}
+          key={selectedShapeId ?? "none"}
         />
       </div>
     </div>
@@ -407,6 +446,8 @@ function SelectionPanel({
   setShapeType,
   onRotateLeft,
   onRotateRight,
+  sizeInput,
+  onSizeChange,
 }: {
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
   setMode: React.Dispatch<React.SetStateAction<Mode>>;
@@ -415,6 +456,8 @@ function SelectionPanel({
   setShapeType: React.Dispatch<React.SetStateAction<ShapeType>>;
   onRotateLeft: () => void;
   onRotateRight: () => void;
+  sizeInput: number | null;
+  onSizeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
     <div className="selection-panel">
@@ -443,6 +486,14 @@ function SelectionPanel({
       <button onClick={() => setCamera(zoomOut)}>Zoom Out</button>
       <button onClick={onRotateLeft}>Rotate Left</button>
       <button onClick={onRotateRight}>Rotate Right</button>
+      <input
+        type="range"
+        min="10"
+        max="500"
+        value={sizeInput ?? 0}
+        onChange={onSizeChange}
+        placeholder="Size"
+      />
     </div>
   );
 }

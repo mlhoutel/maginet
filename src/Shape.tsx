@@ -15,8 +15,8 @@ export function Shape({
   rDragging,
   mode,
   setEditingText,
-  selectedShape,
-  onSelectShape,
+  onSelectShapeId,
+  selectedShapeId,
 }: {
   shape: ShapeType;
   shapes: Record<string, ShapeType>;
@@ -33,8 +33,8 @@ export function Shape({
       text: string;
     } | null>
   >;
-  selectedShape: ShapeType | null;
-  onSelectShape: React.Dispatch<React.SetStateAction<ShapeType | null>>;
+  onSelectShapeId: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedShapeId: string | null;
 }) {
   function onPointerMove(e: React.PointerEvent<SVGElement>) {
     if (mode !== "select") return;
@@ -81,7 +81,7 @@ export function Shape({
   let width = shape.size[0];
   let height = shape.size[1];
 
-  if (shape.type === "rectangle") {
+  if (shape.type === "rectangle" || shape.type === "circle") {
     if (width < 0) {
       x = x + width;
       width = -width;
@@ -94,6 +94,14 @@ export function Shape({
   const rotate = shape.rotation
     ? `rotate(${shape.rotation} ${x + width / 2} ${y + height / 2})`
     : "";
+  const textX = x + width / 2;
+  const textY = y + height / 2;
+  const textRotate = shape.rotation
+    ? `rotate(${shape.rotation} ${textX} ${textY})`
+    : "";
+
+  const isSelected = shape.id === selectedShapeId;
+  const selectedStyle = isSelected ? { stroke: "blue", strokeWidth: 2 } : {};
 
   switch (shape.type) {
     case "rectangle":
@@ -112,8 +120,9 @@ export function Shape({
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onClick={() => {
-            onSelectShape(shape);
+            onSelectShapeId(shape.id);
           }}
+          {...selectedStyle}
         />
       );
     case "arrow":
@@ -131,8 +140,9 @@ export function Shape({
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onClick={() => {
-              onSelectShape(shape);
+              onSelectShapeId(shape.id);
             }}
+            {...selectedStyle}
           />
         </>
       );
@@ -141,18 +151,21 @@ export function Shape({
         <text
           key={shape.id}
           id={shape.id}
-          x={x}
-          y={y}
+          x={textX}
+          y={textY}
           onPointerDown={onPointerDown}
-          transform={rotate}
+          transform={textRotate}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onClick={() => {
-            onSelectShape(shape);
+            onSelectShapeId(shape.id);
           }}
           onDoubleClick={() => {
             setEditingText({ id: shape.id, text: shape.text! });
           }}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          {...selectedStyle}
         >
           {shape.text}
         </text>
@@ -172,8 +185,29 @@ export function Shape({
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onClick={() => {
-            onSelectShape(shape);
+            onSelectShapeId(shape.id);
           }}
+          {...selectedStyle}
+        />
+      );
+    case "circle":
+      return (
+        <ellipse
+          key={shape.id}
+          id={shape.id}
+          cx={x + width / 2}
+          cy={y + height / 2}
+          rx={width / 2}
+          ry={height / 2}
+          fill="rgba(0, 0, 0, 0.1)"
+          transform={rotate}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onClick={() => {
+            onSelectShapeId(shape.id);
+          }}
+          {...selectedStyle}
         />
       );
     default:
