@@ -1,8 +1,9 @@
 import * as React from "react";
 import { Shape as ShapeComponent } from "./Shape";
 import "./Canvas.css";
+import { screenToCanvas, sub } from "./utils/vec";
 
-interface Point {
+export interface Point {
   x: number;
   y: number;
 }
@@ -24,16 +25,6 @@ export interface Shape {
 }
 
 type ShapeType = "rectangle" | "circle" | "arrow" | "text" | "image";
-
-export const add = (a: number[], b: number[]) => [a[0] + b[0], a[1] + b[1]];
-export const sub = (a: number[], b: number[]) => [a[0] - b[0], a[1] - b[1]];
-
-export function screenToCanvas(point: Point, camera: Camera): Point {
-  return {
-    x: point.x / camera.z - camera.x,
-    y: point.y / camera.z - camera.y,
-  };
-}
 
 function panCamera(camera: Camera, dx: number, dy: number): Camera {
   return {
@@ -137,9 +128,7 @@ export default function Canvas() {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [mode, setMode] = React.useState<Mode>("select");
   const [shapeType, setShapeType] = React.useState<ShapeType>("rectangle");
-  const [selectedShapeId, setSelectedShapeId] = React.useState<string | null>(
-    null
-  );
+  const [selectedShapeIds, setSelectedShapeIds] = React.useState<string[]>([]);
 
   const [editingText, setEditingText] = React.useState<{
     id: string;
@@ -252,7 +241,7 @@ export default function Canvas() {
       console.log("selectedShapes", selectedShapes);
 
       if (selectedShapes.length > 0) {
-        setSelectedShapeId(selectedShapes[0].id);
+        setSelectedShapeIds(selectedShapes.map((shape) => shape.id));
       }
 
       setSelectionRect(null);
@@ -313,44 +302,48 @@ export default function Canvas() {
   }
 
   function onRotateLeft() {
-    console.log("onRotateLeft", selectedShapeId);
-    if (mode === "select" && selectedShapeId) {
-      const shape = shapes[selectedShapeId];
-      setShapes({
-        ...shapes,
-        [shape.id]: rotateShape(shape, -15),
-      });
+    if (mode === "select" && selectedShapeIds.length > 0) {
+      for (const id of selectedShapeIds) {
+        const shape = shapes[id];
+        setShapes((prevShapes) => ({
+          ...prevShapes,
+          [shape.id]: rotateShape(shape, -15),
+        }));
+      }
     }
   }
 
   function onRotateRight() {
-    console.log("onRotateRight", selectedShapeId);
-    if (mode === "select" && selectedShapeId) {
-      const shape = shapes[selectedShapeId];
-      setShapes({
-        ...shapes,
-        [shape.id]: rotateShape(shape, 15),
-      });
+    if (mode === "select" && selectedShapeIds.length > 0) {
+      for (const id of selectedShapeIds) {
+        const shape = shapes[id];
+        setShapes((prevShapes) => ({
+          ...prevShapes,
+          [shape.id]: rotateShape(shape, 15),
+        }));
+      }
     }
   }
 
   function onSizeChange(e: React.ChangeEvent<HTMLInputElement>) {
     const newSize = parseInt(e.target.value, 10);
-    if (selectedShapeId && !isNaN(newSize)) {
-      const shape = shapes[selectedShapeId];
-      const [x, y] = shape.point;
-      const [width, height] = shape.size;
-      const deltaX = (newSize - width) / 2;
-      const deltaY = (newSize - height) / 2;
+    if (selectedShapeIds.length > 0 && !isNaN(newSize)) {
+      for (const id of selectedShapeIds) {
+        const shape = shapes[id];
+        const [x, y] = shape.point;
+        const [width, height] = shape.size;
+        const deltaX = (newSize - width) / 2;
+        const deltaY = (newSize - height) / 2;
 
-      setShapes({
-        ...shapes,
-        [shape.id]: {
-          ...shape,
-          point: [x - deltaX, y - deltaY], // Adjust the point to keep the anchor the same
-          size: [newSize, newSize], // Assuming square shapes for simplicity
-        },
-      });
+        setShapes((prevShapes) => ({
+          ...prevShapes,
+          [shape.id]: {
+            ...shape,
+            point: [x - deltaX, y - deltaY], // Adjust the point to keep the anchor the same
+            size: [newSize, newSize], // Assuming square shapes for simplicity
+          },
+        }));
+      }
     }
   }
 
@@ -372,9 +365,9 @@ export default function Canvas() {
               setEditingText={setEditingText}
               camera={camera}
               mode={mode}
-              onSelectShapeId={setSelectedShapeId}
+              onSelectShapeId={setSelectedShapeIds}
               rDragging={rDragging}
-              selectedShapeId={selectedShapeId}
+              selectedShapeIds={selectedShapeIds}
             />
           ))}
           {shapeInCreation && (
@@ -387,8 +380,8 @@ export default function Canvas() {
               camera={camera}
               mode={mode}
               rDragging={rDragging}
-              onSelectShapeId={setSelectedShapeId}
-              selectedShapeId={selectedShapeId}
+              onSelectShapeId={setSelectedShapeIds}
+              selectedShapeIds={selectedShapeIds}
             />
           )}
           {editingText && (
@@ -428,9 +421,13 @@ export default function Canvas() {
           shapeType={shapeType}
           onRotateLeft={onRotateLeft}
           onRotateRight={onRotateRight}
-          sizeInput={selectedShapeId ? shapes[selectedShapeId].size[1] : 0}
+          sizeInput={
+            selectedShapeIds.length > 0
+              ? shapes[selectedShapeIds[0]].size[1]
+              : 0
+          }
           onSizeChange={onSizeChange}
-          key={selectedShapeId ?? "none"}
+          key={selectedShapeIds.length > 0 ? selectedShapeIds[0] : "none"}
         />
       </div>
     </div>

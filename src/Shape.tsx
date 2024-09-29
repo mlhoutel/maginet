@@ -1,11 +1,6 @@
-import {
-  Camera,
-  Mode,
-  Shape as ShapeType,
-  add,
-  screenToCanvas,
-  sub,
-} from "./Canvas";
+import { useRef } from "react";
+import { Camera, Mode, Shape as ShapeType } from "./Canvas";
+import { add, screenToCanvas, sub } from "./utils/vec";
 
 export function Shape({
   shape,
@@ -16,7 +11,7 @@ export function Shape({
   mode,
   setEditingText,
   onSelectShapeId,
-  selectedShapeId,
+  selectedShapeIds,
 }: {
   shape: ShapeType;
   shapes: Record<string, ShapeType>;
@@ -33,33 +28,46 @@ export function Shape({
       text: string;
     } | null>
   >;
-  onSelectShapeId: React.Dispatch<React.SetStateAction<string | null>>;
-  selectedShapeId: string | null;
+  onSelectShapeId: React.Dispatch<React.SetStateAction<string[]>>;
+  selectedShapeIds: string[];
 }) {
+  const draggingShapeRefs = useRef<Record<string, ShapeType>>({});
+
   function onPointerMove(e: React.PointerEvent<SVGElement>) {
     if (mode !== "select") return;
     const dragging = rDragging.current;
 
     if (!dragging) return;
-    console.log("dragging", dragging);
 
     const shape = shapes[dragging.shape.id];
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
     const delta = sub(point, dragging.origin);
 
-    setShapes({
-      ...shapes,
+    setShapes((prevShapes) => ({
+      ...prevShapes,
       [shape.id]: {
         ...shape,
         point: add(dragging.shape.point, delta),
       },
+    }));
+    console.log(draggingShapeRefs.current);
+    setShapes((prevShapes) => {
+      const newShapes = { ...prevShapes };
+      for (const id in draggingShapeRefs.current) {
+        newShapes[id] = {
+          ...newShapes[id],
+          point: add(draggingShapeRefs.current[id].point, delta),
+        };
+      }
+      return newShapes;
     });
   }
 
   const onPointerUp = (e: React.PointerEvent<SVGElement>) => {
     e.currentTarget.releasePointerCapture(e.pointerId);
     rDragging.current = null;
+    draggingShapeRefs.current = {};
   };
 
   function onPointerDown(e: React.PointerEvent<SVGElement>) {
@@ -75,6 +83,9 @@ export function Shape({
       shape: { ...shapes[id] },
       origin: point,
     };
+    selectedShapeIds.forEach((id) => {
+      draggingShapeRefs.current[id] = shapes[id];
+    });
   }
 
   let [x, y] = shape.point;
@@ -100,7 +111,7 @@ export function Shape({
     ? `rotate(${shape.rotation} ${textX} ${textY})`
     : "";
 
-  const isSelected = shape.id === selectedShapeId;
+  const isSelected = selectedShapeIds.includes(shape.id);
   const selectedStyle = isSelected ? { stroke: "blue", strokeWidth: 2 } : {};
 
   switch (shape.type) {
@@ -120,7 +131,7 @@ export function Shape({
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onClick={() => {
-            onSelectShapeId(shape.id);
+            onSelectShapeId([shape.id]);
           }}
           {...selectedStyle}
         />
@@ -140,7 +151,7 @@ export function Shape({
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onClick={() => {
-              onSelectShapeId(shape.id);
+              onSelectShapeId([shape.id]);
             }}
             {...selectedStyle}
           />
@@ -158,7 +169,7 @@ export function Shape({
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onClick={() => {
-            onSelectShapeId(shape.id);
+            onSelectShapeId([shape.id]);
           }}
           onDoubleClick={() => {
             setEditingText({ id: shape.id, text: shape.text! });
@@ -185,7 +196,7 @@ export function Shape({
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onClick={() => {
-            onSelectShapeId(shape.id);
+            onSelectShapeId([shape.id]);
           }}
           {...selectedStyle}
         />
@@ -205,7 +216,7 @@ export function Shape({
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onClick={() => {
-            onSelectShapeId(shape.id);
+            onSelectShapeId([shape.id]);
           }}
           {...selectedStyle}
         />
