@@ -12,6 +12,7 @@ export function Shape({
   setEditingText,
   onSelectShapeId,
   selectedShapeIds,
+  setHoveredCard,
 }: {
   shape: ShapeType;
   shapes: Record<string, ShapeType>;
@@ -30,6 +31,7 @@ export function Shape({
   >;
   onSelectShapeId: React.Dispatch<React.SetStateAction<string[]>>;
   selectedShapeIds: string[];
+  setHoveredCard: React.Dispatch<React.SetStateAction<string | null>>;
 }) {
   // capture the shapes at the start of the drag to move them as a group
   const draggingShapeRefs = useRef<Record<string, ShapeType>>({});
@@ -189,15 +191,8 @@ export function Shape({
       );
     case "image":
       return (
-        <image
-          key={shape.id}
+        <g
           id={shape.id}
-          x={x}
-          y={y}
-          width={width}
-          height={height}
-          href={shape.src}
-          transform={rotate}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -205,8 +200,25 @@ export function Shape({
             onSelectShapeId([shape.id]);
             draggingShapeRefs.current = {};
           }}
-          {...selectedStyle}
-        />
+          key={shape.id}
+          onMouseEnter={() =>
+            shape.type === "image" && setHoveredCard(shape.src!)
+          }
+          onMouseLeave={() => shape.type === "image" && setHoveredCard(null)}
+        >
+          <image
+            href={
+              shape.isFlipped ? "https://i.imgur.com/LdOBU1I.jpeg" : shape.src
+            }
+            x={shape.point[0]}
+            y={shape.point[1]}
+            width={shape.size[0]}
+            height={shape.size[1]}
+            transform={`rotate(${shape.rotation || 0}, ${
+              shape.point[0] + shape.size[0] / 2
+            }, ${shape.point[1] + shape.size[1] / 2})`}
+          />
+        </g>
       );
     case "circle":
       return (

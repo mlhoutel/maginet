@@ -1,28 +1,23 @@
-import React from "react";
+import * as React from "react";
 import { Card } from "./Canvas";
 
-export default function Hand({
-  cards,
-}: {
+interface HandProps {
   cards: Card[];
-  setCards: React.Dispatch<React.SetStateAction<Card[]>>;
-}) {
-  const handleDragStart = (
-    e: React.DragEvent<HTMLImageElement>,
-    cardSrc: string
-  ) => {
-    e.dataTransfer.setData("text/plain", cardSrc);
-  };
+  setHoveredCard: React.Dispatch<React.SetStateAction<string | null>>;
+}
 
+export default function Hand({ cards, setHoveredCard }: HandProps) {
   return (
     <div className="hand">
-      {cards.map((card, index) => (
+      {cards.map((card) => (
         <img
-          key={index}
+          key={card.id}
           src={card.src}
-          alt={`Card ${index}`}
+          alt={`Card ${card.id}`}
           draggable
-          onDragStart={(e) => handleDragStart(e, card.src)}
+          onDragStart={(e) => e.dataTransfer.setData("text/plain", card.src)}
+          onMouseEnter={() => setHoveredCard(card.src)}
+          onMouseLeave={() => setHoveredCard(null)}
         />
       ))}
     </div>

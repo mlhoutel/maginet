@@ -3,6 +3,7 @@ import { Shape as ShapeComponent } from "./Shape";
 import "./Canvas.css";
 import { screenToCanvas, sub } from "./utils/vec";
 import Hand from "./Hand";
+import ContextMenu from "./ContextMenu";
 
 export interface Point {
   x: number;
@@ -25,9 +26,10 @@ export interface Shape {
   point: number[];
   size: number[];
   type: ShapeType;
-  text?: string; // Add text property
-  src?: string; // Add src property
-  rotation?: number; // Add rotation property
+  text?: string;
+  src?: string;
+  rotation?: number;
+  isFlipped?: boolean;
 }
 
 type ShapeType = "rectangle" | "circle" | "arrow" | "text" | "image";
@@ -151,6 +153,28 @@ export default function Canvas() {
     start: Point;
     end: Point;
   } | null>(null);
+
+  const [hoveredCard, setHoveredCard] = React.useState<string | null>(null);
+  const [isCommandPressed, setIsCommandPressed] = React.useState(false);
+
+  function flipShape(shape: Shape): Shape {
+    return {
+      ...shape,
+      isFlipped: !shape.isFlipped,
+    };
+  }
+
+  function onFlip() {
+    if (mode === "select" && selectedShapeIds.length > 0) {
+      for (const id of selectedShapeIds) {
+        const shape = shapes[id];
+        setShapes((prevShapes) => ({
+          ...prevShapes,
+          [shape.id]: flipShape(shape),
+        }));
+      }
+    }
+  }
 
   function onPointerDownCanvas(e: React.PointerEvent<SVGElement>) {
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
@@ -291,6 +315,28 @@ export default function Canvas() {
     };
   }, [ref]);
 
+  React.useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Meta") {
+        setIsCommandPressed(true);
+      }
+    }
+
+    function handleKeyUp(event: KeyboardEvent) {
+      if (event.key === "Meta") {
+        setIsCommandPressed(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
+
   const transform = `scale(${camera.z}) translate(${camera.x}px, ${camera.y}px)`;
 
   function onTextChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -364,6 +410,7 @@ export default function Canvas() {
     const cardSrc = e.dataTransfer.getData("text/plain");
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const id = generateId();
+    setCards((prevCards) => prevCards.filter((card) => card.src !== cardSrc));
 
     setShapes((prevShapes) => ({
       ...prevShapes,
@@ -380,73 +427,81 @@ export default function Canvas() {
 
   return (
     <div>
-      <svg
-        ref={ref}
-        onPointerDown={onPointerDownCanvas}
-        onPointerMove={onPointerMoveCanvas}
-        onPointerUp={onPointerUpCanvas}
-        onDrop={handleDrop} // Add onDrop event
-        onDragOver={(e) => e.preventDefault()} // Allow drop
+      <ContextMenu
+        onRotateLeft={onRotateLeft}
+        onRotateRight={onRotateRight}
+        onFlip={onFlip}
       >
-        <g style={{ transform }}>
-          {Object.values(shapes)
-            .filter((shape) => shape.id !== editingText?.id)
-            .map((shape) => (
+        <svg
+          ref={ref}
+          onPointerDown={onPointerDownCanvas}
+          onPointerMove={onPointerMoveCanvas}
+          onPointerUp={onPointerUpCanvas}
+          onDrop={handleDrop}
+          onDragOver={(e) => e.preventDefault()}
+        >
+          <g style={{ transform }}>
+            {Object.values(shapes)
+              .filter((shape) => shape.id !== editingText?.id)
+              .map((shape) => (
+                <ShapeComponent
+                  key={shape.id}
+                  shape={shape}
+                  shapes={shapes}
+                  setShapes={setShapes}
+                  setEditingText={setEditingText}
+                  camera={camera}
+                  mode={mode}
+                  onSelectShapeId={setSelectedShapeIds}
+                  rDragging={rDragging}
+                  selectedShapeIds={selectedShapeIds}
+                  setHoveredCard={setHoveredCard} // Pass the function here
+                />
+              ))}
+            {shapeInCreation && (
               <ShapeComponent
-                key={shape.id}
-                shape={shape}
+                setEditingText={setEditingText}
+                key={shapeInCreation.shape.id}
+                shape={shapeInCreation.shape}
                 shapes={shapes}
                 setShapes={setShapes}
-                setEditingText={setEditingText}
                 camera={camera}
                 mode={mode}
-                onSelectShapeId={setSelectedShapeIds}
                 rDragging={rDragging}
+                onSelectShapeId={setSelectedShapeIds}
                 selectedShapeIds={selectedShapeIds}
+                setHoveredCard={setHoveredCard} // Pass the function here
               />
-            ))}
-          {shapeInCreation && (
-            <ShapeComponent
-              setEditingText={setEditingText}
-              key={shapeInCreation.shape.id}
-              shape={shapeInCreation.shape}
-              shapes={shapes}
-              setShapes={setShapes}
-              camera={camera}
-              mode={mode}
-              rDragging={rDragging}
-              onSelectShapeId={setSelectedShapeIds}
-              selectedShapeIds={selectedShapeIds}
-            />
-          )}
-          {editingText && (
-            <foreignObject
-              x={shapes[editingText.id].point[0]}
-              y={shapes[editingText.id].point[1] - 16}
-              width={200}
-              height={32}
-            >
-              <input
-                ref={inputRef}
-                type="text"
-                value={editingText.text}
-                onChange={onTextChange}
-                onBlur={onTextBlur}
+            )}
+            {editingText && (
+              <foreignObject
+                x={shapes[editingText.id].point[0]}
+                y={shapes[editingText.id].point[1] - 16}
+                width={200}
+                height={32}
+              >
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={editingText.text}
+                  onChange={onTextChange}
+                  onBlur={onTextBlur}
+                />
+              </foreignObject>
+            )}
+            {selectionRect && (
+              <rect
+                x={Math.min(selectionRect.start.x, selectionRect.end.x)}
+                y={Math.min(selectionRect.start.y, selectionRect.end.y)}
+                width={Math.abs(selectionRect.start.x - selectionRect.end.x)}
+                height={Math.abs(selectionRect.start.y - selectionRect.end.y)}
+                fill="rgba(0, 0, 255, 0.3)"
+                stroke="blue"
               />
-            </foreignObject>
-          )}
-          {selectionRect && (
-            <rect
-              x={Math.min(selectionRect.start.x, selectionRect.end.x)}
-              y={Math.min(selectionRect.start.y, selectionRect.end.y)}
-              width={Math.abs(selectionRect.start.x - selectionRect.end.x)}
-              height={Math.abs(selectionRect.start.y - selectionRect.end.y)}
-              fill="rgba(0, 0, 255, 0.3)"
-              stroke="blue"
-            />
-          )}
-        </g>
-      </svg>
+            )}
+          </g>
+        </svg>
+      </ContextMenu>
       <div>
         <SelectionPanel
           setCamera={setCamera}
@@ -465,7 +520,12 @@ export default function Canvas() {
           key={selectedShapeIds.length > 0 ? selectedShapeIds[0] : "none"}
         />
       </div>
-      <Hand cards={cards} setCards={setCards} />
+      <Hand cards={cards} setHoveredCard={setHoveredCard} />
+      {isCommandPressed && hoveredCard && (
+        <div className="zoomed-card">
+          <img src={hoveredCard} alt={`Zoomed ${hoveredCard}`} />
+        </div>
+      )}
     </div>
   );
 }
