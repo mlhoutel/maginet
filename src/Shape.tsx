@@ -31,6 +31,7 @@ export function Shape({
   onSelectShapeId: React.Dispatch<React.SetStateAction<string[]>>;
   selectedShapeIds: string[];
 }) {
+  // capture the shapes at the start of the drag to move them as a group
   const draggingShapeRefs = useRef<Record<string, ShapeType>>({});
 
   function onPointerMove(e: React.PointerEvent<SVGElement>) {
@@ -51,7 +52,6 @@ export function Shape({
         point: add(dragging.shape.point, delta),
       },
     }));
-    console.log(draggingShapeRefs.current);
     setShapes((prevShapes) => {
       const newShapes = { ...prevShapes };
       for (const id in draggingShapeRefs.current) {
@@ -83,6 +83,7 @@ export function Shape({
       shape: { ...shapes[id] },
       origin: point,
     };
+
     selectedShapeIds.forEach((id) => {
       draggingShapeRefs.current[id] = shapes[id];
     });
@@ -105,14 +106,18 @@ export function Shape({
   const rotate = shape.rotation
     ? `rotate(${shape.rotation} ${x + width / 2} ${y + height / 2})`
     : "";
-  const textX = x + width / 2;
-  const textY = y + height / 2;
-  const textRotate = shape.rotation
-    ? `rotate(${shape.rotation} ${textX} ${textY})`
-    : "";
 
   const isSelected = selectedShapeIds.includes(shape.id);
   const selectedStyle = isSelected ? { stroke: "blue", strokeWidth: 2 } : {};
+  const textX = shape.point[0];
+  const textY = shape.point[1];
+  const textWidth = shape.size[0];
+  const textHeight = shape.size[1];
+  const textRotate = shape.rotation
+    ? `rotate(${shape.rotation} ${textX + textWidth / 2} ${
+        textY + textHeight / 2
+      })`
+    : "";
 
   switch (shape.type) {
     case "rectangle":
@@ -132,6 +137,7 @@ export function Shape({
           onPointerUp={onPointerUp}
           onClick={() => {
             onSelectShapeId([shape.id]);
+            draggingShapeRefs.current = {};
           }}
           {...selectedStyle}
         />
@@ -152,6 +158,7 @@ export function Shape({
             onPointerUp={onPointerUp}
             onClick={() => {
               onSelectShapeId([shape.id]);
+              draggingShapeRefs.current = {};
             }}
             {...selectedStyle}
           />
@@ -170,12 +177,11 @@ export function Shape({
           onPointerUp={onPointerUp}
           onClick={() => {
             onSelectShapeId([shape.id]);
+            draggingShapeRefs.current = {};
           }}
           onDoubleClick={() => {
             setEditingText({ id: shape.id, text: shape.text! });
           }}
-          textAnchor="middle"
-          dominantBaseline="middle"
           {...selectedStyle}
         >
           {shape.text}
@@ -197,6 +203,7 @@ export function Shape({
           onPointerUp={onPointerUp}
           onClick={() => {
             onSelectShapeId([shape.id]);
+            draggingShapeRefs.current = {};
           }}
           {...selectedStyle}
         />
@@ -217,6 +224,7 @@ export function Shape({
           onPointerUp={onPointerUp}
           onClick={() => {
             onSelectShapeId([shape.id]);
+            draggingShapeRefs.current = {};
           }}
           {...selectedStyle}
         />

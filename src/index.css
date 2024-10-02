@@ -18,3 +18,12 @@ svg {
   position: relative;
   z-index: 9999;
 }
+
+.hand {
+  position: fixed;
+  bottom: 0;
+}
+
+/* .hand__card:hover {
+  zoom: 3;
+} */

@@ -2,10 +2,16 @@ import * as React from "react";
 import { Shape as ShapeComponent } from "./Shape";
 import "./Canvas.css";
 import { screenToCanvas, sub } from "./utils/vec";
+import Hand from "./Hand";
 
 export interface Point {
   x: number;
   y: number;
+}
+
+export interface Card {
+  id: string;
+  src: string;
 }
 
 export interface Camera {
@@ -129,6 +135,12 @@ export default function Canvas() {
   const [mode, setMode] = React.useState<Mode>("select");
   const [shapeType, setShapeType] = React.useState<ShapeType>("rectangle");
   const [selectedShapeIds, setSelectedShapeIds] = React.useState<string[]>([]);
+  const [cards, setCards] = React.useState<Card[]>(() =>
+    Array.from({ length: 20 }, (_, i) => ({
+      id: i.toString(),
+      src: `https://picsum.photos/200/300?random=${i}`,
+    }))
+  );
 
   const [editingText, setEditingText] = React.useState<{
     id: string;
@@ -347,6 +359,25 @@ export default function Canvas() {
     }
   }
 
+  const handleDrop = (e: React.DragEvent<SVGElement>) => {
+    e.preventDefault();
+    const cardSrc = e.dataTransfer.getData("text/plain");
+    const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
+    const id = generateId();
+
+    setShapes((prevShapes) => ({
+      ...prevShapes,
+      [id]: {
+        id,
+        point: [x, y],
+        size: [100, 100], // Default size, can be adjusted
+        type: "image",
+        src: cardSrc,
+        rotation: 0,
+      },
+    }));
+  };
+
   return (
     <div>
       <svg
@@ -354,22 +385,26 @@ export default function Canvas() {
         onPointerDown={onPointerDownCanvas}
         onPointerMove={onPointerMoveCanvas}
         onPointerUp={onPointerUpCanvas}
+        onDrop={handleDrop} // Add onDrop event
+        onDragOver={(e) => e.preventDefault()} // Allow drop
       >
         <g style={{ transform }}>
-          {Object.values(shapes).map((shape) => (
-            <ShapeComponent
-              key={shape.id}
-              shape={shape}
-              shapes={shapes}
-              setShapes={setShapes}
-              setEditingText={setEditingText}
-              camera={camera}
-              mode={mode}
-              onSelectShapeId={setSelectedShapeIds}
-              rDragging={rDragging}
-              selectedShapeIds={selectedShapeIds}
-            />
-          ))}
+          {Object.values(shapes)
+            .filter((shape) => shape.id !== editingText?.id)
+            .map((shape) => (
+              <ShapeComponent
+                key={shape.id}
+                shape={shape}
+                shapes={shapes}
+                setShapes={setShapes}
+                setEditingText={setEditingText}
+                camera={camera}
+                mode={mode}
+                onSelectShapeId={setSelectedShapeIds}
+                rDragging={rDragging}
+                selectedShapeIds={selectedShapeIds}
+              />
+            ))}
           {shapeInCreation && (
             <ShapeComponent
               setEditingText={setEditingText}
@@ -430,6 +465,7 @@ export default function Canvas() {
           key={selectedShapeIds.length > 0 ? selectedShapeIds[0] : "none"}
         />
       </div>
+      <Hand cards={cards} setCards={setCards} />
     </div>
   );
 }

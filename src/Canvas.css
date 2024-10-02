@@ -20,3 +20,16 @@
   padding: 5px 10px;
   font-size: 14px;
 }
+
+.hand {
+    position: fixed;
+    bottom: 0;
+    display: flex;
+    gap: 10px;
+}
+
+.hand img {
+    width: 100px;
+    height: auto;
+    cursor: grab;
+}
