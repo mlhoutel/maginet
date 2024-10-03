@@ -32,6 +32,7 @@ export interface Shape {
   src?: string;
   rotation?: number;
   isFlipped?: boolean;
+  fontSize?: number;
 }
 
 type ShapeType = "rectangle" | "circle" | "arrow" | "text" | "image";
@@ -149,40 +150,32 @@ export default function Canvas() {
   } | null>(null);
   const [shapes, setShapes] = React.useState<Shape[]>([
     {
-      id: "a",
-      point: [200, 200],
-      size: [100, 100],
-      type: "arrow",
-      rotation: 0,
-    },
-    {
-      id: "b",
-      point: [320, 200],
-      size: [100, 100],
-      type: "rectangle",
-      rotation: 0,
-    },
-    {
-      id: "c",
-      point: [50, 70],
-      size: [100, 100],
-      type: "rectangle",
-      rotation: 0,
-    },
-    {
       id: "d",
       point: [400, 100],
       size: [100, 100],
       type: "text",
-      text: "Hello, world!",
+      text: "Battlefield",
+      fontSize: 40,
       rotation: 0,
     },
+    // graveyard
+    {
+      id: "c",
+      point: [400, 200],
+      size: [100, 100],
+      type: "text",
+      text: "Graveyard",
+      fontSize: 40,
+      rotation: 0,
+    },
+    // exile
     {
       id: "e",
-      point: [400, 100],
+      point: [400, 300],
       size: [100, 100],
-      type: "image",
-      src: "https://cards.scryfall.io/normal/front/f/a/fab2d8a9-ab4c-4225-a570-22636293c17d.jpg?1654566563",
+      type: "text",
+      text: "Exile",
+      fontSize: 40,
       rotation: 0,
     },
   ]);
@@ -399,6 +392,7 @@ export default function Canvas() {
                 ...shape,
                 text: updatedText,
                 size: [updatedText.length * 10, 100], // Update size based on text length
+                fontSize: 40,
               }
             : shape
         )
@@ -431,28 +425,35 @@ export default function Canvas() {
     }
   }
 
-  function onSizeChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const newSize = parseInt(e.target.value, 10);
-    if (selectedShapeIds.length > 0 && !isNaN(newSize)) {
-      setShapes((prevShapes) =>
-        prevShapes.map((shape) => {
-          if (selectedShapeIds.includes(shape.id)) {
-            const [x, y] = shape.point;
-            const [width, height] = shape.size;
-            const deltaX = (newSize - width) / 2;
-            const deltaY = (newSize - height) / 2;
+  // function changeTextSize(shape: Shape, newSize: number) {
+  //   return {
+  //     ...shape,
+  //     fontSize: newSize,
+  //   };
+  // }
 
-            return {
-              ...shape,
-              point: [x - deltaX, y - deltaY], // Adjust the point to keep the anchor the same
-              size: [newSize, newSize], // Assuming square shapes for simplicity
-            };
-          }
-          return shape;
-        })
-      );
-    }
-  }
+  // function onSizeChange(e: React.ChangeEvent<HTMLInputElement>) {
+  //   const newSize = parseInt(e.target.value, 10);
+  //   if (selectedShapeIds.length > 0 && !isNaN(newSize)) {
+  //     setShapes((prevShapes) =>
+  //       prevShapes.map((shape) => {
+  //         if (selectedShapeIds.includes(shape.id)) {
+  //           const [x, y] = shape.point;
+  //           const [width, height] = shape.size;
+  //           const deltaX = (newSize - width) / 2;
+  //           const deltaY = (newSize - height) / 2;
+
+  //           return {
+  //             ...shape,
+  //             point: [x - deltaX, y - deltaY], // Adjust the point to keep the anchor the same
+  //             size: [newSize, newSize], // Assuming square shapes for simplicity
+  //           };
+  //         }
+  //         return shape;
+  //       })
+  //     );
+  //   }
+  // }
 
   const handleDrop = (e: React.DragEvent<SVGElement>) => {
     e.preventDefault();
@@ -489,6 +490,11 @@ export default function Canvas() {
       },
     ]);
   };
+
+  function mulligan() {
+    setDeck((prevDeck) => [...prevDeck, ...cards]);
+    setCards([]);
+  }
 
   const sendBackToHand = () => {
     const selectedCards = shapes.filter((shape) =>
@@ -629,14 +635,10 @@ export default function Canvas() {
           shapeType={shapeType}
           onRotateLeft={onRotateLeft}
           onRotateRight={onRotateRight}
+          onMulligan={mulligan}
           onDrawCard={drawCard}
-          sizeInput={
-            selectedShapeIds.length > 0
-              ? shapes.find((shape) => shape.id === selectedShapeIds[0])
-                  ?.size[1] ?? 0
-              : 0
-          }
-          onSizeChange={onSizeChange}
+          // changeTextSize={changeTextSize}
+          // onSizeChange={onSizeChange}
           key={selectedShapeIds.length > 0 ? selectedShapeIds[0] : "none"}
         />
       </div>
@@ -660,8 +662,10 @@ function SelectionPanel({
   setShapeType,
   onRotateLeft,
   onRotateRight,
-  sizeInput,
-  onSizeChange,
+  // changeTextSize,
+  // sizeInput,
+  // onSizeChange,
+  onMulligan,
 }: {
   onDrawCard: () => void;
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
@@ -671,8 +675,10 @@ function SelectionPanel({
   setShapeType: React.Dispatch<React.SetStateAction<ShapeType>>;
   onRotateLeft: () => void;
   onRotateRight: () => void;
-  sizeInput: number | null;
-  onSizeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onMulligan: () => void;
+  // changeTextSize: (shape: Shape, newSize: number) => void;
+  // sizeInput: number | null;
+  // onSizeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
     <div className="selection-panel">
@@ -702,14 +708,15 @@ function SelectionPanel({
       <button onClick={() => setCamera(zoomOut)}>Zoom Out</button>
       <button onClick={onRotateLeft}>Rotate Left</button>
       <button onClick={onRotateRight}>Rotate Right</button>
-      <input
+      {/* <input
         type="range"
         min="10"
         max="500"
         value={sizeInput ?? 0}
         onChange={onSizeChange}
         placeholder="Size"
-      />
+      /> */}
+      <button onClick={onMulligan}>Mulligan</button>
     </div>
   );
 }
