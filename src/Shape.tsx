@@ -184,6 +184,7 @@ export function Shape({
             onSelectShapeId([shape.id]);
             draggingShapeRefs.current = {};
           }}
+          style={{ userSelect: "none" }}
           onDoubleClick={() => {
             setEditingText({ id: shape.id, text: shape.text! });
             setTimeout(() => {
