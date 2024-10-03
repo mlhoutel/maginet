@@ -6,6 +6,8 @@ interface ContextMenuProps {
   onRotateRight: () => void;
   children: React.ReactNode;
   onFlip: () => void;
+  sendBackToDeck: () => void;
+  sendBackToHand: () => void;
 }
 
 export default function ContextMenu({
@@ -13,6 +15,8 @@ export default function ContextMenu({
   onRotateRight,
   children,
   onFlip,
+  sendBackToDeck,
+  sendBackToHand,
 }: ContextMenuProps) {
   const { contextMenu, onContextMenu, onKeyDown } = useContextMenu(
     <>
@@ -24,6 +28,12 @@ export default function ContextMenu({
       </ContextMenuItem>
       <ContextMenuItem>
         <button onClick={onFlip}>Flip</button>
+      </ContextMenuItem>
+      <ContextMenuItem>
+        <button onClick={sendBackToDeck}>Send Back to Deck</button>
+      </ContextMenuItem>
+      <ContextMenuItem>
+        <button onClick={sendBackToHand}>Send Back to Hand</button>
       </ContextMenuItem>
     </>
   );

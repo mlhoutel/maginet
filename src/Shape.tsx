@@ -15,8 +15,8 @@ export function Shape({
   setHoveredCard,
 }: {
   shape: ShapeType;
-  shapes: Record<string, ShapeType>;
-  setShapes: React.Dispatch<React.SetStateAction<Record<string, ShapeType>>>;
+  shapes: ShapeType[];
+  setShapes: React.Dispatch<React.SetStateAction<ShapeType[]>>;
   camera: Camera;
   mode: Mode;
   rDragging: React.MutableRefObject<{
@@ -42,27 +42,28 @@ export function Shape({
 
     if (!dragging) return;
 
-    const shape = shapes[dragging.shape.id];
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
     const delta = sub(point, dragging.origin);
 
-    setShapes((prevShapes) => ({
-      ...prevShapes,
-      [shape.id]: {
-        ...shape,
-        point: add(dragging.shape.point, delta),
-      },
-    }));
     setShapes((prevShapes) => {
-      const newShapes = { ...prevShapes };
-      for (const id in draggingShapeRefs.current) {
-        newShapes[id] = {
-          ...newShapes[id],
-          point: add(draggingShapeRefs.current[id].point, delta),
-        };
-      }
-      return newShapes;
+      const newShapes = prevShapes.map((shape) => {
+        if (shape.id === dragging.shape.id) {
+          return {
+            ...shape,
+            point: add(dragging.shape.point, delta),
+          };
+        }
+        return shape;
+      });
+      // put the dragged shape to the end of the array
+      const draggedShape = newShapes.find(
+        (shape) => shape.id === dragging.shape.id
+      )!;
+      return [
+        ...newShapes.filter((shape) => shape.id !== draggedShape.id),
+        draggedShape,
+      ];
     });
   }
 
@@ -82,12 +83,12 @@ export function Shape({
     const point = [x, y];
 
     rDragging.current = {
-      shape: { ...shapes[id] },
+      shape: shapes.find((shape) => shape.id === id)!,
       origin: point,
     };
 
     selectedShapeIds.forEach((id) => {
-      draggingShapeRefs.current[id] = shapes[id];
+      draggingShapeRefs.current[id] = shapes.find((shape) => shape.id === id)!;
     });
   }
 
@@ -196,6 +197,10 @@ export function Shape({
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
+          onContextMenu={() => {
+            onSelectShapeId([shape.id]);
+            draggingShapeRefs.current = {};
+          }}
           onClick={() => {
             onSelectShapeId([shape.id]);
             draggingShapeRefs.current = {};

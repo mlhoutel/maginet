@@ -4,6 +4,8 @@ import "./Canvas.css";
 import { screenToCanvas, sub } from "./utils/vec";
 import Hand from "./Hand";
 import ContextMenu from "./ContextMenu";
+import useCards from "./useCards";
+import { useEffect } from "react";
 
 export interface Point {
   x: number;
@@ -76,42 +78,98 @@ function generateId() {
 export type Mode = "select" | "create";
 
 function rotateShape(shape: Shape, angle: number): Shape {
-  console.log("rotateShape", shape);
   return {
     ...shape,
     rotation: (shape.rotation || 0) + angle,
   };
 }
 
+const DEFAULT_DECK = [
+  "3 Ambitious Farmhand",
+  "4 Reckoner Bankbuster",
+  "2 Elspeth Resplendent",
+  "2 March of Otherworldly Light",
+  "4 The Restoration of Eiganjo",
+  "4 Roadside Reliquary",
+  "1 Eiganjo, Seat of the Empire",
+  "16 Plains",
+  "4 Ossification",
+  "4 Wedding Announcement",
+  "2 Destroy Evil",
+  "4 The Wandering Emperor",
+  "4 Lay Down Arms",
+  "3 The Eternal Wanderer",
+  "3 Mirrex",
+  "3 Depopulate",
+  "2 Fateful Absence",
+  "3 Farewell",
+  "4 Sunset Revelry",
+  "3 Loran of the Third Path",
+];
+
+function processRawText(fromArena: string) {
+  if (fromArena.trim() === "") return [];
+  return new Set(
+    fromArena
+      .split("\n")
+      .map((s) => {
+        const withoutNumber = s.replace(/^[0-9]+/g, "").trim();
+        if (withoutNumber.includes("//")) {
+          //Double faced card
+          return withoutNumber.split("//")[0].trim();
+        }
+        return withoutNumber;
+      })
+      .filter((s) => s !== "")
+  );
+}
+
 export default function Canvas() {
+  const { data } = useCards(
+    Array.from(processRawText(DEFAULT_DECK.join("\n")))
+  );
+
+  useEffect(() => {
+    if (data) {
+      const hand: Card[] = data.data
+        .filter((card) => card.image_uris?.normal)
+        .map((card) => ({
+          id: card.id,
+          src: card.image_uris.normal,
+        }));
+      setCards(hand.slice(0, 7));
+      setDeck(hand.slice(7));
+    }
+  }, [data]);
+
   const ref = React.useRef<SVGSVGElement>(null);
   const rDragging = React.useRef<{
     shape: Shape;
     origin: number[];
   } | null>(null);
-  const [shapes, setShapes] = React.useState<Record<string, Shape>>({
-    a: {
+  const [shapes, setShapes] = React.useState<Shape[]>([
+    {
       id: "a",
       point: [200, 200],
       size: [100, 100],
       type: "arrow",
       rotation: 0,
     },
-    b: {
+    {
       id: "b",
       point: [320, 200],
       size: [100, 100],
       type: "rectangle",
       rotation: 0,
     },
-    c: {
+    {
       id: "c",
       point: [50, 70],
       size: [100, 100],
       type: "rectangle",
       rotation: 0,
     },
-    d: {
+    {
       id: "d",
       point: [400, 100],
       size: [100, 100],
@@ -119,7 +177,7 @@ export default function Canvas() {
       text: "Hello, world!",
       rotation: 0,
     },
-    e: {
+    {
       id: "e",
       point: [400, 100],
       size: [100, 100],
@@ -127,7 +185,7 @@ export default function Canvas() {
       src: "https://cards.scryfall.io/normal/front/f/a/fab2d8a9-ab4c-4225-a570-22636293c17d.jpg?1654566563",
       rotation: 0,
     },
-  });
+  ]);
   const [shapeInCreation, setShapeInCreation] = React.useState<{
     shape: Shape;
     origin: number[];
@@ -137,12 +195,8 @@ export default function Canvas() {
   const [mode, setMode] = React.useState<Mode>("select");
   const [shapeType, setShapeType] = React.useState<ShapeType>("rectangle");
   const [selectedShapeIds, setSelectedShapeIds] = React.useState<string[]>([]);
-  const [cards, setCards] = React.useState<Card[]>(() =>
-    Array.from({ length: 20 }, (_, i) => ({
-      id: i.toString(),
-      src: `https://picsum.photos/200/300?random=${i}`,
-    }))
-  );
+  const [cards, setCards] = React.useState<Card[]>([]);
+  const [, setDeck] = React.useState<Card[]>([]);
 
   const [editingText, setEditingText] = React.useState<{
     id: string;
@@ -166,13 +220,11 @@ export default function Canvas() {
 
   function onFlip() {
     if (mode === "select" && selectedShapeIds.length > 0) {
-      for (const id of selectedShapeIds) {
-        const shape = shapes[id];
-        setShapes((prevShapes) => ({
-          ...prevShapes,
-          [shape.id]: flipShape(shape),
-        }));
-      }
+      setShapes((prevShapes) =>
+        prevShapes.map((shape) =>
+          selectedShapeIds.includes(shape.id) ? flipShape(shape) : shape
+        )
+      );
     }
   }
 
@@ -183,16 +235,16 @@ export default function Canvas() {
       e.currentTarget.setPointerCapture(e.pointerId);
       if (shapeType === "text") {
         const id = generateId();
-        setShapes({
-          ...shapes,
-          [id]: {
+        setShapes((prevShapes) => [
+          ...prevShapes,
+          {
             id,
             point,
             size: [0, 0], // Initial size, will be updated when text is entered
             type: "text",
             text: "",
           },
-        });
+        ]);
         setEditingText({ id, text: "" });
         setTimeout(() => {
           inputRef.current?.focus();
@@ -248,10 +300,7 @@ export default function Canvas() {
     if (mode === "create" && shapeInCreation) {
       e.currentTarget.releasePointerCapture(e.pointerId);
 
-      setShapes({
-        ...shapes,
-        [shapeInCreation.shape.id]: shapeInCreation.shape,
-      });
+      setShapes((prevShapes) => [...prevShapes, shapeInCreation.shape]);
       setShapeInCreation(null);
       setMode("select");
     } else if (mode === "select" && selectionRect) {
@@ -263,7 +312,7 @@ export default function Canvas() {
         height: Math.abs(start.y - end.y),
       };
 
-      const selectedShapes = Object.values(shapes).filter((shape) => {
+      const selectedShapes = shapes.filter((shape) => {
         const [shapeX, shapeY] = shape.point;
         const [shapeWidth, shapeHeight] = shape.size;
         return (
@@ -343,14 +392,17 @@ export default function Canvas() {
     if (editingText) {
       const updatedText = e.target.value;
       setEditingText({ ...editingText, text: updatedText });
-      setShapes({
-        ...shapes,
-        [editingText.id]: {
-          ...shapes[editingText.id],
-          text: updatedText,
-          size: [updatedText.length * 10, 100], // Update size based on text length
-        },
-      });
+      setShapes((prevShapes) =>
+        prevShapes.map((shape) =>
+          shape.id === editingText.id
+            ? {
+                ...shape,
+                text: updatedText,
+                size: [updatedText.length * 10, 100], // Update size based on text length
+              }
+            : shape
+        )
+      );
     }
   }
 
@@ -361,47 +413,44 @@ export default function Canvas() {
 
   function onRotateLeft() {
     if (mode === "select" && selectedShapeIds.length > 0) {
-      for (const id of selectedShapeIds) {
-        const shape = shapes[id];
-        setShapes((prevShapes) => ({
-          ...prevShapes,
-          [shape.id]: rotateShape(shape, -15),
-        }));
-      }
+      setShapes((prevShapes) =>
+        prevShapes.map((shape) =>
+          selectedShapeIds.includes(shape.id) ? rotateShape(shape, -90) : shape
+        )
+      );
     }
   }
 
   function onRotateRight() {
     if (mode === "select" && selectedShapeIds.length > 0) {
-      for (const id of selectedShapeIds) {
-        const shape = shapes[id];
-        setShapes((prevShapes) => ({
-          ...prevShapes,
-          [shape.id]: rotateShape(shape, 15),
-        }));
-      }
+      setShapes((prevShapes) =>
+        prevShapes.map((shape) =>
+          selectedShapeIds.includes(shape.id) ? rotateShape(shape, 90) : shape
+        )
+      );
     }
   }
 
   function onSizeChange(e: React.ChangeEvent<HTMLInputElement>) {
     const newSize = parseInt(e.target.value, 10);
     if (selectedShapeIds.length > 0 && !isNaN(newSize)) {
-      for (const id of selectedShapeIds) {
-        const shape = shapes[id];
-        const [x, y] = shape.point;
-        const [width, height] = shape.size;
-        const deltaX = (newSize - width) / 2;
-        const deltaY = (newSize - height) / 2;
+      setShapes((prevShapes) =>
+        prevShapes.map((shape) => {
+          if (selectedShapeIds.includes(shape.id)) {
+            const [x, y] = shape.point;
+            const [width, height] = shape.size;
+            const deltaX = (newSize - width) / 2;
+            const deltaY = (newSize - height) / 2;
 
-        setShapes((prevShapes) => ({
-          ...prevShapes,
-          [shape.id]: {
-            ...shape,
-            point: [x - deltaX, y - deltaY], // Adjust the point to keep the anchor the same
-            size: [newSize, newSize], // Assuming square shapes for simplicity
-          },
-        }));
-      }
+            return {
+              ...shape,
+              point: [x - deltaX, y - deltaY], // Adjust the point to keep the anchor the same
+              size: [newSize, newSize], // Assuming square shapes for simplicity
+            };
+          }
+          return shape;
+        })
+      );
     }
   }
 
@@ -412,9 +461,9 @@ export default function Canvas() {
     const id = generateId();
     setCards((prevCards) => prevCards.filter((card) => card.src !== cardSrc));
 
-    setShapes((prevShapes) => ({
+    setShapes((prevShapes) => [
       ...prevShapes,
-      [id]: {
+      {
         id,
         point: [x, y],
         size: [100, 100], // Default size, can be adjusted
@@ -422,7 +471,50 @@ export default function Canvas() {
         src: cardSrc,
         rotation: 0,
       },
-    }));
+    ]);
+  };
+
+  const drawCard = () => {
+    setDeck((prevDeck) => {
+      if (prevDeck.length === 0) return prevDeck; // No cards to draw
+      const [drawnCard, ...remainingDeck] = prevDeck;
+      setCards((prevCards) => [...prevCards, drawnCard]);
+      return remainingDeck;
+    });
+  };
+
+  const sendBackToHand = () => {
+    const selectedCards = shapes.filter((shape) =>
+      selectedShapeIds.includes(shape.id)
+    )!;
+    setCards((prevCards) => [
+      ...prevCards,
+      ...selectedCards.map((card) => ({
+        id: card.id,
+        src: card.src as string,
+      })),
+    ]);
+    setShapes((prevShapes) =>
+      prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
+    );
+    setSelectedShapeIds([]);
+  };
+
+  const sendBackToDeck = () => {
+    const selectedCards = shapes.filter((shape) =>
+      selectedShapeIds.includes(shape.id)
+    )!;
+    setDeck((prevDeck) => [
+      ...prevDeck,
+      ...selectedCards.map((card) => ({
+        id: card.id,
+        src: card.src as string,
+      })),
+    ]);
+    setShapes((prevShapes) =>
+      prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
+    );
+    setSelectedShapeIds([]);
   };
 
   return (
@@ -431,6 +523,8 @@ export default function Canvas() {
         onRotateLeft={onRotateLeft}
         onRotateRight={onRotateRight}
         onFlip={onFlip}
+        sendBackToDeck={sendBackToDeck}
+        sendBackToHand={sendBackToHand}
       >
         <svg
           ref={ref}
@@ -441,7 +535,7 @@ export default function Canvas() {
           onDragOver={(e) => e.preventDefault()}
         >
           <g style={{ transform }}>
-            {Object.values(shapes)
+            {shapes
               .filter((shape) => shape.id !== editingText?.id)
               .map((shape) => (
                 <ShapeComponent
@@ -475,8 +569,14 @@ export default function Canvas() {
             )}
             {editingText && (
               <foreignObject
-                x={shapes[editingText.id].point[0]}
-                y={shapes[editingText.id].point[1] - 16}
+                x={
+                  shapes.find((shape) => shape.id === editingText.id)
+                    ?.point[0] ?? 0
+                }
+                y={
+                  (shapes.find((shape) => shape.id === editingText.id)
+                    ?.point[1] ?? 0) - 16
+                }
                 width={200}
                 height={32}
               >
@@ -511,9 +611,11 @@ export default function Canvas() {
           shapeType={shapeType}
           onRotateLeft={onRotateLeft}
           onRotateRight={onRotateRight}
+          onDrawCard={drawCard}
           sizeInput={
             selectedShapeIds.length > 0
-              ? shapes[selectedShapeIds[0]].size[1]
+              ? shapes.find((shape) => shape.id === selectedShapeIds[0])
+                  ?.size[1] ?? 0
               : 0
           }
           onSizeChange={onSizeChange}
@@ -532,6 +634,7 @@ export default function Canvas() {
 
 // allow user to select shapes (circle, rectangle, triangle, etc) or selection mode, zoom in/out
 function SelectionPanel({
+  onDrawCard,
   setCamera,
   setMode,
   mode,
@@ -542,6 +645,7 @@ function SelectionPanel({
   sizeInput,
   onSizeChange,
 }: {
+  onDrawCard: () => void;
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
   setMode: React.Dispatch<React.SetStateAction<Mode>>;
   mode: Mode;
@@ -564,6 +668,7 @@ function SelectionPanel({
         <option value="text">Text</option>
         <option value="image">Image</option>
       </select>
+      <button onClick={onDrawCard}>Draw Card</button>
       <button
         disabled={mode === "create"}
         onClick={() => {
