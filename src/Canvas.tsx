@@ -196,7 +196,7 @@ export default function Canvas() {
   const [shapeType, setShapeType] = React.useState<ShapeType>("rectangle");
   const [selectedShapeIds, setSelectedShapeIds] = React.useState<string[]>([]);
   const [cards, setCards] = React.useState<Card[]>([]);
-  const [, setDeck] = React.useState<Card[]>([]);
+  const [deck, setDeck] = React.useState<Card[]>([]);
 
   const [editingText, setEditingText] = React.useState<{
     id: string;
@@ -477,10 +477,17 @@ export default function Canvas() {
   const drawCard = () => {
     setDeck((prevDeck) => {
       if (prevDeck.length === 0) return prevDeck; // No cards to draw
-      const [drawnCard, ...remainingDeck] = prevDeck;
-      setCards((prevCards) => [...prevCards, drawnCard]);
+      const [, ...remainingDeck] = prevDeck;
       return remainingDeck;
     });
+    setCards((prevCards) => [
+      ...prevCards,
+      {
+        id: generateId(),
+        src: deck[0].src,
+        rotation: 0,
+      },
+    ]);
   };
 
   const sendBackToHand = () => {
@@ -517,6 +524,13 @@ export default function Canvas() {
     setSelectedShapeIds([]);
   };
 
+  const updateDraggingRef = React.useCallback(
+    (newRef: { shape: Shape; origin: number[] } | null) => {
+      rDragging.current = newRef;
+    },
+    [rDragging]
+  );
+
   return (
     <div>
       <ContextMenu
@@ -550,7 +564,8 @@ export default function Canvas() {
                   rDragging={rDragging}
                   selectedShapeIds={selectedShapeIds}
                   inputRef={inputRef}
-                  setHoveredCard={setHoveredCard} // Pass the function here
+                  setHoveredCard={setHoveredCard}
+                  updateDraggingRef={updateDraggingRef}
                 />
               ))}
             {shapeInCreation && (
@@ -566,7 +581,8 @@ export default function Canvas() {
                 rDragging={rDragging}
                 onSelectShapeId={setSelectedShapeIds}
                 selectedShapeIds={selectedShapeIds}
-                setHoveredCard={setHoveredCard} // Pass the function here
+                setHoveredCard={setHoveredCard}
+                updateDraggingRef={updateDraggingRef}
               />
             )}
             {editingText && (

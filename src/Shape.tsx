@@ -14,6 +14,7 @@ export function Shape({
   selectedShapeIds,
   setHoveredCard,
   inputRef,
+  updateDraggingRef,
 }: {
   shape: ShapeType;
   shapes: ShapeType[];
@@ -34,6 +35,9 @@ export function Shape({
   selectedShapeIds: string[];
   setHoveredCard: React.Dispatch<React.SetStateAction<string | null>>;
   inputRef: React.RefObject<HTMLInputElement>;
+  updateDraggingRef: (
+    newRef: { shape: ShapeType; origin: number[] } | null
+  ) => void;
 }) {
   // capture the shapes at the start of the drag to move them as a group
   const draggingShapeRefs = useRef<Record<string, ShapeType>>({});
@@ -71,7 +75,7 @@ export function Shape({
 
   const onPointerUp = (e: React.PointerEvent<SVGElement>) => {
     e.currentTarget.releasePointerCapture(e.pointerId);
-    rDragging.current = null;
+    updateDraggingRef(null);
     draggingShapeRefs.current = {};
   };
 
@@ -84,10 +88,10 @@ export function Shape({
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
 
-    rDragging.current = {
+    updateDraggingRef({
       shape: shapes.find((shape) => shape.id === id)!,
       origin: point,
-    };
+    });
 
     selectedShapeIds.forEach((id) => {
       draggingShapeRefs.current[id] = shapes.find((shape) => shape.id === id)!;
