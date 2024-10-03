@@ -6,6 +6,7 @@ import Hand from "./Hand";
 import ContextMenu from "./ContextMenu";
 import useCards from "./useCards";
 import { useEffect } from "react";
+import { usePeerStore } from "./usePeerConnection";
 
 export interface Point {
   x: number;
@@ -126,6 +127,10 @@ function processRawText(fromArena: string) {
 }
 
 export default function Canvas() {
+  const receivedData = usePeerStore((state) => state.receivedData);
+  const sendData = usePeerStore((state) => state.sendData);
+
+  console.log("peerData", receivedData);
   const { data } = useCards(
     Array.from(processRawText(DEFAULT_DECK.join("\n")))
   );
@@ -220,6 +225,10 @@ export default function Canvas() {
       );
     }
   }
+
+  useEffect(() => {
+    sendData(shapes);
+  }, [shapes, sendData]);
 
   function onPointerDownCanvas(e: React.PointerEvent<SVGElement>) {
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
@@ -574,6 +583,24 @@ export default function Canvas() {
                   updateDraggingRef={updateDraggingRef}
                 />
               ))}
+            {receivedData &&
+              receivedData.map((shape: Shape) => (
+                <ShapeComponent
+                  key={shape.id}
+                  shape={shape}
+                  shapes={shapes}
+                  setShapes={setShapes}
+                  setEditingText={setEditingText}
+                  camera={camera}
+                  mode={mode}
+                  onSelectShapeId={setSelectedShapeIds}
+                  rDragging={rDragging}
+                  selectedShapeIds={selectedShapeIds}
+                  inputRef={inputRef}
+                  setHoveredCard={setHoveredCard}
+                  updateDraggingRef={updateDraggingRef}
+                />
+              ))}
             {shapeInCreation && (
               <ShapeComponent
                 setEditingText={setEditingText}
@@ -680,6 +707,12 @@ function SelectionPanel({
   // sizeInput: number | null;
   // onSizeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
+  const initPeer = usePeerStore((state) => state.initPeer);
+  const connectToPeer = usePeerStore((state) => state.connectToPeer);
+  const sendData = usePeerStore((state) => state.sendData);
+  const peer = usePeerStore((state) => state.peer);
+  const [peerId, setPeerId] = React.useState("");
+
   return (
     <div className="selection-panel">
       <select
@@ -717,6 +750,15 @@ function SelectionPanel({
         placeholder="Size"
       /> */}
       <button onClick={onMulligan}>Mulligan</button>
+      <button onClick={initPeer}>Init Peer</button>
+      <input
+        type="text"
+        onChange={(e) => setPeerId(e.target.value)}
+        value={peerId}
+      />
+      <button onClick={() => connectToPeer(peerId)}>Connect to Peer</button>
+      <button onClick={() => sendData(Math.random())}>Send Data</button>
+      <input readOnly value={peer?.id} />
     </div>
   );
 }
