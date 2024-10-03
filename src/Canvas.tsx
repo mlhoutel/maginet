@@ -549,6 +549,7 @@ export default function Canvas() {
                   onSelectShapeId={setSelectedShapeIds}
                   rDragging={rDragging}
                   selectedShapeIds={selectedShapeIds}
+                  inputRef={inputRef}
                   setHoveredCard={setHoveredCard} // Pass the function here
                 />
               ))}
@@ -561,6 +562,7 @@ export default function Canvas() {
                 setShapes={setShapes}
                 camera={camera}
                 mode={mode}
+                inputRef={inputRef}
                 rDragging={rDragging}
                 onSelectShapeId={setSelectedShapeIds}
                 selectedShapeIds={selectedShapeIds}

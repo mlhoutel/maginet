@@ -18,7 +18,7 @@ export default function ContextMenu({
   sendBackToDeck,
   sendBackToHand,
 }: ContextMenuProps) {
-  const { contextMenu, onContextMenu, onKeyDown } = useContextMenu(
+  const { contextMenu, onContextMenu } = useContextMenu(
     <>
       <ContextMenuItem>
         <button onClick={onRotateLeft}>Rotate Left</button>
@@ -40,7 +40,7 @@ export default function ContextMenu({
 
   return (
     <>
-      <div onContextMenu={onContextMenu} onKeyDown={onKeyDown} tabIndex={0}>
+      <div onContextMenu={onContextMenu} tabIndex={0}>
         {children} {contextMenu}
       </div>
     </>

@@ -13,6 +13,7 @@ export function Shape({
   onSelectShapeId,
   selectedShapeIds,
   setHoveredCard,
+  inputRef,
 }: {
   shape: ShapeType;
   shapes: ShapeType[];
@@ -32,6 +33,7 @@ export function Shape({
   onSelectShapeId: React.Dispatch<React.SetStateAction<string[]>>;
   selectedShapeIds: string[];
   setHoveredCard: React.Dispatch<React.SetStateAction<string | null>>;
+  inputRef: React.RefObject<HTMLInputElement>;
 }) {
   // capture the shapes at the start of the drag to move them as a group
   const draggingShapeRefs = useRef<Record<string, ShapeType>>({});
@@ -184,6 +186,9 @@ export function Shape({
           }}
           onDoubleClick={() => {
             setEditingText({ id: shape.id, text: shape.text! });
+            setTimeout(() => {
+              inputRef.current?.focus();
+            }, 0);
           }}
           {...selectedStyle}
         >
