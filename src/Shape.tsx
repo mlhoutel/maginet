@@ -15,6 +15,7 @@ export function Shape({
   setHoveredCard,
   inputRef,
   updateDraggingRef,
+  readOnly,
 }: {
   shape: ShapeType;
   shapes: ShapeType[];
@@ -38,6 +39,7 @@ export function Shape({
   updateDraggingRef: (
     newRef: { shape: ShapeType; origin: number[] } | null
   ) => void;
+  readOnly: boolean;
 }) {
   // capture the shapes at the start of the drag to move them as a group
   const draggingShapeRefs = useRef<Record<string, ShapeType>>({});
@@ -99,23 +101,23 @@ export function Shape({
     });
   }
 
-  let [x, y] = shape.point;
-  let width = shape.size[0];
-  let height = shape.size[1];
+  // let [x, y] = shape.point;
+  // let width = shape.size[0];
+  // let height = shape.size[1];
 
-  if (shape.type === "rectangle" || shape.type === "circle") {
-    if (width < 0) {
-      x = x + width;
-      width = -width;
-    }
-    if (height < 0) {
-      y = y + height;
-      height = -height;
-    }
-  }
-  const rotate = shape.rotation
-    ? `rotate(${shape.rotation} ${x + width / 2} ${y + height / 2})`
-    : "";
+  // if (shape.type === "rectangle" || shape.type === "circle") {
+  //   if (width < 0) {
+  //     x = x + width;
+  //     width = -width;
+  //   }
+  //   if (height < 0) {
+  //     y = y + height;
+  //     height = -height;
+  //   }
+  // }
+  // const rotate = shape.rotation
+  //   ? `rotate(${shape.rotation} ${x + width / 2} ${y + height / 2})`
+  //   : "";
 
   const isSelected = selectedShapeIds.includes(shape.id);
   const selectedStyle = isSelected ? { stroke: "blue", strokeWidth: 2 } : {};
@@ -130,50 +132,6 @@ export function Shape({
     : "";
 
   switch (shape.type) {
-    case "rectangle":
-      // opacity background
-      return (
-        <rect
-          key={shape.id}
-          id={shape.id}
-          x={x}
-          y={y}
-          width={width}
-          height={height}
-          fill="rgba(0, 0, 0, 0.1)"
-          transform={rotate}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onClick={() => {
-            onSelectShapeId([shape.id]);
-            draggingShapeRefs.current = {};
-          }}
-          {...selectedStyle}
-        />
-      );
-    case "arrow":
-      return (
-        <>
-          <path
-            key={shape.id}
-            id={shape.id}
-            d={`M ${x} ${y} L ${x + width} ${y + height}`}
-            transform={rotate}
-            stroke="black"
-            strokeWidth="2"
-            fill="none"
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onClick={() => {
-              onSelectShapeId([shape.id]);
-              draggingShapeRefs.current = {};
-            }}
-            {...selectedStyle}
-          />
-        </>
-      );
     case "text":
       return (
         <text
@@ -181,11 +139,12 @@ export function Shape({
           id={shape.id}
           x={textX}
           y={textY}
-          onPointerDown={onPointerDown}
+          onPointerDown={readOnly ? undefined : onPointerDown}
           transform={textRotate}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
+          onPointerMove={readOnly ? undefined : onPointerMove}
+          onPointerUp={readOnly ? undefined : onPointerUp}
           onClick={() => {
+            if (readOnly) return;
             onSelectShapeId([shape.id]);
             draggingShapeRefs.current = {};
           }}
@@ -194,6 +153,7 @@ export function Shape({
             fontSize: shape.fontSize || 16,
           }}
           onDoubleClick={() => {
+            if (readOnly) return;
             setEditingText({ id: shape.id, text: shape.text! });
             setTimeout(() => {
               inputRef.current?.focus();
@@ -208,14 +168,11 @@ export function Shape({
       return (
         <g
           id={shape.id}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onContextMenu={() => {
-            onSelectShapeId([shape.id]);
-            draggingShapeRefs.current = {};
-          }}
+          onPointerDown={readOnly ? undefined : onPointerDown}
+          onPointerMove={readOnly ? undefined : onPointerMove}
+          onPointerUp={readOnly ? undefined : onPointerUp}
           onClick={() => {
+            if (readOnly) return;
             onSelectShapeId([shape.id]);
             draggingShapeRefs.current = {};
           }}
@@ -239,27 +196,7 @@ export function Shape({
           />
         </g>
       );
-    case "circle":
-      return (
-        <ellipse
-          key={shape.id}
-          id={shape.id}
-          cx={x + width / 2}
-          cy={y + height / 2}
-          rx={width / 2}
-          ry={height / 2}
-          fill="rgba(0, 0, 0, 0.1)"
-          transform={rotate}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onClick={() => {
-            onSelectShapeId([shape.id]);
-            draggingShapeRefs.current = {};
-          }}
-          {...selectedStyle}
-        />
-      );
+
     default:
       throw new Error(`Unknown shape type: ${shape.type}`);
   }

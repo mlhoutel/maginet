@@ -568,6 +568,7 @@ export default function Canvas() {
               .filter((shape) => shape.id !== editingText?.id)
               .map((shape) => (
                 <ShapeComponent
+                  readOnly={false}
                   key={shape.id}
                   shape={shape}
                   shapes={shapes}
@@ -586,6 +587,7 @@ export default function Canvas() {
             {receivedData &&
               receivedData.map((shape: Shape) => (
                 <ShapeComponent
+                  readOnly={true}
                   key={shape.id}
                   shape={shape}
                   shapes={shapes}
@@ -603,6 +605,7 @@ export default function Canvas() {
               ))}
             {shapeInCreation && (
               <ShapeComponent
+                readOnly={false}
                 setEditingText={setEditingText}
                 key={shapeInCreation.shape.id}
                 shape={shapeInCreation.shape}
