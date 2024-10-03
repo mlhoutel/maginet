@@ -63,13 +63,14 @@ export function Shape({
         return shape;
       });
       // put the dragged shape to the end of the array
-      const draggedShape = newShapes.find(
-        (shape) => shape.id === dragging.shape.id
-      )!;
-      return [
-        ...newShapes.filter((shape) => shape.id !== draggedShape.id),
-        draggedShape,
-      ];
+      // const draggedShape = newShapes.find(
+      //   (shape) => shape.id === dragging.shape.id
+      // )!;
+      // return [
+      //   ...newShapes.filter((shape) => shape.id !== draggedShape.id),
+      //   draggedShape,
+      // ];
+      return newShapes;
     });
   }
 
