@@ -1,3 +1,4 @@
+/* eslint-disable react-compiler/react-compiler */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useRef, useSyncExternalStore } from "react";
 
@@ -95,6 +96,7 @@ export function useStreamingValue<Value, AdditionalData = undefined>(
 
       return streamingValues.subscribe(callbackWrapper);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [streamingValues.subscribe]
   );
 

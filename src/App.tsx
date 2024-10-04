@@ -1,3 +1,4 @@
+import { Toaster } from "react-hot-toast";
 import Canvas from "./Canvas";
 import "./index.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -8,6 +9,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Canvas />
+      <Toaster />
     </QueryClientProvider>
   );
 }

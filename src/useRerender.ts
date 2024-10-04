@@ -1,9 +1,16 @@
 import { useCallback, useState } from "react";
 
+declare global {
+  const rerenders: Set<() => void> | undefined;
+  const rerender: (() => void) | undefined;
+}
+
 export function useRerender() {
-  globalThis.rerenders ||= new Set<() => void>();
-  globalThis.rerender ||= () => {
-    globalThis.rerenders.forEach((rerender) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const global = globalThis as any;
+  global.rerenders ||= new Set<() => void>();
+  global.rerender ||= () => {
+    global.rerenders?.forEach((rerender: () => void) => {
       rerender();
     });
   };
@@ -13,7 +20,7 @@ export function useRerender() {
     setRenderSymbol(Symbol());
   }, []);
 
-  globalThis.rerenders.add(rerender);
+  global.rerenders.add(rerender);
 
   return [rerender, renderSymbol];
 }

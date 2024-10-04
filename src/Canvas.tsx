@@ -7,6 +7,8 @@ import ContextMenu from "./ContextMenu";
 import useCards from "./useCards";
 import { useEffect } from "react";
 import { usePeerStore } from "./usePeerConnection";
+import useModal from "./useModal";
+import toast from "react-hot-toast";
 
 export interface Point {
   x: number;
@@ -108,10 +110,10 @@ function processRawText(fromArena: string) {
 }
 
 export default function Canvas() {
-  const receivedData = usePeerStore((state) => state.receivedData);
-  const sendData = usePeerStore((state) => state.sendData);
   const initPeer = usePeerStore((state) => state.initPeer);
   const disconnect = usePeerStore((state) => state.disconnect);
+  const sendMessage = usePeerStore((state) => state.sendMessage);
+  const onMessage = usePeerStore((state) => state.onMessage);
 
   const { data } = useCards(
     Array.from(processRawText(DEFAULT_DECK.join("\n")))
@@ -122,37 +124,7 @@ export default function Canvas() {
     shape: Shape;
     origin: number[];
   } | null>(null);
-  const [shapes, setShapes] = React.useState<Shape[]>([
-    {
-      id: "d",
-      point: [400, 100],
-      size: [100, 100],
-      type: "text",
-      text: "Battlefield",
-      fontSize: 40,
-      rotation: 0,
-    },
-    // graveyard
-    {
-      id: "c",
-      point: [400, 200],
-      size: [100, 100],
-      type: "text",
-      text: "Graveyard",
-      fontSize: 40,
-      rotation: 0,
-    },
-    // exile
-    {
-      id: "e",
-      point: [400, 300],
-      size: [100, 100],
-      type: "text",
-      text: "Exile",
-      fontSize: 40,
-      rotation: 0,
-    },
-  ]);
+  const [shapes, setShapes] = React.useState<Shape[]>([]);
   const [shapeInCreation, setShapeInCreation] = React.useState<{
     shape: Shape;
     origin: number[];
@@ -164,7 +136,7 @@ export default function Canvas() {
   const [selectedShapeIds, setSelectedShapeIds] = React.useState<string[]>([]);
   const [cards, setCards] = React.useState<Card[]>([]);
   const [deck, setDeck] = React.useState<Card[]>([]);
-
+  const [receivedData, setReceivedData] = React.useState<Shape[]>([]);
   const [editingText, setEditingText] = React.useState<{
     id: string;
     text: string;
@@ -187,8 +159,8 @@ export default function Canvas() {
 
   // send shapes to peer
   useEffect(() => {
-    sendData(shapes);
-  }, [shapes, sendData]);
+    sendMessage({ type: "shapes", payload: shapes });
+  }, [shapes, sendMessage]);
 
   useEffect(() => {
     if (data) {
@@ -202,6 +174,21 @@ export default function Canvas() {
       setDeck(hand);
     }
   }, [data]);
+
+  useEffect(() => {
+    const unsubscribeShapes = onMessage("shapes", (message) => {
+      setReceivedData(message.payload);
+    });
+
+    const unsubscribeConnected = onMessage("connected", (message) => {
+      toast(`Peer connected: ${message.payload.peerId}`);
+    });
+
+    return () => {
+      unsubscribeShapes();
+      unsubscribeConnected();
+    };
+  }, [onMessage]);
 
   function flipShape(shape: Shape): Shape {
     return {
@@ -314,8 +301,6 @@ export default function Canvas() {
           shapeY + shapeHeight <= rect.y + rect.height
         );
       });
-
-      console.log("selectedShapes", selectedShapes);
 
       if (selectedShapes.length > 0) {
         setSelectedShapeIds(selectedShapes.map((shape) => shape.id));
@@ -603,6 +588,11 @@ export default function Canvas() {
                   value={editingText.text}
                   onChange={onTextChange}
                   onBlur={onTextBlur}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      onTextBlur();
+                    }
+                  }}
                 />
               </foreignObject>
             )}
@@ -662,6 +652,7 @@ function SelectionPanel({
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
   const peer = usePeerStore((state) => state.peer);
   const [peerId, setPeerId] = React.useState("");
+  const [modal, showModal] = useModal();
 
   const connection = usePeerStore((state) => state.connection);
 
@@ -680,7 +671,9 @@ function SelectionPanel({
         select
       </button>
       <button onClick={onMulligan}>Mulligan</button>
-      <div>your id: {peer?.id}</div>
+      <label>
+        your id: <input type="text" defaultValue={peer?.id} readOnly />
+      </label>
       <button onClick={() => connectToPeer(peerId)}>Connect to Peer</button>
 
       <input
@@ -689,6 +682,19 @@ function SelectionPanel({
         value={peerId}
       />
       {connection && <div>connected to {connection.peer}</div>}
+      {modal}
+      <button
+        onClick={() =>
+          showModal("Select deck", () => (
+            <form>
+              <textarea />
+              <button type="submit">Submit</button>
+            </form>
+          ))
+        }
+      >
+        Show Modal
+      </button>
     </div>
   );
 }
