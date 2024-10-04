@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { usePeerStore } from "./usePeerConnection";
 import useModal from "./useModal";
 import toast from "react-hot-toast";
+import { Form, useLocation } from "react-router-dom";
 
 export interface Point {
   x: number;
@@ -115,10 +116,6 @@ export default function Canvas() {
   const sendMessage = usePeerStore((state) => state.sendMessage);
   const onMessage = usePeerStore((state) => state.onMessage);
 
-  const { data } = useCards(
-    Array.from(processRawText(DEFAULT_DECK.join("\n")))
-  );
-
   const ref = React.useRef<SVGSVGElement>(null);
   const rDragging = React.useRef<{
     shape: Shape;
@@ -149,6 +146,14 @@ export default function Canvas() {
 
   const [hoveredCard, setHoveredCard] = React.useState<string | null>(null);
   const [isCommandPressed, setIsCommandPressed] = React.useState(false);
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const d = params.get("deck");
+
+  const { data } = useCards(
+    Array.from(processRawText(d || DEFAULT_DECK.join("\n")))
+  );
+  console.log(d);
 
   useEffect(() => {
     initPeer();
@@ -189,6 +194,53 @@ export default function Canvas() {
       unsubscribeConnected();
     };
   }, [onMessage]);
+
+  useEffect(() => {
+    function handleWheel(event: WheelEvent) {
+      event.preventDefault();
+
+      const { clientX, clientY, deltaX, deltaY, ctrlKey } = event;
+
+      if (ctrlKey) {
+        setCamera((camera) =>
+          zoomCamera(camera, { x: clientX, y: clientY }, deltaY / 100)
+        );
+      } else {
+        setCamera((camera) => panCamera(camera, deltaX, deltaY));
+      }
+    }
+
+    const elm = ref.current;
+    if (!elm) return;
+
+    elm.addEventListener("wheel", handleWheel, { passive: false });
+
+    return () => {
+      elm.removeEventListener("wheel", handleWheel);
+    };
+  }, [ref]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Meta") {
+        setIsCommandPressed(true);
+      }
+    }
+
+    function handleKeyUp(event: KeyboardEvent) {
+      if (event.key === "Meta") {
+        setIsCommandPressed(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
 
   function flipShape(shape: Shape): Shape {
     return {
@@ -315,53 +367,6 @@ export default function Canvas() {
     y: 0,
     z: 1,
   });
-
-  React.useEffect(() => {
-    function handleWheel(event: WheelEvent) {
-      event.preventDefault();
-
-      const { clientX, clientY, deltaX, deltaY, ctrlKey } = event;
-
-      if (ctrlKey) {
-        setCamera((camera) =>
-          zoomCamera(camera, { x: clientX, y: clientY }, deltaY / 100)
-        );
-      } else {
-        setCamera((camera) => panCamera(camera, deltaX, deltaY));
-      }
-    }
-
-    const elm = ref.current;
-    if (!elm) return;
-
-    elm.addEventListener("wheel", handleWheel, { passive: false });
-
-    return () => {
-      elm.removeEventListener("wheel", handleWheel);
-    };
-  }, [ref]);
-
-  React.useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Meta") {
-        setIsCommandPressed(true);
-      }
-    }
-
-    function handleKeyUp(event: KeyboardEvent) {
-      if (event.key === "Meta") {
-        setIsCommandPressed(false);
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-    };
-  }, []);
 
   const transform = `scale(${camera.z}) translate(${camera.x}px, ${camera.y}px)`;
 
@@ -655,6 +660,9 @@ function SelectionPanel({
   const [modal, showModal] = useModal();
 
   const connection = usePeerStore((state) => state.connection);
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const d = params.get("deck");
 
   return (
     <div className="selection-panel">
@@ -685,15 +693,19 @@ function SelectionPanel({
       {modal}
       <button
         onClick={() =>
-          showModal("Select deck", () => (
-            <form>
-              <textarea />
+          showModal("Select deck", (closeModal) => (
+            <Form
+              onSubmit={() => {
+                closeModal();
+              }}
+            >
+              <textarea id="deck" name="deck" defaultValue={d ?? ""} />
               <button type="submit">Submit</button>
-            </form>
+            </Form>
           ))
         }
       >
-        Show Modal
+        Select Deck
       </button>
     </div>
   );
