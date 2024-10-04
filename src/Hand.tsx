@@ -15,7 +15,7 @@ export default function Hand({ cards, setHoveredCard }: HandProps) {
           src={card.src}
           alt={`Card ${card.id}`}
           draggable
-          onDragStart={(e) => e.dataTransfer.setData("text/plain", card.src)}
+          onDragStart={(e) => e.dataTransfer.setData("text/plain", card.id)}
           onMouseEnter={() => setHoveredCard(card.src)}
           onMouseLeave={() => setHoveredCard(null)}
         />

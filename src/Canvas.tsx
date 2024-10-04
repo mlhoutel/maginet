@@ -111,40 +111,34 @@ const DEFAULT_DECK = [
 
 function processRawText(fromArena: string) {
   if (fromArena.trim() === "") return [];
-  return new Set(
-    fromArena
-      .split("\n")
-      .map((s) => {
-        const withoutNumber = s.replace(/^[0-9]+/g, "").trim();
-        if (withoutNumber.includes("//")) {
-          //Double faced card
-          return withoutNumber.split("//")[0].trim();
-        }
-        return withoutNumber;
-      })
-      .filter((s) => s !== "")
-  );
+  return fromArena.split("\n").flatMap((s) => {
+    const match = s.match(/^(\d+)\s+(.*?)(?:\s*\/\/.*)?$/);
+    if (match) {
+      const [, count, name] = match;
+      return Array(Number(count)).fill(name.trim());
+    }
+    return [];
+  });
 }
 
 export default function Canvas() {
   const receivedData = usePeerStore((state) => state.receivedData);
   const sendData = usePeerStore((state) => state.sendData);
 
-  console.log("peerData", receivedData);
   const { data } = useCards(
     Array.from(processRawText(DEFAULT_DECK.join("\n")))
   );
 
   useEffect(() => {
     if (data) {
-      const hand: Card[] = data.data
+      const hand: Card[] = data
         .filter((card) => card.image_uris?.normal)
         .map((card) => ({
           id: card.id,
           src: card.image_uris.normal,
         }));
-      setCards(hand.slice(0, 7));
-      setDeck(hand.slice(7));
+      setCards([]);
+      setDeck(hand);
     }
   }, [data]);
 
@@ -466,10 +460,12 @@ export default function Canvas() {
 
   const handleDrop = (e: React.DragEvent<SVGElement>) => {
     e.preventDefault();
-    const cardSrc = e.dataTransfer.getData("text/plain");
+    const cardId = e.dataTransfer.getData("text/plain");
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const id = generateId();
-    setCards((prevCards) => prevCards.filter((card) => card.src !== cardSrc));
+    const card = cards.find((card) => card.id === cardId);
+    if (!card) return;
+    setCards((prevCards) => prevCards.filter((card) => card.id !== cardId));
 
     setShapes((prevShapes) => [
       ...prevShapes,
@@ -478,18 +474,20 @@ export default function Canvas() {
         point: [x, y],
         size: [100, 100], // Default size, can be adjusted
         type: "image",
-        src: cardSrc,
+        src: card.src,
         rotation: 0,
       },
     ]);
   };
 
   const drawCard = () => {
+    if (deck.length === 0) return;
     setDeck((prevDeck) => {
       if (prevDeck.length === 0) return prevDeck; // No cards to draw
       const [, ...remainingDeck] = prevDeck;
       return remainingDeck;
     });
+    console.log("deck", deck);
     setCards((prevCards) => [
       ...prevCards,
       {
@@ -712,7 +710,6 @@ function SelectionPanel({
 }) {
   const initPeer = usePeerStore((state) => state.initPeer);
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
-  const sendData = usePeerStore((state) => state.sendData);
   const peer = usePeerStore((state) => state.peer);
   const [peerId, setPeerId] = React.useState("");
 
@@ -754,14 +751,14 @@ function SelectionPanel({
       /> */}
       <button onClick={onMulligan}>Mulligan</button>
       <button onClick={initPeer}>Init Peer</button>
+      <input readOnly value={peer?.id} />
+      <button onClick={() => connectToPeer(peerId)}>Connect to Peer</button>
+
       <input
         type="text"
         onChange={(e) => setPeerId(e.target.value)}
         value={peerId}
       />
-      <button onClick={() => connectToPeer(peerId)}>Connect to Peer</button>
-      <button onClick={() => sendData(Math.random())}>Send Data</button>
-      <input readOnly value={peer?.id} />
     </div>
   );
 }

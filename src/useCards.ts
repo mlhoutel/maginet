@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
 
 const fetchCards = async (names: string[]) => {
   const response = await fetch("https://api.scryfall.com/cards/collection", {
@@ -19,17 +20,54 @@ const fetchCards = async (names: string[]) => {
   return response.json();
 };
 
+const getCards = async (names: string[]) => {
+  names = [...names];
+  if (names.length <= 75) {
+    return [await fetchCards(names)];
+  }
+  if (names.length > 200) {
+    throw new Error("Too much cards");
+  }
+
+  const cardPromises = [];
+  while (names.length) {
+    const chunk = names.splice(0, 75).filter(Boolean);
+    cardPromises.push(fetchCards(chunk));
+  }
+
+  const cardArrays = await Promise.all(cardPromises);
+  return cardArrays.flat();
+};
+
 function useCards(names: string[]) {
   // Queries
-  return useQuery<CardCollection, Error>({
+  return useQuery<CardCollection[], Error, Datum[]>({
     queryKey: ["decks", names],
-    queryFn: () => fetchCards(names),
+    queryFn: () => getCards(names),
     enabled: names.length > 0,
     structuralSharing: false,
     refetchOnWindowFocus: false,
+    select: useCallback((data: CardCollection[]) => {
+      const cards = data.flatMap((d) => d.data);
+      for (const d of data) {
+        if (d.not_found && d.not_found.length > 0) {
+          console.warn(
+            `${d.not_found
+              .map((not_found) => not_found.name)
+              .join(", ")} not found`
+          );
+        }
+      }
+      return shuffle(cards);
+    }, []),
   });
 }
-
+function shuffle<T>(array: T[]) {
+  return array
+    .map((value) => ({ value, sort: Math.random() }))
+    .sort((a, b) => a.sort - b.sort)
+    .map(({ value }) => value);
+}
 export default useCards;
 
 export interface CardCollection {

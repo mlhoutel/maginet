@@ -119,8 +119,7 @@ export function Shape({
   //   ? `rotate(${shape.rotation} ${x + width / 2} ${y + height / 2})`
   //   : "";
 
-  const isSelected = selectedShapeIds.includes(shape.id);
-  const selectedStyle = isSelected ? { stroke: "blue", strokeWidth: 2 } : {};
+  const readOnlyStyle = readOnly ? { stroke: "blue", strokeWidth: 2 } : {};
   const textX = shape.point[0];
   const textY = shape.point[1];
   const textWidth = shape.size[0];
@@ -159,7 +158,7 @@ export function Shape({
               inputRef.current?.focus();
             }, 0);
           }}
-          {...selectedStyle}
+          {...readOnlyStyle}
         >
           {shape.text}
         </text>
@@ -171,6 +170,14 @@ export function Shape({
           onPointerDown={readOnly ? undefined : onPointerDown}
           onPointerMove={readOnly ? undefined : onPointerMove}
           onPointerUp={readOnly ? undefined : onPointerUp}
+          onContextMenu={
+            readOnly
+              ? undefined
+              : () => {
+                  onSelectShapeId([shape.id]);
+                  draggingShapeRefs.current = {};
+                }
+          }
           onClick={() => {
             if (readOnly) return;
             onSelectShapeId([shape.id]);
@@ -181,7 +188,16 @@ export function Shape({
             shape.type === "image" && setHoveredCard(shape.src!)
           }
           onMouseLeave={() => shape.type === "image" && setHoveredCard(null)}
+          style={readOnlyStyle} // Apply the style here
         >
+          <rect
+            x={shape.point[0]}
+            y={shape.point[1]}
+            width={shape.size[0]}
+            height={shape.size[1]}
+            fill="none"
+            pointerEvents="none"
+          />
           <image
             href={
               shape.isFlipped ? "https://i.imgur.com/LdOBU1I.jpeg" : shape.src
