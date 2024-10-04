@@ -59,20 +59,6 @@ function zoomCamera(camera: Camera, point: Point, dz: number): Camera {
   };
 }
 
-function zoomIn(camera: Camera): Camera {
-  const i = Math.round(camera.z * 100) / 25;
-  const nextZoom = (i + 1) * 0.25;
-  const center = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-  return zoomCamera(camera, center, camera.z - nextZoom);
-}
-
-function zoomOut(camera: Camera): Camera {
-  const i = Math.round(camera.z * 100) / 25;
-  const nextZoom = (i - 1) * 0.25;
-  const center = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-  return zoomCamera(camera, center, camera.z - nextZoom);
-}
-
 function generateId() {
   return Math.random().toString(36).substr(2, 9);
 }
@@ -124,23 +110,12 @@ function processRawText(fromArena: string) {
 export default function Canvas() {
   const receivedData = usePeerStore((state) => state.receivedData);
   const sendData = usePeerStore((state) => state.sendData);
+  const initPeer = usePeerStore((state) => state.initPeer);
+  const disconnect = usePeerStore((state) => state.disconnect);
 
   const { data } = useCards(
     Array.from(processRawText(DEFAULT_DECK.join("\n")))
   );
-
-  useEffect(() => {
-    if (data) {
-      const hand: Card[] = data
-        .filter((card) => card.image_uris?.normal)
-        .map((card) => ({
-          id: card.id,
-          src: card.image_uris.normal,
-        }));
-      setCards([]);
-      setDeck(hand);
-    }
-  }, [data]);
 
   const ref = React.useRef<SVGSVGElement>(null);
   const rDragging = React.useRef<{
@@ -185,7 +160,7 @@ export default function Canvas() {
 
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [mode, setMode] = React.useState<Mode>("select");
-  const [shapeType, setShapeType] = React.useState<ShapeType>("rectangle");
+  const [shapeType, setShapeType] = React.useState<ShapeType>("text");
   const [selectedShapeIds, setSelectedShapeIds] = React.useState<string[]>([]);
   const [cards, setCards] = React.useState<Card[]>([]);
   const [deck, setDeck] = React.useState<Card[]>([]);
@@ -203,6 +178,31 @@ export default function Canvas() {
   const [hoveredCard, setHoveredCard] = React.useState<string | null>(null);
   const [isCommandPressed, setIsCommandPressed] = React.useState(false);
 
+  useEffect(() => {
+    initPeer();
+    return () => {
+      disconnect();
+    };
+  }, [initPeer, disconnect]);
+
+  // send shapes to peer
+  useEffect(() => {
+    sendData(shapes);
+  }, [shapes, sendData]);
+
+  useEffect(() => {
+    if (data) {
+      const hand: Card[] = data
+        .filter((card) => card.image_uris?.normal)
+        .map((card) => ({
+          id: card.id,
+          src: card.image_uris.normal,
+        }));
+      setCards([]);
+      setDeck(hand);
+    }
+  }, [data]);
+
   function flipShape(shape: Shape): Shape {
     return {
       ...shape,
@@ -219,10 +219,6 @@ export default function Canvas() {
       );
     }
   }
-
-  useEffect(() => {
-    sendData(shapes);
-  }, [shapes, sendData]);
 
   function onPointerDownCanvas(e: React.PointerEvent<SVGElement>) {
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
@@ -428,36 +424,6 @@ export default function Canvas() {
     }
   }
 
-  // function changeTextSize(shape: Shape, newSize: number) {
-  //   return {
-  //     ...shape,
-  //     fontSize: newSize,
-  //   };
-  // }
-
-  // function onSizeChange(e: React.ChangeEvent<HTMLInputElement>) {
-  //   const newSize = parseInt(e.target.value, 10);
-  //   if (selectedShapeIds.length > 0 && !isNaN(newSize)) {
-  //     setShapes((prevShapes) =>
-  //       prevShapes.map((shape) => {
-  //         if (selectedShapeIds.includes(shape.id)) {
-  //           const [x, y] = shape.point;
-  //           const [width, height] = shape.size;
-  //           const deltaX = (newSize - width) / 2;
-  //           const deltaY = (newSize - height) / 2;
-
-  //           return {
-  //             ...shape,
-  //             point: [x - deltaX, y - deltaY], // Adjust the point to keep the anchor the same
-  //             size: [newSize, newSize], // Assuming square shapes for simplicity
-  //           };
-  //         }
-  //         return shape;
-  //       })
-  //     );
-  //   }
-  // }
-
   const handleDrop = (e: React.DragEvent<SVGElement>) => {
     e.preventDefault();
     const cardId = e.dataTransfer.getData("text/plain");
@@ -487,7 +453,6 @@ export default function Canvas() {
       const [, ...remainingDeck] = prevDeck;
       return remainingDeck;
     });
-    console.log("deck", deck);
     setCards((prevCards) => [
       ...prevCards,
       {
@@ -665,9 +630,6 @@ export default function Canvas() {
           onRotateRight={onRotateRight}
           onMulligan={mulligan}
           onDrawCard={drawCard}
-          // changeTextSize={changeTextSize}
-          // onSizeChange={onSizeChange}
-          key={selectedShapeIds.length > 0 ? selectedShapeIds[0] : "none"}
         />
       </div>
       <Hand cards={cards} setHoveredCard={setHoveredCard} />
@@ -683,16 +645,8 @@ export default function Canvas() {
 // allow user to select shapes (circle, rectangle, triangle, etc) or selection mode, zoom in/out
 function SelectionPanel({
   onDrawCard,
-  setCamera,
   setMode,
   mode,
-  shapeType,
-  setShapeType,
-  onRotateLeft,
-  onRotateRight,
-  // changeTextSize,
-  // sizeInput,
-  // onSizeChange,
   onMulligan,
 }: {
   onDrawCard: () => void;
@@ -704,27 +658,15 @@ function SelectionPanel({
   onRotateLeft: () => void;
   onRotateRight: () => void;
   onMulligan: () => void;
-  // changeTextSize: (shape: Shape, newSize: number) => void;
-  // sizeInput: number | null;
-  // onSizeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
-  const initPeer = usePeerStore((state) => state.initPeer);
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
   const peer = usePeerStore((state) => state.peer);
   const [peerId, setPeerId] = React.useState("");
 
+  const connection = usePeerStore((state) => state.connection);
+
   return (
     <div className="selection-panel">
-      <select
-        value={shapeType}
-        onChange={(e) => setShapeType(e.target.value as ShapeType)}
-      >
-        <option value="rectangle">Rectangle</option>
-        <option value="circle">Circle</option>
-        <option value="arrow">Arrow</option>
-        <option value="text">Text</option>
-        <option value="image">Image</option>
-      </select>
       <button onClick={onDrawCard}>Draw Card</button>
       <button
         disabled={mode === "create"}
@@ -732,26 +674,13 @@ function SelectionPanel({
           setMode("create");
         }}
       >
-        create
+        create text
       </button>
       <button disabled={mode === "select"} onClick={() => setMode("select")}>
         select
       </button>
-      <button onClick={() => setCamera(zoomIn)}>Zoom In</button>
-      <button onClick={() => setCamera(zoomOut)}>Zoom Out</button>
-      <button onClick={onRotateLeft}>Rotate Left</button>
-      <button onClick={onRotateRight}>Rotate Right</button>
-      {/* <input
-        type="range"
-        min="10"
-        max="500"
-        value={sizeInput ?? 0}
-        onChange={onSizeChange}
-        placeholder="Size"
-      /> */}
       <button onClick={onMulligan}>Mulligan</button>
-      <button onClick={initPeer}>Init Peer</button>
-      <input readOnly value={peer?.id} />
+      <div>your id: {peer?.id}</div>
       <button onClick={() => connectToPeer(peerId)}>Connect to Peer</button>
 
       <input
@@ -759,6 +688,7 @@ function SelectionPanel({
         onChange={(e) => setPeerId(e.target.value)}
         value={peerId}
       />
+      {connection && <div>connected to {connection.peer}</div>}
     </div>
   );
 }
