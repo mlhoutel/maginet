@@ -10,6 +10,7 @@ import { usePeerStore } from "./usePeerConnection";
 import useModal from "./useModal";
 import toast from "react-hot-toast";
 import { Form, useLocation } from "react-router-dom";
+import "./Modal.css";
 
 export interface Point {
   x: number;
@@ -695,12 +696,15 @@ function SelectionPanel({
         onClick={() =>
           showModal("Select deck", (closeModal) => (
             <Form
+              className="modal-form"
               onSubmit={() => {
                 closeModal();
               }}
             >
               <textarea id="deck" name="deck" defaultValue={d ?? ""} />
-              <button type="submit">Submit</button>
+              <button className="modal-button" type="submit">
+                Submit
+              </button>
             </Form>
           ))
         }
