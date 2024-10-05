@@ -180,9 +180,12 @@ export function Shape({
         );
       case "ping":
         return (
-          <g transform={`translate(${shape.point[0]}, ${shape.point[1]})`}>
-            <circle cx="20" cy="20" r="20" fill="rgba(255, 0, 0, 0.5)" />
-          </g>
+          <circle
+            cx={shape.point[0]}
+            cy={shape.point[1]}
+            r="20"
+            fill="rgba(255, 0, 0, 0.5)"
+          />
         );
       default:
         throw new Error(`Unknown shape type: ${shape.type}`);
