@@ -4,13 +4,15 @@ import "./Canvas.css";
 import { screenToCanvas, sub } from "./utils/vec";
 import Hand from "./Hand";
 import ContextMenu from "./ContextMenu";
-import useCards from "./useCards";
+import useCards from "./hooks/useCards";
 import { useEffect } from "react";
-import { usePeerStore } from "./usePeerConnection";
-import useModal from "./useModal";
+import { usePeerStore } from "./hooks/usePeerConnection";
+import useModal from "./hooks/useModal";
 import toast from "react-hot-toast";
 import { Form, useLocation } from "react-router-dom";
 import "./Modal.css";
+import { generateId } from "./utils/math";
+import { useCardReducer } from "./hooks/useCardReducer";
 
 export interface Point {
   x: number;
@@ -61,10 +63,6 @@ function zoomCamera(camera: Camera, point: Point, dz: number): Camera {
     y: camera.y + (p2.y - p1.y),
     z: zoom,
   };
-}
-
-function generateId() {
-  return Math.random().toString(36).substr(2, 9);
 }
 
 export type Mode = "select" | "create";
@@ -132,8 +130,6 @@ export default function Canvas() {
   const [mode, setMode] = React.useState<Mode>("select");
   const [shapeType, setShapeType] = React.useState<ShapeType>("text");
   const [selectedShapeIds, setSelectedShapeIds] = React.useState<string[]>([]);
-  const [cards, setCards] = React.useState<Card[]>([]);
-  const [deck, setDeck] = React.useState<Card[]>([]);
   const [receivedData, setReceivedData] = React.useState<Shape[]>([]);
   const [editingText, setEditingText] = React.useState<{
     id: string;
@@ -147,6 +143,64 @@ export default function Canvas() {
 
   const [hoveredCard, setHoveredCard] = React.useState<string | null>(null);
   const [isCommandPressed, setIsCommandPressed] = React.useState(false);
+  const [cardState, dispatch] = useCardReducer({
+    cards: [],
+    deck: [],
+  });
+
+  const { cards } = cardState;
+
+  // Update the functions that interact with cards and deck
+  const drawCard = () => {
+    dispatch({ type: "DRAW_CARD" });
+  };
+
+  const mulligan = () => {
+    dispatch({ type: "MULLIGAN" });
+  };
+
+  const sendBackToHand = () => {
+    const selectedCards = shapes.filter((shape) =>
+      selectedShapeIds.includes(shape.id)
+    ) as Card[];
+    dispatch({ type: "SEND_TO_HAND", payload: selectedCards });
+    setShapes((prevShapes) =>
+      prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
+    );
+    setSelectedShapeIds([]);
+  };
+
+  const sendBackToDeck = () => {
+    const selectedCards = shapes.filter((shape) =>
+      selectedShapeIds.includes(shape.id)
+    ) as Card[];
+    dispatch({ type: "SEND_TO_DECK", payload: selectedCards });
+    setShapes((prevShapes) =>
+      prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
+    );
+    setSelectedShapeIds([]);
+  };
+
+  const handleDrop = (e: React.DragEvent<SVGElement>) => {
+    e.preventDefault();
+    const cardId = e.dataTransfer.getData("text/plain");
+    const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
+    const card = cardState.cards.find((card) => card.id === cardId);
+    if (!card) return;
+    dispatch({ type: "REMOVE_FROM_HAND", payload: [cardId] });
+
+    setShapes((prevShapes) => [
+      ...prevShapes,
+      {
+        id: generateId(),
+        point: [x, y],
+        size: [100, 100],
+        type: "image",
+        src: card.src,
+        rotation: 0,
+      },
+    ]);
+  };
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const d = params.get("deck");
@@ -154,7 +208,18 @@ export default function Canvas() {
   const { data } = useCards(
     Array.from(processRawText(d || DEFAULT_DECK.join("\n")))
   );
-  console.log(d);
+
+  useEffect(() => {
+    if (data) {
+      const initialDeck: Card[] = data
+        .filter((card) => card.image_uris?.normal)
+        .map((card) => ({
+          id: card.id,
+          src: card.image_uris.normal,
+        }));
+      dispatch({ type: "INITIALIZE_DECK", payload: initialDeck });
+    }
+  }, [data, dispatch]);
 
   useEffect(() => {
     initPeer();
@@ -167,19 +232,6 @@ export default function Canvas() {
   useEffect(() => {
     sendMessage({ type: "shapes", payload: shapes });
   }, [shapes, sendMessage]);
-
-  useEffect(() => {
-    if (data) {
-      const hand: Card[] = data
-        .filter((card) => card.image_uris?.normal)
-        .map((card) => ({
-          id: card.id,
-          src: card.image_uris.normal,
-        }));
-      setCards([]);
-      setDeck(hand);
-    }
-  }, [data]);
 
   useEffect(() => {
     const unsubscribeShapes = onMessage("shapes", (message) => {
@@ -414,84 +466,6 @@ export default function Canvas() {
       );
     }
   }
-
-  const handleDrop = (e: React.DragEvent<SVGElement>) => {
-    e.preventDefault();
-    const cardId = e.dataTransfer.getData("text/plain");
-    const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
-    const id = generateId();
-    const card = cards.find((card) => card.id === cardId);
-    if (!card) return;
-    setCards((prevCards) => prevCards.filter((card) => card.id !== cardId));
-
-    setShapes((prevShapes) => [
-      ...prevShapes,
-      {
-        id,
-        point: [x, y],
-        size: [100, 100], // Default size, can be adjusted
-        type: "image",
-        src: card.src,
-        rotation: 0,
-      },
-    ]);
-  };
-
-  const drawCard = () => {
-    if (deck.length === 0) return;
-    setDeck((prevDeck) => {
-      if (prevDeck.length === 0) return prevDeck; // No cards to draw
-      const [, ...remainingDeck] = prevDeck;
-      return remainingDeck;
-    });
-    setCards((prevCards) => [
-      ...prevCards,
-      {
-        id: generateId(),
-        src: deck[0].src,
-        rotation: 0,
-      },
-    ]);
-  };
-
-  function mulligan() {
-    setDeck((prevDeck) => [...prevDeck, ...cards]);
-    setCards([]);
-  }
-
-  const sendBackToHand = () => {
-    const selectedCards = shapes.filter((shape) =>
-      selectedShapeIds.includes(shape.id)
-    )!;
-    setCards((prevCards) => [
-      ...prevCards,
-      ...selectedCards.map((card) => ({
-        id: card.id,
-        src: card.src as string,
-      })),
-    ]);
-    setShapes((prevShapes) =>
-      prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
-    );
-    setSelectedShapeIds([]);
-  };
-
-  const sendBackToDeck = () => {
-    const selectedCards = shapes.filter((shape) =>
-      selectedShapeIds.includes(shape.id)
-    )!;
-    setDeck((prevDeck) => [
-      ...prevDeck,
-      ...selectedCards.map((card) => ({
-        id: card.id,
-        src: card.src as string,
-      })),
-    ]);
-    setShapes((prevShapes) =>
-      prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
-    );
-    setSelectedShapeIds([]);
-  };
 
   const updateDraggingRef = React.useCallback(
     (newRef: { shape: Shape; origin: number[] } | null) => {
