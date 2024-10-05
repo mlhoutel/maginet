@@ -77,6 +77,10 @@ export default function Canvas() {
   const [shapeType] = React.useState<ShapeType>("text");
   const [selectedShapeIds, setSelectedShapeIds] = React.useState<string[]>([]);
   const [receivedData, setReceivedData] = React.useState<Shape[]>([]);
+  const [opponentInfo, setOpponentInfo] = React.useState<{
+    cards: number;
+    deck: number;
+  }>({ cards: 0, deck: 0 });
   const [editingText, setEditingText] = React.useState<{
     id: string;
     text: string;
@@ -94,7 +98,7 @@ export default function Canvas() {
     deck: [],
   });
 
-  const { cards } = cardState;
+  const { cards, deck } = cardState;
 
   const drawCard = () => {
     dispatch({ type: "DRAW_CARD" });
@@ -187,11 +191,31 @@ export default function Canvas() {
       toast(`Peer connected: ${message.payload.peerId}`);
     });
 
+    const unsubscribeCards = onMessage("cards", (message) => {
+      setOpponentInfo((prev) => ({ ...prev, cards: message.payload }));
+    });
+
+    const unsubscribeDeck = onMessage("deck", (message) => {
+      setOpponentInfo((prev) => ({ ...prev, deck: message.payload }));
+    });
+
+    const unsubscribeProuton = onMessage("prouton", () => {
+      toast(`Prouton!`);
+    });
+
     return () => {
       unsubscribeShapes();
       unsubscribeConnected();
+      unsubscribeCards();
+      unsubscribeDeck();
+      unsubscribeProuton();
     };
   }, [onMessage]);
+
+  useEffect(() => {
+    sendMessage({ type: "cards", payload: cards.length });
+    sendMessage({ type: "deck", payload: deck.length });
+  }, [cards, deck, sendMessage]);
 
   useEffect(() => {
     function handleWheel(event: WheelEvent) {
@@ -534,6 +558,28 @@ export default function Canvas() {
                 stroke="blue"
               />
             )}
+            {opponentInfo.cards > 0 && opponentInfo.deck > 0 && (
+              <text
+                x={10}
+                y={10}
+                fontSize={12}
+                style={{
+                  userSelect: "none",
+                }}
+              >
+                {`Opponent data: ${opponentInfo.cards} cards in hand and ${opponentInfo.deck} cards in deck`}
+              </text>
+            )}
+            <text
+              x={-3000}
+              y={20}
+              fontSize={100}
+              onClick={() => {
+                sendMessage({ type: "prouton", payload: "Prouton!" });
+              }}
+            >
+              Prouton!
+            </text>
           </g>
         </svg>
       </ContextMenu>
