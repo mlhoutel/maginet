@@ -74,7 +74,7 @@ export default function Canvas() {
 
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [mode, setMode] = React.useState<Mode>("select");
-  const [shapeType, setShapeType] = React.useState<ShapeType>("text");
+  const [shapeType] = React.useState<ShapeType>("text");
   const [selectedShapeIds, setSelectedShapeIds] = React.useState<string[]>([]);
   const [receivedData, setReceivedData] = React.useState<Shape[]>([]);
   const [editingText, setEditingText] = React.useState<{
@@ -392,21 +392,15 @@ export default function Canvas() {
     setMode("select");
   }
 
-  function onRotateLeft() {
+  function onEngageDisengageCard() {
     if (mode === "select" && selectedShapeIds.length > 0) {
       setShapes((prevShapes) =>
         prevShapes.map((shape) =>
-          selectedShapeIds.includes(shape.id) ? rotateShape(shape, -90) : shape
-        )
-      );
-    }
-  }
-
-  function onRotateRight() {
-    if (mode === "select" && selectedShapeIds.length > 0) {
-      setShapes((prevShapes) =>
-        prevShapes.map((shape) =>
-          selectedShapeIds.includes(shape.id) ? rotateShape(shape, 90) : shape
+          selectedShapeIds.includes(shape.id) && shape.type === "image"
+            ? shape.rotation !== 0
+              ? rotateShape(shape, -90)
+              : rotateShape(shape, 90)
+            : shape
         )
       );
     }
@@ -422,8 +416,7 @@ export default function Canvas() {
   return (
     <div>
       <ContextMenu
-        onRotateLeft={onRotateLeft}
-        onRotateRight={onRotateRight}
+        onEngageDisengageCard={onEngageDisengageCard}
         onFlip={onFlip}
         sendBackToDeck={sendBackToDeck}
         sendBackToHand={sendBackToHand}
@@ -435,6 +428,7 @@ export default function Canvas() {
           onPointerUp={onPointerUpCanvas}
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
+          style={{ backgroundColor: "#fff" }}
         >
           <g style={{ transform }}>
             {shapes
@@ -542,10 +536,6 @@ export default function Canvas() {
           setCamera={setCamera}
           setMode={setMode}
           mode={mode}
-          setShapeType={setShapeType}
-          shapeType={shapeType}
-          onRotateLeft={onRotateLeft}
-          onRotateRight={onRotateRight}
           onMulligan={mulligan}
           onDrawCard={drawCard}
         />

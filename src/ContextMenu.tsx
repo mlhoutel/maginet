@@ -3,8 +3,7 @@ import "use-context-menu/styles.css";
 import "./ContextMenu.css";
 
 interface ContextMenuProps {
-  onRotateLeft: () => void;
-  onRotateRight: () => void;
+  onEngageDisengageCard: () => void;
   children: React.ReactNode;
   onFlip: () => void;
   sendBackToDeck: () => void;
@@ -12,8 +11,7 @@ interface ContextMenuProps {
 }
 
 export default function ContextMenu({
-  onRotateLeft,
-  onRotateRight,
+  onEngageDisengageCard,
   children,
   onFlip,
   sendBackToDeck,
@@ -22,10 +20,7 @@ export default function ContextMenu({
   const { contextMenu, onContextMenu } = useContextMenu(
     <div className="custom-context-menu">
       <ContextMenuItem>
-        <button onClick={onRotateLeft}>Rotate Left</button>
-      </ContextMenuItem>
-      <ContextMenuItem>
-        <button onClick={onRotateRight}>Rotate Right</button>
+        <button onClick={onEngageDisengageCard}>Engage/Disengage</button>
       </ContextMenuItem>
       <ContextMenuItem>
         <button onClick={onFlip}>Flip</button>

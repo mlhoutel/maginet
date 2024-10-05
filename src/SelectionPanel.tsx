@@ -1,6 +1,6 @@
 import React from "react";
 import { useLocation, Form } from "react-router-dom";
-import { Camera, Mode, Shape } from "./Canvas";
+import { Camera, Mode } from "./Canvas";
 import useModal from "./hooks/useModal";
 import { usePeerStore } from "./hooks/usePeerConnection";
 
@@ -14,10 +14,6 @@ export function SelectionPanel({
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
   setMode: React.Dispatch<React.SetStateAction<Mode>>;
   mode: Mode;
-  shapeType: Shape["type"];
-  setShapeType: React.Dispatch<React.SetStateAction<Shape["type"]>>;
-  onRotateLeft: () => void;
-  onRotateRight: () => void;
   onMulligan: () => void;
 }) {
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
