@@ -7,14 +7,14 @@ import ContextMenu from "./ContextMenu";
 import useCards, { processRawText } from "./hooks/useCards";
 import { useEffect } from "react";
 import { usePeerStore } from "./hooks/usePeerConnection";
-import useModal from "./hooks/useModal";
 import toast from "react-hot-toast";
-import { Form, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import "./Modal.css";
 import { generateId } from "./utils/math";
 import { useCardReducer } from "./hooks/useCardReducer";
 import { DEFAULT_DECK } from "./DEFAULT_DECK";
 import { zoomCamera, panCamera } from "./utils/canvas_utils";
+import { SelectionPanel } from "./SelectionPanel";
 
 export interface Point {
   x: number;
@@ -556,83 +556,6 @@ export default function Canvas() {
           <img src={hoveredCard} alt={`Zoomed ${hoveredCard}`} />
         </div>
       )}
-    </div>
-  );
-}
-
-// allow user to select shapes (circle, rectangle, triangle, etc) or selection mode, zoom in/out
-function SelectionPanel({
-  onDrawCard,
-  setMode,
-  mode,
-  onMulligan,
-}: {
-  onDrawCard: () => void;
-  setCamera: React.Dispatch<React.SetStateAction<Camera>>;
-  setMode: React.Dispatch<React.SetStateAction<Mode>>;
-  mode: Mode;
-  shapeType: ShapeType;
-  setShapeType: React.Dispatch<React.SetStateAction<ShapeType>>;
-  onRotateLeft: () => void;
-  onRotateRight: () => void;
-  onMulligan: () => void;
-}) {
-  const connectToPeer = usePeerStore((state) => state.connectToPeer);
-  const peer = usePeerStore((state) => state.peer);
-  const [peerId, setPeerId] = React.useState("");
-  const [modal, showModal] = useModal();
-
-  const connection = usePeerStore((state) => state.connection);
-  const location = useLocation();
-  const params = new URLSearchParams(location.search);
-  const d = params.get("deck");
-
-  return (
-    <div className="selection-panel">
-      <button onClick={onDrawCard}>Draw Card</button>
-      <button
-        disabled={mode === "create"}
-        onClick={() => {
-          setMode("create");
-        }}
-      >
-        create text
-      </button>
-      <button disabled={mode === "select"} onClick={() => setMode("select")}>
-        select
-      </button>
-      <button onClick={onMulligan}>Mulligan</button>
-      <label>
-        your id: <input type="text" defaultValue={peer?.id} readOnly />
-      </label>
-      <button onClick={() => connectToPeer(peerId)}>Connect to Peer</button>
-
-      <input
-        type="text"
-        onChange={(e) => setPeerId(e.target.value)}
-        value={peerId}
-      />
-      {connection && <div>connected to {connection.peer}</div>}
-      {modal}
-      <button
-        onClick={() =>
-          showModal("Select deck", (closeModal) => (
-            <Form
-              className="modal-form"
-              onSubmit={() => {
-                closeModal();
-              }}
-            >
-              <textarea id="deck" name="deck" defaultValue={d ?? ""} />
-              <button className="modal-button" type="submit">
-                Submit
-              </button>
-            </Form>
-          ))
-        }
-      >
-        Select Deck
-      </button>
     </div>
   );
 }

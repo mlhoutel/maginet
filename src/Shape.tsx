@@ -102,6 +102,7 @@ export function Shape({
     style: {
       cursor: readOnly ? "default" : "move",
       filter: selected ? "url(#glow)" : "none",
+      opacity: readOnly ? 0.7 : 1,
     },
   };
 
@@ -164,6 +165,16 @@ export function Shape({
               />
             )}
           </g>
+        );
+      case "rectangle":
+        return (
+          <rect
+            {...commonProps}
+            x={shape.point[0]}
+            y={shape.point[1]}
+            width={shape.size[0]}
+            height={shape.size[1]}
+          />
         );
       default:
         throw new Error(`Unknown shape type: ${shape.type}`);

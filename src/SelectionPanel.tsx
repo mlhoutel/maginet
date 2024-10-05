@@ -1,0 +1,81 @@
+import React from "react";
+import { useLocation, Form } from "react-router-dom";
+import { Camera, Mode, Shape } from "./Canvas";
+import useModal from "./hooks/useModal";
+import { usePeerStore } from "./hooks/usePeerConnection";
+
+export function SelectionPanel({
+  onDrawCard,
+  setMode,
+  mode,
+  onMulligan,
+}: {
+  onDrawCard: () => void;
+  setCamera: React.Dispatch<React.SetStateAction<Camera>>;
+  setMode: React.Dispatch<React.SetStateAction<Mode>>;
+  mode: Mode;
+  shapeType: Shape["type"];
+  setShapeType: React.Dispatch<React.SetStateAction<Shape["type"]>>;
+  onRotateLeft: () => void;
+  onRotateRight: () => void;
+  onMulligan: () => void;
+}) {
+  const connectToPeer = usePeerStore((state) => state.connectToPeer);
+  const peer = usePeerStore((state) => state.peer);
+  const [peerId, setPeerId] = React.useState("");
+  const [modal, showModal] = useModal();
+
+  const connection = usePeerStore((state) => state.connection);
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const d = params.get("deck");
+
+  return (
+    <div className="selection-panel">
+      <button onClick={onDrawCard}>Draw Card</button>
+      <button
+        disabled={mode === "create"}
+        onClick={() => {
+          setMode("create");
+        }}
+      >
+        create text
+      </button>
+      <button disabled={mode === "select"} onClick={() => setMode("select")}>
+        select
+      </button>
+      <button onClick={onMulligan}>Mulligan</button>
+      <label>
+        your id: <input type="text" defaultValue={peer?.id} readOnly />
+      </label>
+      <button onClick={() => connectToPeer(peerId)}>Connect to Peer</button>
+
+      <input
+        type="text"
+        onChange={(e) => setPeerId(e.target.value)}
+        value={peerId}
+      />
+      {connection && <div>connected to {connection.peer}</div>}
+      {modal}
+      <button
+        onClick={() =>
+          showModal("Select deck", (closeModal) => (
+            <Form
+              className="modal-form"
+              onSubmit={() => {
+                closeModal();
+              }}
+            >
+              <textarea id="deck" name="deck" defaultValue={d ?? ""} />
+              <button className="modal-button" type="submit">
+                Submit
+              </button>
+            </Form>
+          ))
+        }
+      >
+        Select Deck
+      </button>
+    </div>
+  );
+}
