@@ -44,7 +44,7 @@ export interface Shape {
   fontSize?: number;
 }
 
-type ShapeType = "rectangle" | "circle" | "arrow" | "text" | "image";
+type ShapeType = "rectangle" | "circle" | "arrow" | "text" | "image" | "ping";
 
 export type Mode = "select" | "create";
 
@@ -97,7 +97,7 @@ export default function Canvas() {
     cards: [],
     deck: [],
   });
-
+  const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
   const { cards, deck } = cardState;
 
   const drawCard = () => {
@@ -246,6 +246,8 @@ export default function Canvas() {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Meta") {
         setIsCommandPressed(true);
+      } else if (event.key === "p" || event.key === "P") {
+        addPing(mousePosition.x, mousePosition.y);
       }
     }
 
@@ -262,7 +264,7 @@ export default function Canvas() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, []);
+  }, [mousePosition]);
 
   function flipShape(shape: Shape): Shape {
     return {
@@ -279,6 +281,23 @@ export default function Canvas() {
         )
       );
     }
+  }
+
+  function addPing(x: number, y: number) {
+    const newPing: Shape = {
+      id: generateId(),
+      point: [x, y],
+      size: [40, 40],
+      type: "ping",
+    };
+    setShapes((prevShapes) => [...prevShapes, newPing]);
+
+    // Remove the ping after 2 seconds
+    setTimeout(() => {
+      setShapes((prevShapes) =>
+        prevShapes.filter((shape) => shape.id !== newPing.id)
+      );
+    }, 2000);
   }
 
   function onPointerDownCanvas(e: React.PointerEvent<SVGElement>) {
@@ -324,7 +343,7 @@ export default function Canvas() {
 
   function onPointerMoveCanvas(e: React.PointerEvent<SVGElement>) {
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
-
+    setMousePosition({ x, y });
     if (mode === "create" && shapeInCreation) {
       const point = [x, y];
       const localShapeInCreation = {

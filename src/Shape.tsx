@@ -178,6 +178,12 @@ export function Shape({
             height={shape.size[1]}
           />
         );
+      case "ping":
+        return (
+          <g transform={`translate(${shape.point[0]}, ${shape.point[1]})`}>
+            <circle cx="20" cy="20" r="20" fill="rgba(255, 0, 0, 0.5)" />
+          </g>
+        );
       default:
         throw new Error(`Unknown shape type: ${shape.type}`);
     }
