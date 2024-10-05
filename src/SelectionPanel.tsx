@@ -9,12 +9,14 @@ export function SelectionPanel({
   setMode,
   mode,
   onMulligan,
+  onShuffleDeck,
 }: {
   onDrawCard: () => void;
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
   setMode: React.Dispatch<React.SetStateAction<Mode>>;
   mode: Mode;
   onMulligan: () => void;
+  onShuffleDeck: () => void;
 }) {
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
   const peer = usePeerStore((state) => state.peer);
@@ -41,6 +43,7 @@ export function SelectionPanel({
         select
       </button>
       <button onClick={onMulligan}>Mulligan</button>
+      <button onClick={onShuffleDeck}>Shuffle Deck</button>
       <label>
         your id: <input type="text" defaultValue={peer?.id} readOnly />
       </label>

@@ -67,6 +67,7 @@ export function Shape({
 
   const onPointerUp = (e: React.PointerEvent<SVGElement>) => {
     e.currentTarget.releasePointerCapture(e.pointerId);
+    e.stopPropagation();
     updateDraggingRef(null);
     draggingShapeRefs.current = {};
   };
@@ -74,7 +75,7 @@ export function Shape({
   function onPointerDown(e: React.PointerEvent<SVGElement>) {
     if (mode !== "select") return;
     e.currentTarget.setPointerCapture(e.pointerId);
-
+    e.stopPropagation();
     const id = e.currentTarget.id;
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
@@ -94,8 +95,9 @@ export function Shape({
     onPointerDown: readOnly ? undefined : onPointerDown,
     onPointerMove: readOnly ? undefined : onPointerMove,
     onPointerUp: readOnly ? undefined : onPointerUp,
-    onClick: () => {
+    onClick: (e: React.MouseEvent<SVGElement>) => {
       if (readOnly) return;
+      e.stopPropagation();
       onSelectShapeId([shape.id]);
       draggingShapeRefs.current = {};
     },

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
+import { shuffle } from "../utils/math";
 
 const fetchCards = async (names: string[]) => {
   const response = await fetch("https://api.scryfall.com/cards/collection", {
@@ -61,12 +62,6 @@ function useCards(names: string[]) {
       return shuffle(cards);
     }, []),
   });
-}
-function shuffle<T>(array: T[]) {
-  return array
-    .map((value) => ({ value, sort: Math.random() }))
-    .sort((a, b) => a.sort - b.sort)
-    .map(({ value }) => value);
 }
 export default useCards;
 

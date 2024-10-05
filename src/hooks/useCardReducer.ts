@@ -1,6 +1,6 @@
 import { useReducer } from "react";
 import { Card } from "../Canvas";
-import { generateId } from "../utils/math";
+import { generateId, shuffle } from "../utils/math";
 
 export type CardState = {
   cards: Card[];
@@ -13,7 +13,8 @@ export type CardAction =
   | { type: "MULLIGAN" }
   | { type: "SEND_TO_HAND"; payload: Card[] }
   | { type: "SEND_TO_DECK"; payload: Card[] }
-  | { type: "REMOVE_FROM_HAND"; payload: string[] };
+  | { type: "REMOVE_FROM_HAND"; payload: string[] }
+  | { type: "SHUFFLE_DECK" };
 
 export function cardReducer(state: CardState, action: CardAction): CardState {
   switch (action.type) {
@@ -49,6 +50,11 @@ export function cardReducer(state: CardState, action: CardAction): CardState {
       return {
         ...state,
         cards: state.cards.filter((card) => !action.payload.includes(card.id)),
+      };
+    case "SHUFFLE_DECK":
+      return {
+        ...state,
+        deck: shuffle(state.deck),
       };
     default:
       return state;

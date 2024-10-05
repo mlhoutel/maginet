@@ -354,6 +354,8 @@ export default function Canvas() {
 
       if (selectedShapes.length > 0) {
         setSelectedShapeIds(selectedShapes.map((shape) => shape.id));
+      } else {
+        setSelectedShapeIds([]);
       }
 
       setSelectionRect(null);
@@ -412,6 +414,10 @@ export default function Canvas() {
     },
     [rDragging]
   );
+
+  const onShuffleDeck = () => {
+    dispatch({ type: "SHUFFLE_DECK" });
+  };
 
   return (
     <div>
@@ -538,6 +544,7 @@ export default function Canvas() {
           mode={mode}
           onMulligan={mulligan}
           onDrawCard={drawCard}
+          onShuffleDeck={onShuffleDeck}
         />
       </div>
       <Hand cards={cards} setHoveredCard={setHoveredCard} />
