@@ -208,3 +208,14 @@ export interface RelatedUris {
   tcgplayer_infinite_decks: string;
   edhrec: string;
 }
+export function processRawText(fromArena: string) {
+  if (fromArena.trim() === "") return [];
+  return fromArena.split("\n").flatMap((s) => {
+    const match = s.match(/^(\d+)\s+(.*?)(?:\s*\/\/.*)?$/);
+    if (match) {
+      const [, count, name] = match;
+      return Array(Number(count)).fill(name.trim());
+    }
+    return [];
+  });
+}

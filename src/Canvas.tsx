@@ -4,7 +4,7 @@ import "./Canvas.css";
 import { screenToCanvas, sub } from "./utils/vec";
 import Hand from "./Hand";
 import ContextMenu from "./ContextMenu";
-import useCards from "./hooks/useCards";
+import useCards, { processRawText } from "./hooks/useCards";
 import { useEffect } from "react";
 import { usePeerStore } from "./hooks/usePeerConnection";
 import useModal from "./hooks/useModal";
@@ -13,6 +13,8 @@ import { Form, useLocation } from "react-router-dom";
 import "./Modal.css";
 import { generateId } from "./utils/math";
 import { useCardReducer } from "./hooks/useCardReducer";
+import { DEFAULT_DECK } from "./DEFAULT_DECK";
+import { zoomCamera, panCamera } from "./utils/canvas_utils";
 
 export interface Point {
   x: number;
@@ -44,27 +46,6 @@ export interface Shape {
 
 type ShapeType = "rectangle" | "circle" | "arrow" | "text" | "image";
 
-function panCamera(camera: Camera, dx: number, dy: number): Camera {
-  return {
-    x: camera.x - dx / camera.z,
-    y: camera.y - dy / camera.z,
-    z: camera.z,
-  };
-}
-
-function zoomCamera(camera: Camera, point: Point, dz: number): Camera {
-  const zoom = camera.z - dz * camera.z;
-
-  const p1 = screenToCanvas(point, camera);
-  const p2 = screenToCanvas(point, { ...camera, z: zoom });
-
-  return {
-    x: camera.x + (p2.x - p1.x),
-    y: camera.y + (p2.y - p1.y),
-    z: zoom,
-  };
-}
-
 export type Mode = "select" | "create";
 
 function rotateShape(shape: Shape, angle: number): Shape {
@@ -72,41 +53,6 @@ function rotateShape(shape: Shape, angle: number): Shape {
     ...shape,
     rotation: (shape.rotation || 0) + angle,
   };
-}
-
-const DEFAULT_DECK = [
-  "3 Ambitious Farmhand",
-  "4 Reckoner Bankbuster",
-  "2 Elspeth Resplendent",
-  "2 March of Otherworldly Light",
-  "4 The Restoration of Eiganjo",
-  "4 Roadside Reliquary",
-  "1 Eiganjo, Seat of the Empire",
-  "16 Plains",
-  "4 Ossification",
-  "4 Wedding Announcement",
-  "2 Destroy Evil",
-  "4 The Wandering Emperor",
-  "4 Lay Down Arms",
-  "3 The Eternal Wanderer",
-  "3 Mirrex",
-  "3 Depopulate",
-  "2 Fateful Absence",
-  "3 Farewell",
-  "4 Sunset Revelry",
-  "3 Loran of the Third Path",
-];
-
-function processRawText(fromArena: string) {
-  if (fromArena.trim() === "") return [];
-  return fromArena.split("\n").flatMap((s) => {
-    const match = s.match(/^(\d+)\s+(.*?)(?:\s*\/\/.*)?$/);
-    if (match) {
-      const [, count, name] = match;
-      return Array(Number(count)).fill(name.trim());
-    }
-    return [];
-  });
 }
 
 export default function Canvas() {
@@ -150,7 +96,6 @@ export default function Canvas() {
 
   const { cards } = cardState;
 
-  // Update the functions that interact with cards and deck
   const drawCard = () => {
     dispatch({ type: "DRAW_CARD" });
   };
@@ -510,6 +455,7 @@ export default function Canvas() {
                   inputRef={inputRef}
                   setHoveredCard={setHoveredCard}
                   updateDraggingRef={updateDraggingRef}
+                  selected={selectedShapeIds.includes(shape.id)}
                 />
               ))}
             {receivedData &&
@@ -529,6 +475,7 @@ export default function Canvas() {
                   inputRef={inputRef}
                   setHoveredCard={setHoveredCard}
                   updateDraggingRef={updateDraggingRef}
+                  selected={selectedShapeIds.includes(shape.id)}
                 />
               ))}
             {shapeInCreation && (
@@ -547,6 +494,7 @@ export default function Canvas() {
                 selectedShapeIds={selectedShapeIds}
                 setHoveredCard={setHoveredCard}
                 updateDraggingRef={updateDraggingRef}
+                selected={selectedShapeIds.includes(shapeInCreation.shape.id)}
               />
             )}
             {editingText && (

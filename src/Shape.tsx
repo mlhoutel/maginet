@@ -16,6 +16,7 @@ export function Shape({
   inputRef,
   updateDraggingRef,
   readOnly,
+  selected,
 }: {
   shape: ShapeType;
   shapes: ShapeType[];
@@ -40,40 +41,28 @@ export function Shape({
     newRef: { shape: ShapeType; origin: number[] } | null
   ) => void;
   readOnly: boolean;
+  selected: boolean;
 }) {
-  // capture the shapes at the start of the drag to move them as a group
   const draggingShapeRefs = useRef<Record<string, ShapeType>>({});
 
   function onPointerMove(e: React.PointerEvent<SVGElement>) {
     if (mode !== "select") return;
     const dragging = rDragging.current;
-
     if (!dragging) return;
 
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
     const delta = sub(point, dragging.origin);
 
-    setShapes((prevShapes) => {
-      const newShapes = prevShapes.map((shape) => {
-        if (shape.id === dragging.shape.id) {
-          return {
-            ...shape,
-            point: add(dragging.shape.point, delta),
-          };
-        }
-        return shape;
-      });
-      // put the dragged shape to the end of the array
-      // const draggedShape = newShapes.find(
-      //   (shape) => shape.id === dragging.shape.id
-      // )!;
-      // return [
-      //   ...newShapes.filter((shape) => shape.id !== draggedShape.id),
-      //   draggedShape,
-      // ];
-      return newShapes;
-    });
+    setShapes((prevShapes) =>
+      prevShapes.map((s) =>
+        s.id === dragging.shape.id
+          ? { ...s, point: add(dragging.shape.point, delta) }
+          : draggingShapeRefs.current[s.id]
+          ? { ...s, point: add(draggingShapeRefs.current[s.id].point, delta) }
+          : s
+      )
+    );
   }
 
   const onPointerUp = (e: React.PointerEvent<SVGElement>) => {
@@ -87,133 +76,112 @@ export function Shape({
     e.currentTarget.setPointerCapture(e.pointerId);
 
     const id = e.currentTarget.id;
-
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
 
     updateDraggingRef({
-      shape: shapes.find((shape) => shape.id === id)!,
+      shape: shapes.find((s) => s.id === id)!,
       origin: point,
     });
 
     selectedShapeIds.forEach((id) => {
-      draggingShapeRefs.current[id] = shapes.find((shape) => shape.id === id)!;
+      draggingShapeRefs.current[id] = shapes.find((s) => s.id === id)!;
     });
   }
 
-  // let [x, y] = shape.point;
-  // let width = shape.size[0];
-  // let height = shape.size[1];
+  const commonProps = {
+    id: shape.id,
+    onPointerDown: readOnly ? undefined : onPointerDown,
+    onPointerMove: readOnly ? undefined : onPointerMove,
+    onPointerUp: readOnly ? undefined : onPointerUp,
+    onClick: () => {
+      if (readOnly) return;
+      onSelectShapeId([shape.id]);
+      draggingShapeRefs.current = {};
+    },
+    style: {
+      cursor: readOnly ? "default" : "move",
+      filter: selected ? "url(#glow)" : "none",
+    },
+  };
 
-  // if (shape.type === "rectangle" || shape.type === "circle") {
-  //   if (width < 0) {
-  //     x = x + width;
-  //     width = -width;
-  //   }
-  //   if (height < 0) {
-  //     y = y + height;
-  //     height = -height;
-  //   }
-  // }
-  // const rotate = shape.rotation
-  //   ? `rotate(${shape.rotation} ${x + width / 2} ${y + height / 2})`
-  //   : "";
-
-  const readOnlyStyle = readOnly ? { stroke: "blue", strokeWidth: 2 } : {};
-  const textX = shape.point[0];
-  const textY = shape.point[1];
-  const textWidth = shape.size[0];
-  const textHeight = shape.size[1];
-  const textRotate = shape.rotation
-    ? `rotate(${shape.rotation} ${textX + textWidth / 2} ${
-        textY + textHeight / 2
-      })`
-    : "";
-
-  switch (shape.type) {
-    case "text":
-      return (
-        <text
-          key={shape.id}
-          id={shape.id}
-          x={textX}
-          y={textY}
-          onPointerDown={readOnly ? undefined : onPointerDown}
-          transform={textRotate}
-          onPointerMove={readOnly ? undefined : onPointerMove}
-          onPointerUp={readOnly ? undefined : onPointerUp}
-          onClick={() => {
-            if (readOnly) return;
-            onSelectShapeId([shape.id]);
-            draggingShapeRefs.current = {};
-          }}
-          style={{
-            userSelect: "none",
-            fontSize: shape.fontSize || 16,
-          }}
-          onDoubleClick={() => {
-            if (readOnly) return;
-            setEditingText({ id: shape.id, text: shape.text! });
-            setTimeout(() => {
-              inputRef.current?.focus();
-            }, 0);
-          }}
-          {...readOnlyStyle}
-        >
-          {shape.text}
-        </text>
-      );
-    case "image":
-      return (
-        <g
-          id={shape.id}
-          onPointerDown={readOnly ? undefined : onPointerDown}
-          onPointerMove={readOnly ? undefined : onPointerMove}
-          onPointerUp={readOnly ? undefined : onPointerUp}
-          onContextMenu={
-            readOnly
-              ? undefined
-              : () => {
-                  onSelectShapeId([shape.id]);
-                  draggingShapeRefs.current = {};
-                }
-          }
-          onClick={() => {
-            if (readOnly) return;
-            onSelectShapeId([shape.id]);
-            draggingShapeRefs.current = {};
-          }}
-          key={shape.id}
-          onMouseEnter={() =>
-            shape.type === "image" && setHoveredCard(shape.src!)
-          }
-          onMouseLeave={() => shape.type === "image" && setHoveredCard(null)}
-          style={readOnlyStyle} // Apply the style here
-        >
-          <rect
+  const renderShape = () => {
+    switch (shape.type) {
+      case "text":
+        return (
+          <text
+            {...commonProps}
             x={shape.point[0]}
             y={shape.point[1]}
-            width={shape.size[0]}
-            height={shape.size[1]}
-            fill="none"
-            pointerEvents="none"
-          />
-          <image
-            href={
-              shape.isFlipped ? "https://i.imgur.com/LdOBU1I.jpeg" : shape.src
-            }
-            x={shape.point[0]}
-            y={shape.point[1]}
-            width={shape.size[0]}
-            height={shape.size[1]}
-            transform={`rotate(${shape.rotation || 0}, ${
+            transform={`rotate(${shape.rotation || 0} ${
               shape.point[0] + shape.size[0] / 2
-            }, ${shape.point[1] + shape.size[1] / 2})`}
-          />
-        </g>
-      );
+            } ${shape.point[1] + shape.size[1] / 2})`}
+            style={{
+              ...commonProps.style,
+              userSelect: "none",
+              fontSize: shape.fontSize || 16,
+              fill: selected ? "#4a90e2" : "#000",
+            }}
+            onDoubleClick={() => {
+              if (readOnly) return;
+              setEditingText({ id: shape.id, text: shape.text! });
+              setTimeout(() => inputRef.current?.focus(), 0);
+            }}
+          >
+            {shape.text}
+          </text>
+        );
+      case "image":
+        return (
+          <g
+            {...commonProps}
+            onMouseEnter={() => setHoveredCard(shape.src!)}
+            onMouseLeave={() => setHoveredCard(null)}
+          >
+            <image
+              href={
+                shape.isFlipped ? "https://i.imgur.com/LdOBU1I.jpeg" : shape.src
+              }
+              x={shape.point[0]}
+              y={shape.point[1]}
+              width={shape.size[0]}
+              height={shape.size[1]}
+              transform={`rotate(${shape.rotation || 0}, ${
+                shape.point[0] + shape.size[0] / 2
+              }, ${shape.point[1] + shape.size[1] / 2})`}
+            />
+            {selected && (
+              <rect
+                x={shape.point[0]}
+                y={shape.point[1]}
+                width={shape.size[0]}
+                height={shape.size[1]}
+                fill="none"
+                stroke="#4a90e2"
+                strokeWidth="2"
+                strokeDasharray="5,5"
+                pointerEvents="none"
+              />
+            )}
+          </g>
+        );
+      default:
+        throw new Error(`Unknown shape type: ${shape.type}`);
+    }
+  };
 
-    default:
-      throw new Error(`Unknown shape type: ${shape.type}`);
-  }
+  return (
+    <>
+      <defs>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+          <feMerge>
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      {renderShape()}
+    </>
+  );
 }
