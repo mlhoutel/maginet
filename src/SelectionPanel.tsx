@@ -19,6 +19,7 @@ export function SelectionPanel({
   onShuffleDeck: () => void;
 }) {
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
+  const sendMessage = usePeerStore((state) => state.sendMessage);
   const peer = usePeerStore((state) => state.peer);
   const [peerId, setPeerId] = React.useState("");
   const [modal, showModal] = useModal();
@@ -74,6 +75,13 @@ export function SelectionPanel({
         }
       >
         Select Deck
+      </button>
+      <button
+        onClick={() => {
+          sendMessage({ type: "prouton", payload: "Prouton!" });
+        }}
+      >
+        Prouton!
       </button>
     </div>
   );

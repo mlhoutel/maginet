@@ -481,9 +481,6 @@ export default function Canvas() {
         >
           <g style={{ transform }}>
             <image
-              onClick={() => {
-                sendMessage({ type: "prouton", payload: "Prouton!" });
-              }}
               x={-3000}
               y={20}
               width={100}
