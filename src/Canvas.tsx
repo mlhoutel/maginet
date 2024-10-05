@@ -480,6 +480,16 @@ export default function Canvas() {
           style={{ backgroundColor: "#fff" }}
         >
           <g style={{ transform }}>
+            <image
+              onClick={() => {
+                sendMessage({ type: "prouton", payload: "Prouton!" });
+              }}
+              x={-3000}
+              y={20}
+              width={100}
+              height={100}
+              href="/sonic.gif"
+            />
             {shapes
               .filter((shape) => shape.id !== editingText?.id)
               .map((shape) => (
@@ -589,16 +599,6 @@ export default function Canvas() {
                 {`Opponent data: ${opponentInfo.cards} cards in hand and ${opponentInfo.deck} cards in deck`}
               </text>
             )}
-            <text
-              x={-3000}
-              y={20}
-              fontSize={100}
-              onClick={() => {
-                sendMessage({ type: "prouton", payload: "Prouton!" });
-              }}
-            >
-              Prouton!
-            </text>
           </g>
         </svg>
       </ContextMenu>
