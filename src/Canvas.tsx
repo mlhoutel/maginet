@@ -15,6 +15,8 @@ import { useCardReducer } from "./hooks/useCardReducer";
 import { DEFAULT_DECK } from "./DEFAULT_DECK";
 import { zoomCamera, panCamera } from "./utils/canvas_utils";
 import { SelectionPanel } from "./SelectionPanel";
+import inputs from "./inputs";
+import { useGesture } from "@use-gesture/react";
 
 export interface Point {
   x: number;
@@ -218,31 +220,6 @@ export default function Canvas() {
   }, [cards, deck, sendMessage]);
 
   useEffect(() => {
-    function handleWheel(event: WheelEvent) {
-      event.preventDefault();
-
-      const { clientX, clientY, deltaX, deltaY, ctrlKey } = event;
-
-      if (ctrlKey) {
-        setCamera((camera) =>
-          zoomCamera(camera, { x: clientX, y: clientY }, deltaY / 100)
-        );
-      } else {
-        setCamera((camera) => panCamera(camera, deltaX, deltaY));
-      }
-    }
-
-    const elm = ref.current;
-    if (!elm) return;
-
-    elm.addEventListener("wheel", handleWheel, { passive: false });
-
-    return () => {
-      elm.removeEventListener("wheel", handleWheel);
-    };
-  }, [ref]);
-
-  useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Meta") {
         setIsCommandPressed(true);
@@ -303,6 +280,12 @@ export default function Canvas() {
   function onPointerDownCanvas(e: React.PointerEvent<SVGElement>) {
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
+    if (e.button === 0 && e.altKey) {
+      setIsPanning(true);
+      setLastPanPosition({ x: e.clientX, y: e.clientY });
+      e.currentTarget.setPointerCapture(e.pointerId);
+      return;
+    }
     if (mode === "create") {
       e.currentTarget.setPointerCapture(e.pointerId);
       if (shapeType === "text") {
@@ -343,6 +326,13 @@ export default function Canvas() {
 
   function onPointerMoveCanvas(e: React.PointerEvent<SVGElement>) {
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
+    if (isPanning && lastPanPosition) {
+      const dx = e.clientX - lastPanPosition.x;
+      const dy = e.clientY - lastPanPosition.y;
+      setCamera((camera) => panCamera(camera, -dx, -dy));
+      setLastPanPosition({ x: e.clientX, y: e.clientY });
+      return;
+    }
     setMousePosition({ x, y });
     if (mode === "create" && shapeInCreation) {
       const point = [x, y];
@@ -369,6 +359,12 @@ export default function Canvas() {
   }
 
   const onPointerUpCanvas = (e: React.PointerEvent<SVGElement>) => {
+    if (isPanning) {
+      setIsPanning(false);
+      setLastPanPosition(null);
+      e.currentTarget.releasePointerCapture(e.pointerId);
+      return;
+    }
     if (mode === "create" && shapeInCreation) {
       e.currentTarget.releasePointerCapture(e.pointerId);
 
@@ -411,6 +407,53 @@ export default function Canvas() {
     z: 1,
   });
 
+  const MAX_ZOOM_STEP = 5;
+
+  function normalizeWheel(event: WheelEvent) {
+    const { deltaY, deltaX } = event;
+
+    let deltaZ = 0;
+
+    if (event.ctrlKey || event.metaKey) {
+      const signY = Math.sign(event.deltaY);
+      const absDeltaY = Math.abs(event.deltaY);
+
+      let dy = deltaY;
+
+      if (absDeltaY > MAX_ZOOM_STEP) {
+        dy = MAX_ZOOM_STEP * signY;
+      }
+
+      deltaZ = dy;
+    }
+
+    return [deltaX, deltaY, deltaZ];
+  }
+
+  useGesture(
+    {
+      onWheel: ({ event, delta, ctrlKey }) => {
+        event.preventDefault();
+        if (ctrlKey) {
+          const { point } = inputs.wheel(event as WheelEvent);
+          const z = normalizeWheel(event)[2];
+          setCamera((prev) => zoomCamera(prev, point, z * 0.618));
+          return;
+        } else {
+          setCamera((camera) => panCamera(camera, delta[0], delta[1]));
+        }
+      },
+    },
+    {
+      target: document.body,
+      eventOptions: { passive: false },
+    }
+  );
+
+  const [isPanning, setIsPanning] = React.useState(false);
+  const [lastPanPosition, setLastPanPosition] = React.useState<Point | null>(
+    null
+  );
   const transform = `scale(${camera.z}) translate(${camera.x}px, ${camera.y}px)`;
 
   function onTextChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -461,7 +504,14 @@ export default function Canvas() {
   const onShuffleDeck = () => {
     dispatch({ type: "SHUFFLE_DECK" });
   };
-
+  useEffect(() => {
+    if (isPanning) {
+      // set grap cursor
+      document.body.style.cursor = "grab";
+    } else {
+      document.body.style.cursor = "default";
+    }
+  }, [isPanning]);
   return (
     <div>
       <ContextMenu
@@ -480,6 +530,9 @@ export default function Canvas() {
           style={{ backgroundColor: "#fff" }}
         >
           <g style={{ transform }}>
+            <text x={10} y={10} fontSize={12}>
+              {camera.z}
+            </text>
             <image
               x={-3000}
               y={20}
