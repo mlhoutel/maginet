@@ -14,7 +14,6 @@ export function Shape({
   readOnly,
   selected,
 }: {
-  setSelectedShapeId: React.Dispatch<React.SetStateAction<string | null>>;
   shape: ShapeType;
   mode: Mode;
   rDragging: React.MutableRefObject<{
