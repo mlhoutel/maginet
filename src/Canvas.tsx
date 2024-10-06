@@ -65,13 +65,11 @@ export default function Canvas() {
     shapeInCreation,
     editingText,
     selectionRect,
-    camera,
     setShapes,
     setSelectedShapeIds,
     setShapeInCreation,
     setEditingText,
     setSelectionRect,
-    setCamera,
     createShape,
     updateShapeInCreation,
   } = useShapeStore();
@@ -80,7 +78,7 @@ export default function Canvas() {
   const disconnect = usePeerStore((state) => state.disconnect);
   const sendMessage = usePeerStore((state) => state.sendMessage);
   const onMessage = usePeerStore((state) => state.onMessage);
-
+  const [camera, setCamera] = React.useState<Camera>({ x: 0, y: 0, z: 1 });
   useEffect(() => {
     const unsubscribe = useShapeStore.subscribe((state) => {
       sendMessage({ type: "shapes", payload: state.shapes });
@@ -529,6 +527,7 @@ export default function Canvas() {
                   key={shape.id}
                   shape={shape}
                   mode={mode}
+                  camera={camera}
                   rDragging={{ current: null }}
                   inputRef={{ current: null }}
                   setHoveredCard={setHoveredCard}
@@ -546,6 +545,7 @@ export default function Canvas() {
                   mode={mode}
                   rDragging={rDragging}
                   inputRef={inputRef}
+                  camera={camera}
                   setHoveredCard={setHoveredCard}
                   updateDraggingRef={updateDraggingRef}
                   selected={selectedShapeIds.includes(shape.id)}
@@ -558,6 +558,7 @@ export default function Canvas() {
                   key={shape.id}
                   shape={shape}
                   mode={mode}
+                  camera={camera}
                   rDragging={{ current: null }}
                   inputRef={{ current: null }}
                   setHoveredCard={setHoveredCard}
@@ -571,6 +572,7 @@ export default function Canvas() {
                 key={shapeInCreation.shape.id}
                 shape={shapeInCreation.shape}
                 mode={mode}
+                camera={camera}
                 inputRef={inputRef}
                 rDragging={rDragging}
                 setHoveredCard={setHoveredCard}

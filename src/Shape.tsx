@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Mode, Shape as ShapeType } from "./Canvas";
+import { Camera, Mode, Shape as ShapeType } from "./Canvas";
 import { screenToCanvas } from "./utils/vec";
 import vec from "./utils/vec";
 import { useShapeStore } from "./hooks/useShapeStore";
@@ -13,6 +13,7 @@ export function Shape({
   updateDraggingRef,
   readOnly,
   selected,
+  camera,
 }: {
   shape: ShapeType;
   mode: Mode;
@@ -20,7 +21,7 @@ export function Shape({
     shape: ShapeType;
     origin: number[];
   } | null>;
-
+  camera: Camera;
   setHoveredCard: React.Dispatch<React.SetStateAction<string | null>>;
   inputRef: React.RefObject<HTMLInputElement>;
   updateDraggingRef: (
@@ -35,7 +36,6 @@ export function Shape({
     setSelectedShapeIds,
     selectedShapeIds,
     shapes,
-    camera,
     setEditingText,
   } = useShapeStore();
   function onPointerMove(e: React.PointerEvent<SVGElement>) {

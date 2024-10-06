@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Shape, Point, Camera } from "../Canvas";
+import { Shape, Point } from "../Canvas";
 import { generateId } from "../utils/math";
 import vec from "../utils/vec";
 
@@ -9,7 +9,6 @@ interface ShapeStore {
   shapeInCreation: { shape: Shape; origin: number[] } | null;
   editingText: { id: string; text: string } | null;
   selectionRect: { start: Point; end: Point } | null;
-  camera: Camera;
   setShapes: (shapes: Shape[] | ((shapes: Shape[]) => Shape[])) => void;
   addShape: (shape: Shape) => void;
   updateShape: (id: string, updates: Partial<Shape>) => void;
@@ -22,7 +21,6 @@ interface ShapeStore {
   setSelectionRect: (
     selectionRect: { start: Point; end: Point } | null
   ) => void;
-  setCamera: (camera: Camera | ((prev: Camera) => Camera)) => void;
   createShape: (type: Shape["type"], point: number[]) => void;
   updateShapeInCreation: (point: number[]) => void;
   flipSelectedShapes: () => void;
@@ -35,7 +33,6 @@ export const useShapeStore = create<ShapeStore>((set) => ({
   shapeInCreation: null,
   editingText: null,
   selectionRect: null,
-  camera: { x: 0, y: 0, z: 1 },
   setShapes: (shapes) => {
     if (typeof shapes === "function") {
       set((state) => ({ shapes: shapes(state.shapes) }));
@@ -58,13 +55,6 @@ export const useShapeStore = create<ShapeStore>((set) => ({
   setShapeInCreation: (shapeInCreation) => set({ shapeInCreation }),
   setEditingText: (editingText) => set({ editingText }),
   setSelectionRect: (selectionRect) => set({ selectionRect }),
-  setCamera: (camera) => {
-    if (typeof camera === "function") {
-      set((state) => ({ camera: camera(state.camera) }));
-    } else {
-      set({ camera });
-    }
-  },
   createShape: (type, point) =>
     set(() => ({
       shapeInCreation: {
