@@ -106,13 +106,6 @@ export default function Canvas() {
     Array.from(processRawText(d || DEFAULT_DECK.join("\n")))
   );
 
-  const ref = React.useRef<SVGSVGElement>(null);
-  const rDragging = React.useRef<{
-    shape: Shape;
-    origin: number[];
-  } | null>(null);
-
-  const inputRef = React.useRef<HTMLInputElement>(null);
   const [mode, setMode] = React.useState<Mode>("select");
   const [shapeType] = React.useState<ShapeType>("text");
   const [receivedData, setReceivedData] = React.useState<Shape[]>([]);
@@ -132,16 +125,40 @@ export default function Canvas() {
   const [lastPanPosition, setLastPanPosition] = React.useState<Point | null>(
     null
   );
+  useGesture(
+    {
+      onWheel: ({ event, delta, ctrlKey }) => {
+        event.preventDefault();
+        if (ctrlKey) {
+          const { point } = inputs.wheel(event as WheelEvent);
+          const z = normalizeWheel(event)[2];
+          setCamera((prev) => zoomCamera(prev, point, z * 0.618));
+          return;
+        } else {
+          setCamera((camera) => panCamera(camera, delta[0], delta[1]));
+        }
+      },
+    },
+    {
+      target: document.body,
+      eventOptions: { passive: false },
+    }
+  );
   const { cards, deck } = cardState;
+
+  const ref = React.useRef<SVGSVGElement>(null);
+  const rDragging = React.useRef<{
+    shape: Shape;
+    origin: number[];
+  } | null>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
 
   const drawCard = () => {
     dispatch({ type: "DRAW_CARD" });
   };
-
   const mulligan = () => {
     dispatch({ type: "MULLIGAN" });
   };
-
   const addPing = React.useCallback(
     (x: number, y: number) => {
       const newPing: Shape = {
@@ -171,7 +188,6 @@ export default function Canvas() {
     );
     setSelectedShapeIds([]);
   };
-
   const sendBackToDeck = () => {
     const selectedCards = shapes.filter((shape) =>
       selectedShapeIds.includes(shape.id)
@@ -182,7 +198,6 @@ export default function Canvas() {
     );
     setSelectedShapeIds([]);
   };
-
   const handleDrop = (e: React.DragEvent<SVGElement>) => {
     e.preventDefault();
     const cardId = e.dataTransfer.getData("text/plain");
@@ -203,14 +218,12 @@ export default function Canvas() {
       },
     ]);
   };
-
   function flipShape(shape: Shape): Shape {
     return {
       ...shape,
       isFlipped: !shape.isFlipped,
     };
   }
-
   function onFlip() {
     if (mode === "select" && selectedShapeIds.length > 0) {
       setShapes((prevShapes) =>
@@ -220,7 +233,6 @@ export default function Canvas() {
       );
     }
   }
-
   function onPointerDownCanvas(e: React.PointerEvent<SVGElement>) {
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
@@ -259,7 +271,6 @@ export default function Canvas() {
       });
     }
   }
-
   function onPointerMoveCanvas(e: React.PointerEvent<SVGElement>) {
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     if (isPanning && lastPanPosition) {
@@ -279,7 +290,6 @@ export default function Canvas() {
       });
     }
   }
-
   const onPointerUpCanvas = (e: React.PointerEvent<SVGElement>) => {
     if (isPanning) {
       setIsPanning(false);
@@ -322,27 +332,6 @@ export default function Canvas() {
       setSelectionRect(null);
     }
   };
-
-  useGesture(
-    {
-      onWheel: ({ event, delta, ctrlKey }) => {
-        event.preventDefault();
-        if (ctrlKey) {
-          const { point } = inputs.wheel(event as WheelEvent);
-          const z = normalizeWheel(event)[2];
-          setCamera((prev) => zoomCamera(prev, point, z * 0.618));
-          return;
-        } else {
-          setCamera((camera) => panCamera(camera, delta[0], delta[1]));
-        }
-      },
-    },
-    {
-      target: document.body,
-      eventOptions: { passive: false },
-    }
-  );
-
   function onTextChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (editingText) {
       const updatedText = e.target.value;
@@ -361,12 +350,10 @@ export default function Canvas() {
       );
     }
   }
-
   function onTextBlur() {
     setEditingText(null);
     setMode("select");
   }
-
   function onEngageDisengageCard() {
     if (mode === "select" && selectedShapeIds.length > 0) {
       setShapes((prevShapes) =>
@@ -380,14 +367,12 @@ export default function Canvas() {
       );
     }
   }
-
   const updateDraggingRef = React.useCallback(
     (newRef: { shape: Shape; origin: number[] } | null) => {
       rDragging.current = newRef;
     },
     [rDragging]
   );
-
   const onShuffleDeck = () => {
     dispatch({ type: "SHUFFLE_DECK" });
   };
@@ -458,7 +443,7 @@ export default function Canvas() {
       unsubscribeDeck();
       unsubscribeProuton();
     };
-  }, [onMessage]); 
+  }, [onMessage]);
 
   useEffect(() => {
     sendMessage({ type: "cards", payload: cards.length });
