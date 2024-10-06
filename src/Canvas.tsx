@@ -75,10 +75,21 @@ export default function Canvas() {
     createShape,
     updateShapeInCreation,
   } = useShapeStore();
+
   const initPeer = usePeerStore((state) => state.initPeer);
   const disconnect = usePeerStore((state) => state.disconnect);
   const sendMessage = usePeerStore((state) => state.sendMessage);
   const onMessage = usePeerStore((state) => state.onMessage);
+
+  useEffect(() => {
+    const unsubscribe = useShapeStore.subscribe((state) => {
+      sendMessage({ type: "shapes", payload: state.shapes });
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [sendMessage]);
 
   const ref = React.useRef<SVGSVGElement>(null);
   const rDragging = React.useRef<{
@@ -199,11 +210,6 @@ export default function Canvas() {
       disconnect();
     };
   }, [initPeer, disconnect]);
-
-  // send shapes to peer
-  useEffect(() => {
-    sendMessage({ type: "shapes", payload: shapes });
-  }, [shapes, sendMessage]);
 
   useEffect(() => {
     const unsubscribeShapes = onMessage("shapes", (message) => {
