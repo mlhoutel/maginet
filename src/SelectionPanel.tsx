@@ -3,6 +3,7 @@ import { useLocation, Form } from "react-router-dom";
 import { Camera, Mode } from "./Canvas";
 import useModal from "./hooks/useModal";
 import { usePeerStore } from "./hooks/usePeerConnection";
+import { useRateLimit } from "./hooks/useRateLimit";
 
 export function SelectionPanel({
   onDrawCard,
@@ -24,6 +25,14 @@ export function SelectionPanel({
   const [peerId, setPeerId] = React.useState("");
   const [modal, showModal] = useModal();
 
+  function prouton() {
+    sendMessage({ type: "prouton", payload: "Prouton!" });
+  }
+  const { rateLimitedFn: rateLimitedProuton, canCall: canCallProuton } =
+    useRateLimit(prouton, {
+      maxCalls: 30,
+      timeWindow: 60000,
+    }); // 3 calls per minute
   const connection = usePeerStore((state) => state.connection);
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -77,8 +86,9 @@ export function SelectionPanel({
         Select Deck
       </button>
       <button
+        disabled={!canCallProuton}
         onClick={() => {
-          sendMessage({ type: "prouton", payload: "Prouton!" });
+          rateLimitedProuton();
         }}
       >
         Prouton!

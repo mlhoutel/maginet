@@ -488,6 +488,9 @@ export default function Canvas() {
       document.body.style.cursor = "default";
     }
   }, [isPanning]);
+
+  const pings = receivedData.filter((shape) => shape.type === "ping");
+  const others = receivedData.filter((shape) => shape.type !== "ping");
   return (
     <div>
       <ContextMenu
@@ -513,8 +516,8 @@ export default function Canvas() {
               height={100}
               href="/sonic.gif"
             />
-            {receivedData &&
-              receivedData.map((shape: Shape) => (
+            {others &&
+              others.map((shape: Shape) => (
                 <ShapeComponent
                   readOnly={true}
                   key={shape.id}
@@ -542,7 +545,20 @@ export default function Canvas() {
                   selected={selectedShapeIds.includes(shape.id)}
                 />
               ))}
-
+            {pings &&
+              pings.map((shape) => (
+                <ShapeComponent
+                  readOnly={true}
+                  key={shape.id}
+                  shape={shape}
+                  mode={mode}
+                  rDragging={{ current: null }}
+                  inputRef={{ current: null }}
+                  setHoveredCard={setHoveredCard}
+                  updateDraggingRef={() => {}}
+                  selected={false}
+                />
+              ))}
             {shapeInCreation && (
               <ShapeComponent
                 readOnly={false}
@@ -595,14 +611,14 @@ export default function Canvas() {
             )}
             {opponentInfo.cards > 0 && opponentInfo.deck > 0 && (
               <text
-                x={10}
-                y={10}
-                fontSize={12}
+                x={100}
+                y={100}
+                fontSize={24}
                 style={{
                   userSelect: "none",
                 }}
               >
-                {`Opponent data: ${opponentInfo.cards} cards in hand and ${opponentInfo.deck} cards in deck`}
+                {`Opponent data: ${opponentInfo.cards} cards in hand`}
               </text>
             )}
           </g>
