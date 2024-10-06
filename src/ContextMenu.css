@@ -1,0 +1,24 @@
+.custom-context-menu {
+  padding: 10px;
+}
+
+.custom-context-menu button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 100%;
+}
+
+.custom-context-menu button:hover {
+  background-color: #0056b3;
+}
+
+.custom-context-menu button:disabled {
+  background-color: #cccccc; /* Light gray for disabled state */
+  cursor: not-allowed; /* Indicate that the button is not clickable */
+  opacity: 0.6; /* Reduce opacity for a disabled look */
+}

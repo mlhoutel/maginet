@@ -14,27 +14,21 @@ svg {
   height: 100%;
 }
 
-.selection-panel button {
+.selection-panel div,
+button {
   position: relative;
-  z-index: 9999;
 }
 
-.handleAtTopLeft {
-  cursor: nw-resize;
+.selection-panel {
+  display: flex;
+  align-items: center;
 }
 
-.handleAtTopRight {
-  cursor: ne-resize;
+.hand {
+  position: fixed;
+  bottom: 0;
 }
 
-.handleAtBottomLeft {
-  cursor: sw-resize;
-}
-
-.handleAtBottomRight {
-  cursor: se-resize;
-}
-
-.handleArrow {
-  cursor: pointer !important;
-}
+/* .hand__card:hover {
+  zoom: 3;
+} */

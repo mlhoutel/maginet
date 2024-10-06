@@ -1,14 +1,17 @@
-import Canvas from './Canvas'
-import './index.css'
-function App() {
+import { Toaster } from "react-hot-toast";
+import Canvas from "./Canvas";
+import "./index.css";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+const queryClient = new QueryClient();
+
+function App() {
   return (
-    <>
-      <Canvas/>
-    </>
-  )
+    <QueryClientProvider client={queryClient}>
+      <Canvas />
+      <Toaster />
+    </QueryClientProvider>
+  );
 }
 
-
-
-export default App
+export default App;
