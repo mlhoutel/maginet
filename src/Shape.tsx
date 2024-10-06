@@ -40,6 +40,7 @@ export function Shape({
   } = useShapeStore();
   function onPointerMove(e: React.PointerEvent<SVGElement>) {
     if (mode !== "select") return;
+    if (readOnly) return;
     const dragging = rDragging.current;
     if (!dragging) return;
 

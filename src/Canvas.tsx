@@ -57,6 +57,28 @@ function rotateShape(shape: Shape, angle: number): Shape {
     rotation: (shape.rotation || 0) + angle,
   };
 }
+const MAX_ZOOM_STEP = 5;
+
+function normalizeWheel(event: WheelEvent) {
+  const { deltaY, deltaX } = event;
+
+  let deltaZ = 0;
+
+  if (event.ctrlKey || event.metaKey) {
+    const signY = Math.sign(event.deltaY);
+    const absDeltaY = Math.abs(event.deltaY);
+
+    let dy = deltaY;
+
+    if (absDeltaY > MAX_ZOOM_STEP) {
+      dy = MAX_ZOOM_STEP * signY;
+    }
+
+    deltaZ = dy;
+  }
+
+  return [deltaX, deltaY, deltaZ];
+}
 
 export default function Canvas() {
   const {
@@ -74,20 +96,15 @@ export default function Canvas() {
     updateShapeInCreation,
   } = useShapeStore();
 
-  const initPeer = usePeerStore((state) => state.initPeer);
-  const disconnect = usePeerStore((state) => state.disconnect);
-  const sendMessage = usePeerStore((state) => state.sendMessage);
-  const onMessage = usePeerStore((state) => state.onMessage);
+  const { initPeer, disconnect, sendMessage, onMessage } = usePeerStore();
   const [camera, setCamera] = React.useState<Camera>({ x: 0, y: 0, z: 1 });
-  useEffect(() => {
-    const unsubscribe = useShapeStore.subscribe((state) => {
-      sendMessage({ type: "shapes", payload: state.shapes });
-    });
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const d = params.get("deck");
 
-    return () => {
-      unsubscribe();
-    };
-  }, [sendMessage]);
+  const { data } = useCards(
+    Array.from(processRawText(d || DEFAULT_DECK.join("\n")))
+  );
 
   const ref = React.useRef<SVGSVGElement>(null);
   const rDragging = React.useRef<{
@@ -111,6 +128,10 @@ export default function Canvas() {
     deck: [],
   });
   const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = React.useState(false);
+  const [lastPanPosition, setLastPanPosition] = React.useState<Point | null>(
+    null
+  );
   const { cards, deck } = cardState;
 
   const drawCard = () => {
@@ -182,91 +203,6 @@ export default function Canvas() {
       },
     ]);
   };
-  const location = useLocation();
-  const params = new URLSearchParams(location.search);
-  const d = params.get("deck");
-
-  const { data } = useCards(
-    Array.from(processRawText(d || DEFAULT_DECK.join("\n")))
-  );
-
-  useEffect(() => {
-    if (data) {
-      const initialDeck: Card[] = data
-        .filter((card) => card.image_uris?.normal)
-        .map((card) => ({
-          id: card.id,
-          src: card.image_uris.normal,
-        }));
-      dispatch({ type: "INITIALIZE_DECK", payload: initialDeck });
-    }
-  }, [data, dispatch]);
-
-  useEffect(() => {
-    initPeer();
-    return () => {
-      disconnect();
-    };
-  }, [initPeer, disconnect]);
-
-  useEffect(() => {
-    const unsubscribeShapes = onMessage("shapes", (message) => {
-      setReceivedData(message.payload);
-    });
-
-    const unsubscribeConnected = onMessage("connected", (message) => {
-      toast(`Peer connected: ${message.payload.peerId}`);
-    });
-
-    const unsubscribeCards = onMessage("cards", (message) => {
-      setOpponentInfo((prev) => ({ ...prev, cards: message.payload }));
-    });
-
-    const unsubscribeDeck = onMessage("deck", (message) => {
-      setOpponentInfo((prev) => ({ ...prev, deck: message.payload }));
-    });
-
-    const unsubscribeProuton = onMessage("prouton", () => {
-      toast(`Prouton!`);
-    });
-
-    return () => {
-      unsubscribeShapes();
-      unsubscribeConnected();
-      unsubscribeCards();
-      unsubscribeDeck();
-      unsubscribeProuton();
-    };
-  }, [onMessage]);
-
-  useEffect(() => {
-    sendMessage({ type: "cards", payload: cards.length });
-    sendMessage({ type: "deck", payload: deck.length });
-  }, [cards, deck, sendMessage]);
-
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Meta") {
-        setIsCommandPressed(true);
-      } else if (event.key === "p" || event.key === "P") {
-        addPing(mousePosition.x, mousePosition.y);
-      }
-    }
-
-    function handleKeyUp(event: KeyboardEvent) {
-      if (event.key === "Meta") {
-        setIsCommandPressed(false);
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-    };
-  }, [mousePosition, addPing]);
 
   function flipShape(shape: Shape): Shape {
     return {
@@ -387,29 +323,6 @@ export default function Canvas() {
     }
   };
 
-  const MAX_ZOOM_STEP = 5;
-
-  function normalizeWheel(event: WheelEvent) {
-    const { deltaY, deltaX } = event;
-
-    let deltaZ = 0;
-
-    if (event.ctrlKey || event.metaKey) {
-      const signY = Math.sign(event.deltaY);
-      const absDeltaY = Math.abs(event.deltaY);
-
-      let dy = deltaY;
-
-      if (absDeltaY > MAX_ZOOM_STEP) {
-        dy = MAX_ZOOM_STEP * signY;
-      }
-
-      deltaZ = dy;
-    }
-
-    return [deltaX, deltaY, deltaZ];
-  }
-
   useGesture(
     {
       onWheel: ({ event, delta, ctrlKey }) => {
@@ -429,12 +342,6 @@ export default function Canvas() {
       eventOptions: { passive: false },
     }
   );
-
-  const [isPanning, setIsPanning] = React.useState(false);
-  const [lastPanPosition, setLastPanPosition] = React.useState<Point | null>(
-    null
-  );
-  const transform = `scale(${camera.z}) translate(${camera.x}px, ${camera.y}px)`;
 
   function onTextChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (editingText) {
@@ -484,6 +391,8 @@ export default function Canvas() {
   const onShuffleDeck = () => {
     dispatch({ type: "SHUFFLE_DECK" });
   };
+
+  // use effects
   useEffect(() => {
     if (isPanning) {
       // set grap cursor
@@ -492,9 +401,98 @@ export default function Canvas() {
       document.body.style.cursor = "default";
     }
   }, [isPanning]);
+  useEffect(() => {
+    const unsubscribe = useShapeStore.subscribe((state) => {
+      sendMessage({ type: "shapes", payload: state.shapes });
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [sendMessage]);
+
+  useEffect(() => {
+    if (data) {
+      const initialDeck: Card[] = data
+        .filter((card) => card.image_uris?.normal)
+        .map((card) => ({
+          id: card.id,
+          src: card.image_uris.normal,
+        }));
+      dispatch({ type: "INITIALIZE_DECK", payload: initialDeck });
+    }
+  }, [data, dispatch]);
+
+  useEffect(() => {
+    initPeer();
+    return () => {
+      disconnect();
+    };
+  }, [initPeer, disconnect]);
+
+  useEffect(() => {
+    const unsubscribeShapes = onMessage("shapes", (message) => {
+      setReceivedData(message.payload);
+    });
+
+    const unsubscribeConnected = onMessage("connected", (message) => {
+      toast(`Peer connected: ${message.payload.peerId}`);
+    });
+
+    const unsubscribeCards = onMessage("cards", (message) => {
+      setOpponentInfo((prev) => ({ ...prev, cards: message.payload }));
+    });
+
+    const unsubscribeDeck = onMessage("deck", (message) => {
+      setOpponentInfo((prev) => ({ ...prev, deck: message.payload }));
+    });
+
+    const unsubscribeProuton = onMessage("prouton", () => {
+      toast(`Prouton!`);
+    });
+
+    return () => {
+      unsubscribeShapes();
+      unsubscribeConnected();
+      unsubscribeCards();
+      unsubscribeDeck();
+      unsubscribeProuton();
+    };
+  }, [onMessage]); 
+
+  useEffect(() => {
+    sendMessage({ type: "cards", payload: cards.length });
+    sendMessage({ type: "deck", payload: deck.length });
+  }, [cards, deck, sendMessage]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Meta") {
+        setIsCommandPressed(true);
+      } else if (event.key === "p" || event.key === "P") {
+        addPing(mousePosition.x, mousePosition.y);
+      }
+    }
+
+    function handleKeyUp(event: KeyboardEvent) {
+      if (event.key === "Meta") {
+        setIsCommandPressed(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [mousePosition, addPing]);
 
   const pings = receivedData.filter((shape) => shape.type === "ping");
   const others = receivedData.filter((shape) => shape.type !== "ping");
+  const transform = `scale(${camera.z}) translate(${camera.x}px, ${camera.y}px)`;
+
   return (
     <div>
       <ContextMenu
