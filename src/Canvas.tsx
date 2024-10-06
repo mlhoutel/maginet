@@ -513,6 +513,20 @@ export default function Canvas() {
               height={100}
               href="/sonic.gif"
             />
+            {receivedData &&
+              receivedData.map((shape: Shape) => (
+                <ShapeComponent
+                  readOnly={true}
+                  key={shape.id}
+                  shape={shape}
+                  mode={mode}
+                  rDragging={{ current: null }}
+                  inputRef={{ current: null }}
+                  setHoveredCard={setHoveredCard}
+                  updateDraggingRef={() => {}}
+                  selected={false}
+                />
+              ))}
             {shapes
               .filter((shape) => shape.id !== editingText?.id)
               .map((shape) => (
@@ -528,20 +542,7 @@ export default function Canvas() {
                   selected={selectedShapeIds.includes(shape.id)}
                 />
               ))}
-            {receivedData &&
-              receivedData.map((shape: Shape) => (
-                <ShapeComponent
-                  readOnly={true}
-                  key={shape.id}
-                  shape={shape}
-                  mode={mode}
-                  rDragging={rDragging}
-                  inputRef={inputRef}
-                  setHoveredCard={setHoveredCard}
-                  updateDraggingRef={updateDraggingRef}
-                  selected={selectedShapeIds.includes(shape.id)}
-                />
-              ))}
+
             {shapeInCreation && (
               <ShapeComponent
                 readOnly={false}
@@ -619,7 +620,7 @@ export default function Canvas() {
       </div>
       <Hand cards={cards} setHoveredCard={setHoveredCard} />
       {isCommandPressed && hoveredCard && (
-        <div className="zoomed-card">
+        <div className="zoomed-card" style={{ pointerEvents: "none" }}>
           <img src={hoveredCard} alt={`Zoomed ${hoveredCard}`} />
         </div>
       )}

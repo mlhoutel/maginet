@@ -63,6 +63,7 @@
   background-color: white;
   z-index: 0;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Enhanced shadow for focus */
+  pointer-events: none;
 }
 
 .zoomed-card img {
