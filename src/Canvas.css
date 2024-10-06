@@ -61,7 +61,7 @@
   height: 700px;
   border: 2px solid black;
   background-color: white;
-  z-index: 1000;
+  z-index: 0;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Enhanced shadow for focus */
 }
 

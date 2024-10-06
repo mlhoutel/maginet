@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Shape as ShapeComponent } from "./Shape";
 import "./Canvas.css";
-import vec, { screenToCanvas } from "./utils/vec";
+import { screenToCanvas } from "./utils/vec";
 import Hand from "./Hand";
 import ContextMenu from "./ContextMenu";
 import useCards, { processRawText } from "./hooks/useCards";
@@ -17,6 +17,7 @@ import { zoomCamera, panCamera } from "./utils/canvas_utils";
 import { SelectionPanel } from "./SelectionPanel";
 import inputs from "./inputs";
 import { useGesture } from "@use-gesture/react";
+import { useShapeStore } from "./hooks/useShapeStore";
 
 export interface Point {
   x: number;
@@ -58,6 +59,22 @@ function rotateShape(shape: Shape, angle: number): Shape {
 }
 
 export default function Canvas() {
+  const {
+    shapes,
+    selectedShapeIds,
+    shapeInCreation,
+    editingText,
+    selectionRect,
+    camera,
+    setShapes,
+    setSelectedShapeIds,
+    setShapeInCreation,
+    setEditingText,
+    setSelectionRect,
+    setCamera,
+    createShape,
+    updateShapeInCreation,
+  } = useShapeStore();
   const initPeer = usePeerStore((state) => state.initPeer);
   const disconnect = usePeerStore((state) => state.disconnect);
   const sendMessage = usePeerStore((state) => state.sendMessage);
@@ -68,30 +85,15 @@ export default function Canvas() {
     shape: Shape;
     origin: number[];
   } | null>(null);
-  const [shapes, setShapes] = React.useState<Shape[]>([]);
-  const [shapeInCreation, setShapeInCreation] = React.useState<{
-    shape: Shape;
-    origin: number[];
-  } | null>(null);
 
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [mode, setMode] = React.useState<Mode>("select");
   const [shapeType] = React.useState<ShapeType>("text");
-  const [selectedShapeIds, setSelectedShapeIds] = React.useState<string[]>([]);
   const [receivedData, setReceivedData] = React.useState<Shape[]>([]);
   const [opponentInfo, setOpponentInfo] = React.useState<{
     cards: number;
     deck: number;
   }>({ cards: 0, deck: 0 });
-  const [editingText, setEditingText] = React.useState<{
-    id: string;
-    text: string;
-  } | null>(null);
-
-  const [selectionRect, setSelectionRect] = React.useState<{
-    start: Point;
-    end: Point;
-  } | null>(null);
 
   const [hoveredCard, setHoveredCard] = React.useState<string | null>(null);
   const [isCommandPressed, setIsCommandPressed] = React.useState(false);
@@ -110,6 +112,25 @@ export default function Canvas() {
     dispatch({ type: "MULLIGAN" });
   };
 
+  const addPing = React.useCallback(
+    (x: number, y: number) => {
+      const newPing: Shape = {
+        id: generateId(),
+        point: [x, y],
+        size: [40, 40],
+        type: "ping",
+      };
+      setShapes((prevShapes) => [...prevShapes, newPing]);
+
+      // Remove the ping after 2 seconds
+      setTimeout(() => {
+        setShapes((prevShapes) =>
+          prevShapes.filter((shape) => shape.id !== newPing.id)
+        );
+      }, 2000);
+    },
+    [setShapes]
+  );
   const sendBackToHand = () => {
     const selectedCards = shapes.filter((shape) =>
       selectedShapeIds.includes(shape.id)
@@ -241,7 +262,7 @@ export default function Canvas() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [mousePosition]);
+  }, [mousePosition, addPing]);
 
   function flipShape(shape: Shape): Shape {
     return {
@@ -260,23 +281,6 @@ export default function Canvas() {
     }
   }
 
-  function addPing(x: number, y: number) {
-    const newPing: Shape = {
-      id: generateId(),
-      point: [x, y],
-      size: [40, 40],
-      type: "ping",
-    };
-    setShapes((prevShapes) => [...prevShapes, newPing]);
-
-    // Remove the ping after 2 seconds
-    setTimeout(() => {
-      setShapes((prevShapes) =>
-        prevShapes.filter((shape) => shape.id !== newPing.id)
-      );
-    }, 2000);
-  }
-
   function onPointerDownCanvas(e: React.PointerEvent<SVGElement>) {
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
@@ -290,12 +294,12 @@ export default function Canvas() {
       e.currentTarget.setPointerCapture(e.pointerId);
       if (shapeType === "text") {
         const id = generateId();
-        setShapes((prevShapes) => [
-          ...prevShapes,
+        setShapes([
+          ...shapes,
           {
             id,
             point,
-            size: [0, 0], // Initial size, will be updated when text is entered
+            size: [0, 0],
             type: "text",
             text: "",
           },
@@ -305,15 +309,7 @@ export default function Canvas() {
           inputRef.current?.focus();
         }, 0);
       } else {
-        setShapeInCreation({
-          shape: {
-            id: generateId(),
-            point,
-            size: [0, 0],
-            type: shapeType,
-          },
-          origin: point,
-        });
+        createShape(shapeType, point);
       }
       return;
     } else if (mode === "select" && !rDragging.current) {
@@ -329,27 +325,13 @@ export default function Canvas() {
     if (isPanning && lastPanPosition) {
       const dx = e.clientX - lastPanPosition.x;
       const dy = e.clientY - lastPanPosition.y;
-      setCamera((camera) => panCamera(camera, -dx, -dy));
+      setCamera(panCamera(camera, -dx, -dy));
       setLastPanPosition({ x: e.clientX, y: e.clientY });
       return;
     }
     setMousePosition({ x, y });
     if (mode === "create" && shapeInCreation) {
-      const point = [x, y];
-      const localShapeInCreation = {
-        ...shapeInCreation,
-        shape: { ...shapeInCreation.shape },
-      };
-      const delta = vec.sub(point, shapeInCreation.origin);
-
-      setShapeInCreation({
-        ...localShapeInCreation,
-        shape: {
-          ...localShapeInCreation.shape,
-          size: delta,
-        },
-      });
-      return;
+      updateShapeInCreation([x, y]);
     } else if (mode === "select" && selectionRect) {
       setSelectionRect({
         ...selectionRect,
@@ -400,12 +382,6 @@ export default function Canvas() {
       setSelectionRect(null);
     }
   };
-
-  const [camera, setCamera] = React.useState({
-    x: 0,
-    y: 0,
-    z: 1,
-  });
 
   const MAX_ZOOM_STEP = 5;
 
@@ -544,14 +520,8 @@ export default function Canvas() {
                   readOnly={false}
                   key={shape.id}
                   shape={shape}
-                  shapes={shapes}
-                  setShapes={setShapes}
-                  setEditingText={setEditingText}
-                  camera={camera}
                   mode={mode}
-                  onSelectShapeId={setSelectedShapeIds}
                   rDragging={rDragging}
-                  selectedShapeIds={selectedShapeIds}
                   inputRef={inputRef}
                   setHoveredCard={setHoveredCard}
                   updateDraggingRef={updateDraggingRef}
@@ -564,14 +534,8 @@ export default function Canvas() {
                   readOnly={true}
                   key={shape.id}
                   shape={shape}
-                  shapes={shapes}
-                  setShapes={setShapes}
-                  setEditingText={setEditingText}
-                  camera={camera}
                   mode={mode}
-                  onSelectShapeId={setSelectedShapeIds}
                   rDragging={rDragging}
-                  selectedShapeIds={selectedShapeIds}
                   inputRef={inputRef}
                   setHoveredCard={setHoveredCard}
                   updateDraggingRef={updateDraggingRef}
@@ -581,17 +545,11 @@ export default function Canvas() {
             {shapeInCreation && (
               <ShapeComponent
                 readOnly={false}
-                setEditingText={setEditingText}
                 key={shapeInCreation.shape.id}
                 shape={shapeInCreation.shape}
-                shapes={shapes}
-                setShapes={setShapes}
-                camera={camera}
                 mode={mode}
                 inputRef={inputRef}
                 rDragging={rDragging}
-                onSelectShapeId={setSelectedShapeIds}
-                selectedShapeIds={selectedShapeIds}
                 setHoveredCard={setHoveredCard}
                 updateDraggingRef={updateDraggingRef}
                 selected={selectedShapeIds.includes(shapeInCreation.shape.id)}

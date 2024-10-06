@@ -1,18 +1,13 @@
 import { useRef } from "react";
-import { Camera, Mode, Shape as ShapeType } from "./Canvas";
+import { Mode, Shape as ShapeType } from "./Canvas";
 import { screenToCanvas } from "./utils/vec";
 import vec from "./utils/vec";
+import { useShapeStore } from "./hooks/useShapeStore";
 
 export function Shape({
   shape,
-  shapes,
-  setShapes,
-  camera,
   rDragging,
   mode,
-  setEditingText,
-  onSelectShapeId,
-  selectedShapeIds,
   setHoveredCard,
   inputRef,
   updateDraggingRef,
@@ -20,22 +15,12 @@ export function Shape({
   selected,
 }: {
   shape: ShapeType;
-  shapes: ShapeType[];
-  setShapes: React.Dispatch<React.SetStateAction<ShapeType[]>>;
-  camera: Camera;
   mode: Mode;
   rDragging: React.MutableRefObject<{
     shape: ShapeType;
     origin: number[];
   } | null>;
-  setEditingText: React.Dispatch<
-    React.SetStateAction<{
-      id: string;
-      text: string;
-    } | null>
-  >;
-  onSelectShapeId: React.Dispatch<React.SetStateAction<string[]>>;
-  selectedShapeIds: string[];
+
   setHoveredCard: React.Dispatch<React.SetStateAction<string | null>>;
   inputRef: React.RefObject<HTMLInputElement>;
   updateDraggingRef: (
@@ -45,7 +30,14 @@ export function Shape({
   selected: boolean;
 }) {
   const draggingShapeRefs = useRef<Record<string, ShapeType>>({});
-
+  const {
+    setShapes,
+    setSelectedShapeIds,
+    selectedShapeIds,
+    shapes,
+    camera,
+    setEditingText,
+  } = useShapeStore();
   function onPointerMove(e: React.PointerEvent<SVGElement>) {
     if (mode !== "select") return;
     const dragging = rDragging.current;
@@ -102,7 +94,7 @@ export function Shape({
     onClick: (e: React.MouseEvent<SVGElement>) => {
       if (readOnly) return;
       e.stopPropagation();
-      onSelectShapeId([shape.id]);
+      setSelectedShapeIds([shape.id]);
       draggingShapeRefs.current = {};
     },
     style: {
