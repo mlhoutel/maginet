@@ -10,7 +10,7 @@ export function panCamera(camera: Camera, dx: number, dy: number): Camera {
 }
 
 export function getCameraZoom(zoom: number): number {
-  return vec.clamp(zoom, 0.1, 10);
+  return vec.clamp(zoom, 0.5, 10);
 }
 
 export function zoomCamera(

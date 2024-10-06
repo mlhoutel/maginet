@@ -530,9 +530,6 @@ export default function Canvas() {
           style={{ backgroundColor: "#fff" }}
         >
           <g style={{ transform }}>
-            <text x={10} y={10} fontSize={12}>
-              {camera.z}
-            </text>
             <image
               x={-3000}
               y={20}
