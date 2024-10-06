@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Shape as ShapeComponent } from "./Shape";
 import "./Canvas.css";
-import { screenToCanvas, sub } from "./utils/vec";
+import vec, { screenToCanvas } from "./utils/vec";
 import Hand from "./Hand";
 import ContextMenu from "./ContextMenu";
 import useCards, { processRawText } from "./hooks/useCards";
@@ -340,7 +340,7 @@ export default function Canvas() {
         ...shapeInCreation,
         shape: { ...shapeInCreation.shape },
       };
-      const delta = sub(point, shapeInCreation.origin);
+      const delta = vec.sub(point, shapeInCreation.origin);
 
       setShapeInCreation({
         ...localShapeInCreation,

@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { Camera, Mode, Shape as ShapeType } from "./Canvas";
-import { add, screenToCanvas, sub } from "./utils/vec";
+import { screenToCanvas } from "./utils/vec";
+import vec from "./utils/vec";
 
 export function Shape({
   shape,
@@ -52,14 +53,17 @@ export function Shape({
 
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
-    const delta = sub(point, dragging.origin);
+    const delta = vec.sub(point, dragging.origin);
 
     setShapes((prevShapes) =>
       prevShapes.map((s) =>
         s.id === dragging.shape.id
-          ? { ...s, point: add(dragging.shape.point, delta) }
+          ? { ...s, point: vec.add(dragging.shape.point, delta) }
           : draggingShapeRefs.current[s.id]
-          ? { ...s, point: add(draggingShapeRefs.current[s.id].point, delta) }
+          ? {
+              ...s,
+              point: vec.add(draggingShapeRefs.current[s.id].point, delta),
+            }
           : s
       )
     );
