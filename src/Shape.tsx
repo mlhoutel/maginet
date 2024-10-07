@@ -150,19 +150,6 @@ export function Shape({
                 shape.point[0] + shape.size[0] / 2
               }, ${shape.point[1] + shape.size[1] / 2})`}
             />
-            {selected && (
-              <rect
-                x={shape.point[0]}
-                y={shape.point[1]}
-                width={shape.size[0]}
-                height={shape.size[1]}
-                fill="none"
-                stroke="#4a90e2"
-                strokeWidth="2"
-                strokeDasharray="5,5"
-                pointerEvents="none"
-              />
-            )}
           </g>
         );
       case "rectangle":
