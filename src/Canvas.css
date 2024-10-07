@@ -1,14 +1,27 @@
+:root {
+  --primary-color: #007bff;
+  --primary-color-hover: #0056b3;
+  --background-color: #f9f9f9;
+  --border-color: #ccc;
+  --button-padding: 8px 12px;
+  --button-font-size: 14px;
+  --panel-padding: 15px;
+  --panel-gap: 1rem;
+  --border-radius: 8px;
+  --box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
 .selection-panel {
   position: absolute;
   top: 10px;
   left: 10px;
-  background: #f9f9f9; /* Light background for better contrast */
-  padding: 15px; /* Increased padding for better spacing */
-  border: 1px solid #ccc;
-  border-radius: 8px; /* Softer corners */
-  gap: 1rem;
+  background: var(--background-color);
+  padding: var(--panel-padding);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  gap: var(--panel-gap);
   flex-wrap: wrap;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+  box-shadow: var(--box-shadow);
   display: flex;
   flex-direction: column;
 }
@@ -16,31 +29,44 @@
 .selection-panel div,
 .selection-panel form {
   display: flex;
-  gap: 1rem;
+  gap: var(--panel-gap);
   justify-content: space-between;
   flex-wrap: wrap;
 }
 
 .selection-panel button {
-  padding: 8px 12px; /* Larger padding for better touch targets */
-  font-size: 14px;
-  background-color: #007bff; /* Primary color for buttons */
+  padding: var(--button-padding);
+  font-size: var(--button-font-size);
+  background-color: var(--primary-color);
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.3s ease; /* Smooth transition */
+  transition: background-color 0.3s ease;
   flex-grow: 1;
 }
 
 .selection-panel button:hover {
-  background-color: #0056b3; /* Darker shade on hover */
+  background-color: var(--primary-color-hover);
 }
 
 .selection-panel button:disabled {
-  background-color: #cccccc; /* Light gray for disabled state */
-  cursor: not-allowed; /* Indicate that the button is not clickable */
-  opacity: 0.6; /* Reduce opacity for a disabled look */
+  background-color: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (max-width: 600px) {
+  .selection-panel {
+    top: 5px;
+    left: 5px;
+    padding: 10px;
+  }
+
+  .selection-panel button {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
 }
 
 .hand {
