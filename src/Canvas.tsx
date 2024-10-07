@@ -376,6 +376,16 @@ export default function Canvas() {
   const onShuffleDeck = () => {
     dispatch({ type: "SHUFFLE_DECK" });
   };
+  const copy = () => {
+    const selectedShapes = shapes
+      .filter((shape) => selectedShapeIds.includes(shape.id))
+      .map((shape) => ({
+        ...shape,
+        id: generateId(),
+        point: [shape.point[0] + 100, shape.point[1] + 100],
+      }));
+    setShapes((prevShapes) => [...prevShapes, ...selectedShapes]);
+  };
 
   // use effects
   useEffect(() => {
@@ -484,6 +494,7 @@ export default function Canvas() {
         onEngageDisengageCard={onEngageDisengageCard}
         onFlip={onFlip}
         sendBackToDeck={sendBackToDeck}
+        copy={copy}
         sendBackToHand={sendBackToHand}
       >
         <svg

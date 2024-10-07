@@ -8,6 +8,7 @@ interface ContextMenuProps {
   onFlip: () => void;
   sendBackToDeck: () => void;
   sendBackToHand: () => void;
+  copy: () => void;
 }
 
 export default function ContextMenu({
@@ -16,6 +17,7 @@ export default function ContextMenu({
   onFlip,
   sendBackToDeck,
   sendBackToHand,
+  copy,
 }: ContextMenuProps) {
   const { contextMenu, onContextMenu } = useContextMenu(
     <div className="custom-context-menu">
@@ -30,6 +32,9 @@ export default function ContextMenu({
       </ContextMenuItem>
       <ContextMenuItem>
         <button onClick={sendBackToHand}>Send Back to Hand</button>
+      </ContextMenuItem>
+      <ContextMenuItem>
+        <button onClick={copy}>Copy</button>
       </ContextMenuItem>
     </div>
   );
