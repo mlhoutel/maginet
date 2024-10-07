@@ -4,7 +4,7 @@ import "./Canvas.css";
 import { screenToCanvas } from "./utils/vec";
 import Hand from "./Hand";
 import ContextMenu from "./ContextMenu";
-import useCards, { processRawText } from "./hooks/useCards";
+import useCards, { Datum, processRawText } from "./hooks/useCards";
 import { useEffect } from "react";
 import { usePeerStore } from "./hooks/usePeerConnection";
 import toast from "react-hot-toast";
@@ -343,7 +343,7 @@ export default function Canvas() {
                 ...shape,
                 text: updatedText,
                 size: [updatedText.length * 10, 100], // Update size based on text length
-                fontSize: 40,
+                fontSize: 24,
               }
             : shape
         )
@@ -385,6 +385,9 @@ export default function Canvas() {
         point: [shape.point[0] + 100, shape.point[1] + 100],
       }));
     setShapes((prevShapes) => [...prevShapes, ...selectedShapes]);
+  };
+  const addCardToHand = (card: Datum) => {
+    dispatch({ type: "ADD_TO_HAND", payload: card });
   };
 
   // use effects
@@ -462,15 +465,15 @@ export default function Canvas() {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Meta") {
+      if (event.key === "Control") {
         setIsCommandPressed(true);
-      } else if (event.key === "p" || event.key === "P") {
+      } else if ((event.key === "p" || event.key === "P") && !editingText) {
         addPing(mousePosition.x, mousePosition.y);
       }
     }
 
     function handleKeyUp(event: KeyboardEvent) {
-      if (event.key === "Meta") {
+      if (event.key === "Control") {
         setIsCommandPressed(false);
       }
     }
@@ -482,7 +485,7 @@ export default function Canvas() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [mousePosition, addPing]);
+  }, [mousePosition, addPing, editingText]);
 
   const pings = receivedData.filter((shape) => shape.type === "ping");
   const others = receivedData.filter((shape) => shape.type !== "ping");
@@ -634,6 +637,8 @@ export default function Canvas() {
           onMulligan={mulligan}
           onDrawCard={drawCard}
           onShuffleDeck={onShuffleDeck}
+          cards={data}
+          addCardToHand={addCardToHand}
         />
       </div>
       <Hand cards={cards} setHoveredCard={setHoveredCard} />

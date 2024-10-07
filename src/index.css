@@ -14,16 +14,6 @@ svg {
   height: 100%;
 }
 
-.selection-panel div,
-button {
-  position: relative;
-}
-
-.selection-panel {
-  display: flex;
-  align-items: center;
-}
-
 .hand {
   position: fixed;
   bottom: 0;

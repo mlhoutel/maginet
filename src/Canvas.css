@@ -9,10 +9,19 @@
   gap: 1rem;
   flex-wrap: wrap;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+  display: flex;
+  flex-direction: column;
+}
+
+.selection-panel div,
+.selection-panel form {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  flex-wrap: wrap;
 }
 
 .selection-panel button {
-  margin-right: 5px;
   padding: 8px 12px; /* Larger padding for better touch targets */
   font-size: 14px;
   background-color: #007bff; /* Primary color for buttons */
@@ -21,6 +30,7 @@
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.3s ease; /* Smooth transition */
+  flex-grow: 1;
 }
 
 .selection-panel button:hover {
