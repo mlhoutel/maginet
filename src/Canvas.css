@@ -74,7 +74,6 @@
   bottom: 0;
   display: flex;
   gap: 10px;
-  background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent background */
   padding: 10px;
   border-top: 1px solid #ccc;
 }

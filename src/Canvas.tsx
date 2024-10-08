@@ -97,6 +97,7 @@ export default function Canvas() {
   } = useShapeStore();
 
   const { initPeer, disconnect, sendMessage, onMessage } = usePeerStore();
+  const [clean, setClean] = React.useState(false);
   const [camera, setCamera] = React.useState<Camera>({ x: 0, y: 0, z: 1 });
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -548,16 +549,19 @@ export default function Canvas() {
           onPointerUp={onPointerUpCanvas}
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
-          style={{ backgroundColor: "#fff" }}
+          className={clean ? "clean" : ""}
         >
           <g style={{ transform }}>
-            <image
+            <text
               x={-3000}
               y={20}
               width={100}
               height={100}
-              href="/sonic.gif"
-            />
+              style={{ cursor: "pointer", backgroundColor: "transparent" }}
+              onClick={() => setClean((prev) => !prev)}
+            >
+              Clean
+            </text>
             {others &&
               others.map((shape: Shape) => (
                 <ShapeComponent
