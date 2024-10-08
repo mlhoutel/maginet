@@ -15,6 +15,7 @@ export function SelectionPanel({
   onShuffleDeck,
   cards,
   addCardToHand,
+  relatedCards,
 }: {
   onDrawCard: () => void;
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
@@ -24,6 +25,7 @@ export function SelectionPanel({
   onShuffleDeck: () => void;
   addCardToHand: (card: Datum) => void;
   cards?: Datum[];
+  relatedCards?: Datum[];
 }) {
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
   const sendMessage = usePeerStore((state) => state.sendMessage);
@@ -50,6 +52,8 @@ export function SelectionPanel({
   const d = params.get("deck");
   const canEditFontSize =
     selectedShapes.length === 1 && selectedShapes[0]?.type === "text";
+
+  const allCards = cards ? [...cards, ...(relatedCards ?? [])] : [];
 
   return (
     <div className="selection-panel">
@@ -102,7 +106,7 @@ export function SelectionPanel({
         <button onClick={() => connectToPeer(peerId)}>Connect</button>
       </div>
 
-      {connection && <div>connected to {connection.peer}</div>}
+      {connection && <div>connected</div>}
       {modal}
       {canEditFontSize && (
         <select
@@ -125,7 +129,7 @@ export function SelectionPanel({
           <option value={64}>64</option>
         </select>
       )}
-      {cards && (
+      {allCards && (
         <form
           style={{ display: "flex", gap: "1rem" }}
           onSubmit={(e) => {
@@ -135,7 +139,9 @@ export function SelectionPanel({
                 value: string;
               };
             };
-            const card = cards.find((c) => c.name === target.card_name.value);
+            const card = allCards.find(
+              (c) => c.name === target.card_name.value
+            );
             if (card) {
               addCardToHand(card);
             }
@@ -144,7 +150,7 @@ export function SelectionPanel({
         >
           {" "}
           <datalist id="cards">
-            {Array.from(new Set([...cards.map((c) => c.name).sort()])).map(
+            {Array.from(new Set([...allCards.map((c) => c.name).sort()])).map(
               (card) => (
                 <option key={card} value={card} />
               )

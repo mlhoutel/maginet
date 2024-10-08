@@ -106,6 +106,26 @@ export default function Canvas() {
     Array.from(processRawText(d || DEFAULT_DECK.join("\n")))
   );
 
+  const allParts =
+    data
+      ?.filter((v) => v.all_parts && v.all_parts.length > 0)
+      .flatMap((v) => v.all_parts) ?? [];
+
+  //fetch related cards
+  const { data: relatedCards } = useCards(
+    Array.from(
+      new Set(
+        allParts.map((v) => {
+          if (v.name.includes("//")) {
+            //Double faced card
+            return v.name.split("//")[0].trim();
+          }
+          return v.name;
+        })
+      )
+    ).concat(["copy", "Amoeboid Changeling"])
+  );
+
   const [mode, setMode] = React.useState<Mode>("select");
   const [shapeType] = React.useState<ShapeType>("text");
   const [receivedData, setReceivedData] = React.useState<Shape[]>([]);
@@ -429,6 +449,7 @@ export default function Canvas() {
           src: card.image_uris.normal,
         }));
       dispatch({ type: "INITIALIZE_DECK", payload: initialDeck });
+      toast(`Deck initialized with ${initialDeck.length} cards`);
     }
   }, [data, dispatch]);
 
@@ -658,6 +679,7 @@ export default function Canvas() {
           onDrawCard={drawCard}
           onShuffleDeck={onShuffleDeck}
           cards={data}
+          relatedCards={relatedCards}
           addCardToHand={addCardToHand}
         />
       </div>
