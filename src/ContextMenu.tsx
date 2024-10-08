@@ -9,6 +9,7 @@ interface ContextMenuProps {
   sendBackToDeck: () => void;
   sendBackToHand: () => void;
   copy: () => void;
+  giveCardToOpponent: () => void;
 }
 
 export default function ContextMenu({
@@ -18,6 +19,7 @@ export default function ContextMenu({
   sendBackToDeck,
   sendBackToHand,
   copy,
+  giveCardToOpponent,
 }: ContextMenuProps) {
   const { contextMenu, onContextMenu } = useContextMenu(
     <div className="custom-context-menu">
@@ -35,6 +37,9 @@ export default function ContextMenu({
       </ContextMenuItem>
       <ContextMenuItem>
         <button onClick={copy}>Copy</button>
+      </ContextMenuItem>
+      <ContextMenuItem>
+        <button onClick={giveCardToOpponent}>Give Card to Opponent</button>
       </ContextMenuItem>
     </div>
   );

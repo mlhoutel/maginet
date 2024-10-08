@@ -390,6 +390,17 @@ export default function Canvas() {
     dispatch({ type: "ADD_TO_HAND", payload: card });
   };
 
+  const giveCardToOpponent = () => {
+    const selectedCards = shapes.filter((shape) =>
+      selectedShapeIds.includes(shape.id)
+    ) as Card[];
+    sendMessage({ type: "giveCardToOpponent", payload: selectedCards });
+    setShapes((prevShapes) =>
+      prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
+    );
+    setSelectedShapeIds([]);
+  };
+
   // use effects
   useEffect(() => {
     if (isPanning) {
@@ -449,14 +460,22 @@ export default function Canvas() {
       toast(`Prouton!`);
     });
 
+    const unsubscribeGiveCardToOpponent = onMessage(
+      "giveCardToOpponent",
+      (message) => {
+        setShapes((prevShapes) => [...prevShapes, ...message.payload]);
+      }
+    );
+
     return () => {
       unsubscribeShapes();
       unsubscribeConnected();
       unsubscribeCards();
       unsubscribeDeck();
       unsubscribeProuton();
+      unsubscribeGiveCardToOpponent();
     };
-  }, [onMessage]);
+  }, [onMessage, setShapes]);
 
   useEffect(() => {
     sendMessage({ type: "cards", payload: cards.length });
@@ -499,6 +518,7 @@ export default function Canvas() {
         sendBackToDeck={sendBackToDeck}
         copy={copy}
         sendBackToHand={sendBackToHand}
+        giveCardToOpponent={giveCardToOpponent}
       >
         <svg
           ref={ref}
