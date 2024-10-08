@@ -422,6 +422,30 @@ export default function Canvas() {
     setSelectedShapeIds([]);
   };
 
+  const sendCardToBack = () => {
+    const selectedCards = shapes.filter((shape) =>
+      selectedShapeIds.includes(shape.id)
+    );
+    setShapes((prevShapes) =>
+      selectedCards.concat(
+        prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
+      )
+    );
+    setSelectedShapeIds([]);
+  };
+
+  const sendCardToFront = () => {
+    const selectedCards = shapes.filter((shape) =>
+      selectedShapeIds.includes(shape.id)
+    );
+    setShapes((prevShapes) =>
+      prevShapes
+        .filter((shape) => !selectedShapeIds.includes(shape.id))
+        .concat(selectedCards)
+    );
+    setSelectedShapeIds([]);
+  };
+
   // use effects
   useEffect(() => {
     if (isPanning) {
@@ -540,6 +564,8 @@ export default function Canvas() {
         sendBackToDeck={sendBackToDeck}
         copy={copy}
         sendBackToHand={sendBackToHand}
+        sendCardToFront={sendCardToFront}
+        sendCardToBack={sendCardToBack}
         giveCardToOpponent={giveCardToOpponent}
       >
         <svg
