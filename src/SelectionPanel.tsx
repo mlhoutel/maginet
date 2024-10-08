@@ -170,14 +170,25 @@ export function SelectionPanel({
           </button>
         </form>
       )}
-      <button
-        disabled={!canCallProuton}
-        onClick={() => {
-          rateLimitedProuton();
-        }}
-      >
-        Prouton!
-      </button>
+      <div>
+        <button
+          disabled={!canCallProuton}
+          onClick={() => {
+            rateLimitedProuton();
+          }}
+        >
+          Prouton!
+        </button>
+        <button
+          onClick={() => {
+            setShapes((prevShapes) =>
+              prevShapes.map((shape) => ({ ...shape, rotation: 0 }))
+            );
+          }}
+        >
+          Disengage all
+        </button>
+      </div>
     </div>
   );
 }
