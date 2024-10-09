@@ -137,12 +137,16 @@ export function Shape({
         return (
           <g
             {...commonProps}
-            onMouseEnter={() => setHoveredCard(shape.src!)}
+            onMouseEnter={() =>
+              setHoveredCard(shape.src?.[shape.srcIndex] ?? null)
+            }
             onMouseLeave={() => setHoveredCard(null)}
           >
             <image
               href={
-                shape.isFlipped ? "https://i.imgur.com/LdOBU1I.jpeg" : shape.src
+                shape.isFlipped
+                  ? "https://i.imgur.com/LdOBU1I.jpeg"
+                  : shape.src?.[shape.srcIndex]
               }
               x={shape.point[0]}
               y={shape.point[1]}

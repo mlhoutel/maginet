@@ -63,6 +63,7 @@ export const useShapeStore = create<ShapeStore>((set) => ({
           point,
           size: [0, 0],
           type,
+          srcIndex: 0,
         },
         origin: point,
       },

@@ -12,6 +12,7 @@ interface ContextMenuProps {
   giveCardToOpponent: () => void;
   sendCardToFront: () => void;
   sendCardToBack: () => void;
+  increaseSrcIndex: () => void;
 }
 
 export default function ContextMenu({
@@ -24,6 +25,7 @@ export default function ContextMenu({
   giveCardToOpponent,
   sendCardToFront,
   sendCardToBack,
+  increaseSrcIndex,
 }: ContextMenuProps) {
   const { contextMenu, onContextMenu } = useContextMenu(
     <div className="custom-context-menu">
@@ -50,6 +52,9 @@ export default function ContextMenu({
       </ContextMenuItem>
       <ContextMenuItem>
         <button onClick={sendCardToBack}>Send to Back</button>
+      </ContextMenuItem>
+      <ContextMenuItem>
+        <button onClick={increaseSrcIndex}>Transform</button>
       </ContextMenuItem>
     </div>
   );

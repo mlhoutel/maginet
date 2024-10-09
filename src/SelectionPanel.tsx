@@ -144,6 +144,8 @@ export function SelectionPanel({
             );
             if (card) {
               addCardToHand(card);
+            } else {
+              console.error("Card not found");
             }
             target.card_name.value = "";
           }}

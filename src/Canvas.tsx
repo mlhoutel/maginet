@@ -4,7 +4,11 @@ import "./Canvas.css";
 import { screenToCanvas } from "./utils/vec";
 import Hand from "./Hand";
 import ContextMenu from "./ContextMenu";
-import useCards, { Datum, processRawText } from "./hooks/useCards";
+import useCards, {
+  Datum,
+  mapDataToCards,
+  processRawText,
+} from "./hooks/useCards";
 import { useEffect } from "react";
 import { usePeerStore } from "./hooks/usePeerConnection";
 import toast from "react-hot-toast";
@@ -26,7 +30,7 @@ export interface Point {
 
 export interface Card {
   id: string;
-  src: string;
+  src: string[];
 }
 
 export interface Camera {
@@ -41,7 +45,8 @@ export interface Shape {
   size: number[];
   type: ShapeType;
   text?: string;
-  src?: string;
+  src?: string[];
+  srcIndex: number;
   rotation?: number;
   isFlipped?: boolean;
   fontSize?: number;
@@ -78,19 +83,6 @@ function normalizeWheel(event: WheelEvent) {
   }
 
   return [deltaX, deltaY, deltaZ];
-}
-
-function mapDataToCards(data?: Datum[]): Card[] {
-  return (
-    data?.filter((datum) => datum.image_uris?.normal).map(mapDataToCard) ?? []
-  );
-}
-
-function mapDataToCard(data: Datum): Card {
-  return {
-    id: data.id,
-    src: data.image_uris.normal,
-  };
 }
 
 export default function Canvas() {
@@ -200,6 +192,7 @@ export default function Canvas() {
         point: [x, y],
         size: [40, 40],
         type: "ping",
+        srcIndex: 0,
       };
       setShapes((prevShapes) => [...prevShapes, newPing]);
 
@@ -213,25 +206,30 @@ export default function Canvas() {
     [setShapes]
   );
   const sendBackToHand = () => {
-    const selectedCards = shapes.filter((shape) =>
-      selectedShapeIds.includes(shape.id)
-    ) as Card[];
+    const selectedCards: Card[] = getSelectedCards();
     dispatch({ type: "SEND_TO_HAND", payload: selectedCards });
-    setShapes((prevShapes) =>
-      prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
-    );
-    setSelectedShapeIds([]);
+    clearSelectedCards();
   };
   const sendBackToDeck = () => {
-    const selectedCards = shapes.filter((shape) =>
-      selectedShapeIds.includes(shape.id)
-    ) as Card[];
+    const selectedCards: Card[] = getSelectedCards();
     dispatch({ type: "SEND_TO_DECK", payload: selectedCards });
-    setShapes((prevShapes) =>
-      prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
-    );
-    setSelectedShapeIds([]);
+    clearSelectedCards();
   };
+
+  const increaseSrcIndex = () => {
+    setShapes((prevShapes) =>
+      prevShapes.map((shape) => {
+        if (selectedShapeIds.includes(shape.id) && shape.type === "image") {
+          return {
+            ...shape,
+            srcIndex: (shape.srcIndex + 1) % (shape.src?.length ?? 1),
+          };
+        }
+        return shape;
+      })
+    );
+  };
+
   const handleDrop = (e: React.DragEvent<SVGElement>) => {
     e.preventDefault();
     const cardId = e.dataTransfer.getData("text/plain");
@@ -248,10 +246,35 @@ export default function Canvas() {
         size: [100, 100],
         type: "image",
         src: card.src,
+        srcIndex: 0,
         rotation: 0,
       },
     ]);
   };
+
+  function clearSelectedCards() {
+    setShapes((prevShapes) =>
+      prevShapes.filter((shape) => {
+        if (shape.type === "image") {
+          return !selectedShapeIds.includes(shape.id);
+        }
+        return true;
+      })
+    );
+    setSelectedShapeIds([]);
+  }
+
+  function getSelectedCards(): Card[] {
+    return shapes
+      .filter((shape) => selectedShapeIds.includes(shape.id))
+      .filter((shape) => shape.type === "image")
+      .map((shape) => ({
+        id: shape.id,
+        src: shape.src as string[],
+        srcIndex: shape.srcIndex,
+      }));
+  }
+
   function flipShape(shape: Shape): Shape {
     return {
       ...shape,
@@ -288,6 +311,7 @@ export default function Canvas() {
             size: [0, 0],
             type: "text",
             text: "",
+            srcIndex: 0,
           },
         ]);
         setEditingText({ id, text: "" });
@@ -421,6 +445,7 @@ export default function Canvas() {
     setShapes((prevShapes) => [...prevShapes, ...selectedShapes]);
   };
   const addCardToHand = (card: Datum) => {
+    console.log("addCardToHand", card);
     dispatch({ type: "ADD_TO_HAND", payload: card });
   };
 
@@ -575,6 +600,7 @@ export default function Canvas() {
         sendCardToFront={sendCardToFront}
         sendCardToBack={sendCardToBack}
         giveCardToOpponent={giveCardToOpponent}
+        increaseSrcIndex={increaseSrcIndex}
       >
         <svg
           ref={ref}

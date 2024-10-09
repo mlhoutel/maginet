@@ -12,11 +12,11 @@ export default function Hand({ cards, setHoveredCard }: HandProps) {
       {cards.map((card) => (
         <img
           key={card.id}
-          src={card.src}
+          src={card.src[0]}
           alt={`Card ${card.id}`}
           draggable
           onDragStart={(e) => e.dataTransfer.setData("text/plain", card.id)}
-          onMouseEnter={() => setHoveredCard(card.src)}
+          onMouseEnter={() => setHoveredCard(card.src[0])}
           onMouseLeave={() => setHoveredCard(null)}
         />
       ))}

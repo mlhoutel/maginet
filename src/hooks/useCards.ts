@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { shuffle } from "../utils/math";
+import { Card } from "../Canvas";
 
 const fetchCards = async (names: string[]) => {
   const response = await fetch("https://api.scryfall.com/cards/collection", {
@@ -213,4 +214,22 @@ export function processRawText(fromArena: string) {
     }
     return [];
   });
+}
+export function mapDataToCards(data?: Datum[]): Card[] {
+  return data?.map(mapDataToCard) ?? [];
+}
+
+export function mapDataToCard(data: Datum): Card {
+  if (data.image_uris?.normal) {
+    return {
+      id: data.id,
+      src: [data.image_uris.normal],
+    };
+  } else if (data.card_faces?.length) {
+    return {
+      id: data.id,
+      src: data.card_faces.map((face) => face.image_uris.normal),
+    };
+  }
+  throw new Error("Invalid card data");
 }

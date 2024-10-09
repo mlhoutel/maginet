@@ -1,7 +1,7 @@
 import { useReducer } from "react";
 import { Card } from "../Canvas";
 import { generateId, shuffle } from "../utils/math";
-import { Datum } from "./useCards";
+import { Datum, mapDataToCard } from "./useCards";
 
 export type CardState = {
   cards: Card[];
@@ -61,13 +61,7 @@ export function cardReducer(state: CardState, action: CardAction): CardState {
     case "ADD_TO_HAND":
       return {
         ...state,
-        cards: [
-          ...state.cards,
-          {
-            id: generateId(),
-            src: action.payload.image_uris.normal,
-          },
-        ],
+        cards: [...state.cards, mapDataToCard(action.payload)],
       };
     default:
       return state;
