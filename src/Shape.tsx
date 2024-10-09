@@ -120,6 +120,7 @@ export function Shape({
               ...commonProps.style,
               userSelect: "none",
               fontSize: shape.fontSize || 16,
+              fontWeight: "bold",
               fill: selected ? "#4a90e2" : "red",
             }}
             onDoubleClick={(e) => {

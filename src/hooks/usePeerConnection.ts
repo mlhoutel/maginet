@@ -31,10 +31,13 @@ export const usePeerStore = create<PeerState>((set, get) => ({
       peer.on("connection", (conn) => {
         conn.on("data", (data: unknown) => {
           // assert data is a Message
-          const message = data as Message;
-          const { messageCallbacks } = get();
-          const callbacks = messageCallbacks[message.type] || [];
-          callbacks.forEach((callback) => callback(message));
+          if (isValidMessage(data)) {
+            const { messageCallbacks } = get();
+            const callbacks = messageCallbacks[data.type] || [];
+            callbacks.forEach((callback) => callback(data));
+          } else {
+            console.error("Invalid message received:", data);
+          }
         });
         set({ connection: conn });
       });
@@ -112,10 +115,7 @@ function isValidMessage(data: unknown): data is Message {
     "type" in data &&
     "payload" in data
   ) {
-    const message = data as Partial<Message>;
-    return (
-      typeof message.type === "string" && typeof message.payload === "object"
-    );
+    return true;
   }
   return false;
 }

@@ -80,6 +80,19 @@ function normalizeWheel(event: WheelEvent) {
   return [deltaX, deltaY, deltaZ];
 }
 
+function mapDataToCards(data?: Datum[]): Card[] {
+  return (
+    data?.filter((datum) => datum.image_uris?.normal).map(mapDataToCard) ?? []
+  );
+}
+
+function mapDataToCard(data: Datum): Card {
+  return {
+    id: data.id,
+    src: data.image_uris.normal,
+  };
+}
+
 export default function Canvas() {
   const {
     shapes,
@@ -467,12 +480,7 @@ export default function Canvas() {
 
   useEffect(() => {
     if (data) {
-      const initialDeck: Card[] = data
-        .filter((card) => card.image_uris?.normal)
-        .map((card) => ({
-          id: card.id,
-          src: card.image_uris.normal,
-        }));
+      const initialDeck: Card[] = mapDataToCards(data);
       dispatch({ type: "INITIALIZE_DECK", payload: initialDeck });
       toast(`Deck initialized with ${initialDeck.length} cards`);
     }
