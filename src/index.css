@@ -14,16 +14,34 @@ svg {
   height: 100%;
 }
 
-.selection-panel div,
-button {
-  position: relative;
+.clean {
+  background: linear-gradient(#e66465, #9198e5);
+  background-attachment: fixed;
+  animation-name: clean;
+  animation-duration: 5s;
+  font-family: "Comic Sans MS";
+  font-size: 1.6rem;
+  color: yellow;
+  overflow: auto;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
 }
 
-.selection-panel {
-  display: flex;
-  align-items: center;
+@keyframes clean {
+  from {
+    filter: hue-rotate(0deg);
+  }
+  to {
+    filter: hue-rotate(359deg);
+  }
 }
-
+/*#root div {
+   
+}
+@keyframes clean {
+  from {filter: hue-rotate(0deg);}
+  to {filter: hue-rotate(359deg);}
+}*/
 .hand {
   position: fixed;
   bottom: 0;

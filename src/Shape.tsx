@@ -120,9 +120,10 @@ export function Shape({
               ...commonProps.style,
               userSelect: "none",
               fontSize: shape.fontSize || 16,
-              fill: selected ? "#4a90e2" : "#000",
+              fill: selected ? "#4a90e2" : "red",
             }}
-            onDoubleClick={() => {
+            onDoubleClick={(e) => {
+              e.stopPropagation();
               if (readOnly) return;
               setEditingText({ id: shape.id, text: shape.text! });
               setTimeout(() => inputRef.current?.focus(), 0);

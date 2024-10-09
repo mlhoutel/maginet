@@ -4,7 +4,7 @@ import "./Canvas.css";
 import { screenToCanvas } from "./utils/vec";
 import Hand from "./Hand";
 import ContextMenu from "./ContextMenu";
-import useCards, { processRawText } from "./hooks/useCards";
+import useCards, { Datum, processRawText } from "./hooks/useCards";
 import { useEffect } from "react";
 import { usePeerStore } from "./hooks/usePeerConnection";
 import toast from "react-hot-toast";
@@ -97,6 +97,7 @@ export default function Canvas() {
   } = useShapeStore();
 
   const { initPeer, disconnect, sendMessage, onMessage } = usePeerStore();
+  const [clean, setClean] = React.useState(false);
   const [camera, setCamera] = React.useState<Camera>({ x: 0, y: 0, z: 1 });
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -104,6 +105,26 @@ export default function Canvas() {
 
   const { data } = useCards(
     Array.from(processRawText(d || DEFAULT_DECK.join("\n")))
+  );
+
+  const allParts =
+    data
+      ?.filter((v) => v.all_parts && v.all_parts.length > 0)
+      .flatMap((v) => v.all_parts) ?? [];
+
+  //fetch related cards
+  const { data: relatedCards } = useCards(
+    Array.from(
+      new Set(
+        allParts.map((v) => {
+          if (v.name.includes("//")) {
+            //Double faced card
+            return v.name.split("//")[0].trim();
+          }
+          return v.name;
+        })
+      )
+    ).concat(["copy", "Amoeboid Changeling"])
   );
 
   const [mode, setMode] = React.useState<Mode>("select");
@@ -343,7 +364,7 @@ export default function Canvas() {
                 ...shape,
                 text: updatedText,
                 size: [updatedText.length * 10, 100], // Update size based on text length
-                fontSize: 40,
+                fontSize: 24,
               }
             : shape
         )
@@ -386,6 +407,44 @@ export default function Canvas() {
       }));
     setShapes((prevShapes) => [...prevShapes, ...selectedShapes]);
   };
+  const addCardToHand = (card: Datum) => {
+    dispatch({ type: "ADD_TO_HAND", payload: card });
+  };
+
+  const giveCardToOpponent = () => {
+    const selectedCards = shapes.filter((shape) =>
+      selectedShapeIds.includes(shape.id)
+    ) as Card[];
+    sendMessage({ type: "giveCardToOpponent", payload: selectedCards });
+    setShapes((prevShapes) =>
+      prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
+    );
+    setSelectedShapeIds([]);
+  };
+
+  const sendCardToBack = () => {
+    const selectedCards = shapes.filter((shape) =>
+      selectedShapeIds.includes(shape.id)
+    );
+    setShapes((prevShapes) =>
+      selectedCards.concat(
+        prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
+      )
+    );
+    setSelectedShapeIds([]);
+  };
+
+  const sendCardToFront = () => {
+    const selectedCards = shapes.filter((shape) =>
+      selectedShapeIds.includes(shape.id)
+    );
+    setShapes((prevShapes) =>
+      prevShapes
+        .filter((shape) => !selectedShapeIds.includes(shape.id))
+        .concat(selectedCards)
+    );
+    setSelectedShapeIds([]);
+  };
 
   // use effects
   useEffect(() => {
@@ -415,6 +474,7 @@ export default function Canvas() {
           src: card.image_uris.normal,
         }));
       dispatch({ type: "INITIALIZE_DECK", payload: initialDeck });
+      toast(`Deck initialized with ${initialDeck.length} cards`);
     }
   }, [data, dispatch]);
 
@@ -446,14 +506,22 @@ export default function Canvas() {
       toast(`Prouton!`);
     });
 
+    const unsubscribeGiveCardToOpponent = onMessage(
+      "giveCardToOpponent",
+      (message) => {
+        setShapes((prevShapes) => [...prevShapes, ...message.payload]);
+      }
+    );
+
     return () => {
       unsubscribeShapes();
       unsubscribeConnected();
       unsubscribeCards();
       unsubscribeDeck();
       unsubscribeProuton();
+      unsubscribeGiveCardToOpponent();
     };
-  }, [onMessage]);
+  }, [onMessage, setShapes]);
 
   useEffect(() => {
     sendMessage({ type: "cards", payload: cards.length });
@@ -462,15 +530,15 @@ export default function Canvas() {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Meta") {
+      if (event.key === "Control") {
         setIsCommandPressed(true);
-      } else if (event.key === "p" || event.key === "P") {
+      } else if ((event.key === "p" || event.key === "P") && !editingText) {
         addPing(mousePosition.x, mousePosition.y);
       }
     }
 
     function handleKeyUp(event: KeyboardEvent) {
-      if (event.key === "Meta") {
+      if (event.key === "Control") {
         setIsCommandPressed(false);
       }
     }
@@ -482,7 +550,7 @@ export default function Canvas() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [mousePosition, addPing]);
+  }, [mousePosition, addPing, editingText]);
 
   const pings = receivedData.filter((shape) => shape.type === "ping");
   const others = receivedData.filter((shape) => shape.type !== "ping");
@@ -496,6 +564,9 @@ export default function Canvas() {
         sendBackToDeck={sendBackToDeck}
         copy={copy}
         sendBackToHand={sendBackToHand}
+        sendCardToFront={sendCardToFront}
+        sendCardToBack={sendCardToBack}
+        giveCardToOpponent={giveCardToOpponent}
       >
         <svg
           ref={ref}
@@ -504,16 +575,19 @@ export default function Canvas() {
           onPointerUp={onPointerUpCanvas}
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
-          style={{ backgroundColor: "#fff" }}
+          className={clean ? "clean" : ""}
         >
           <g style={{ transform }}>
-            <image
+            <text
               x={-3000}
               y={20}
               width={100}
               height={100}
-              href="/sonic.gif"
-            />
+              style={{ cursor: "pointer", backgroundColor: "transparent" }}
+              onClick={() => setClean((prev) => !prev)}
+            >
+              Clean
+            </text>
             {others &&
               others.map((shape: Shape) => (
                 <ShapeComponent
@@ -634,6 +708,9 @@ export default function Canvas() {
           onMulligan={mulligan}
           onDrawCard={drawCard}
           onShuffleDeck={onShuffleDeck}
+          cards={data}
+          relatedCards={relatedCards}
+          addCardToHand={addCardToHand}
         />
       </div>
       <Hand cards={cards} setHoveredCard={setHoveredCard} />
