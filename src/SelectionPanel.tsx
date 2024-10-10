@@ -46,7 +46,7 @@ export function SelectionPanel({
       maxCalls: 30,
       timeWindow: 60000,
     }); // 3 calls per minute
-  const connection = usePeerStore((state) => state.connection);
+  const connections = usePeerStore((state) => state.connections);
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const d = params.get("deck");
@@ -106,7 +106,7 @@ export function SelectionPanel({
         <button onClick={() => connectToPeer(peerId)}>Connect</button>
       </div>
 
-      {connection && <div>connected</div>}
+      {connections.size > 0 && <div>connected</div>}
       {modal}
       {canEditFontSize && (
         <select

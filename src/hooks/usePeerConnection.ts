@@ -1,26 +1,29 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
 import Peer, { DataConnection } from "peerjs";
+
 interface Message {
   type: string;
   payload: any;
 }
 
-type MessageCallback = (message: Message) => void;
+type MessageCallback = (message: Message, peerId: string) => void;
+
 interface PeerState {
   peer: Peer | null;
-  connection: DataConnection | null;
+  connections: Map<string, DataConnection>;
   error: Error | null;
-  initPeer: (id?: string) => void;
+  initPeer: () => void;
   connectToPeer: (peerId: string) => void;
-  sendMessage: (message: Message) => void;
-  disconnect: () => void;
+  sendMessage: (message: Message, peerId?: string) => void;
+  disconnect: (peerId?: string) => void;
   onMessage: (type: string, callback: MessageCallback) => () => void;
   messageCallbacks: { [key: string]: MessageCallback[] };
 }
+
 export const usePeerStore = create<PeerState>((set, get) => ({
   peer: null,
-  connection: null,
+  connections: new Map(),
   error: null,
   messageCallbacks: {},
 
@@ -29,17 +32,7 @@ export const usePeerStore = create<PeerState>((set, get) => ({
       const peer = new Peer();
       peer.on("open", () => set({ peer }));
       peer.on("connection", (conn) => {
-        conn.on("data", (data: unknown) => {
-          // assert data is a Message
-          if (isValidMessage(data)) {
-            const { messageCallbacks } = get();
-            const callbacks = messageCallbacks[data.type] || [];
-            callbacks.forEach((callback) => callback(data));
-          } else {
-            console.error("Invalid message received:", data);
-          }
-        });
-        set({ connection: conn });
+        setupConnection(conn);
       });
       peer.on("error", (error) => set({ error }));
     } catch (error) {
@@ -53,40 +46,39 @@ export const usePeerStore = create<PeerState>((set, get) => ({
     const { peer } = get();
     if (peer) {
       const connection = peer.connect(peerId);
-      connection.on("open", () => {
-        set({ connection });
-        connection.send({ type: "connected", payload: { peerId } });
+      setupConnection(connection);
+    }
+  },
 
-        connection.on("data", (data: unknown) => {
-          if (isValidMessage(data)) {
-            const { messageCallbacks } = get();
-            const callbacks = messageCallbacks[data.type] || [];
-            callbacks.forEach((callback) => callback(data));
-          } else {
-            console.error("Invalid message received:", data);
-          }
-        });
+  sendMessage: (message: Message, peerId?: string) => {
+    const { connections } = get();
+    if (peerId) {
+      const connection = connections.get(peerId);
+      if (connection) {
+        connection.send(message);
+      }
+    } else {
+      connections.forEach((connection) => {
+        connection.send(message);
       });
-      connection.on("error", (error) => set({ error }));
     }
   },
 
-  sendMessage: (message: Message) => {
-    const { connection } = get();
-    if (connection) {
-      connection.send(message);
+  disconnect: (peerId?: string) => {
+    const { connections, peer } = get();
+    if (peerId) {
+      const connection = connections.get(peerId);
+      if (connection) {
+        connection.close();
+        connections.delete(peerId);
+      }
+    } else {
+      connections.forEach((connection) => connection.close());
+      if (peer) {
+        peer.destroy();
+      }
+      set({ peer: null, connections: new Map() });
     }
-  },
-
-  disconnect: () => {
-    const { connection, peer } = get();
-    if (connection) {
-      connection.close();
-    }
-    if (peer) {
-      peer.destroy();
-    }
-    set({ peer: null, connection: null });
   },
 
   onMessage: (type: string, callback: MessageCallback) => {
@@ -106,6 +98,32 @@ export const usePeerStore = create<PeerState>((set, get) => ({
     };
   },
 }));
+
+function setupConnection(conn: DataConnection) {
+  const { connections, messageCallbacks } = usePeerStore.getState();
+
+  conn.on("open", () => {
+    connections.set(conn.peer, conn);
+    usePeerStore.setState({ connections: new Map(connections) });
+    conn.send({ type: "connected", payload: { peerId: conn.peer } });
+  });
+
+  conn.on("data", (data: unknown) => {
+    if (isValidMessage(data)) {
+      const callbacks = messageCallbacks[data.type] || [];
+      callbacks.forEach((callback) => callback(data, conn.peer));
+    } else {
+      console.error("Invalid message received:", data);
+    }
+  });
+
+  conn.on("close", () => {
+    connections.delete(conn.peer);
+    usePeerStore.setState({ connections: new Map(connections) });
+  });
+
+  conn.on("error", (error) => usePeerStore.setState({ error }));
+}
 
 // Type guard to check if a message is valid
 function isValidMessage(data: unknown): data is Message {

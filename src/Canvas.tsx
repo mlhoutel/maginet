@@ -9,7 +9,7 @@ import useCards, {
   mapDataToCards,
   processRawText,
 } from "./hooks/useCards";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { usePeerStore } from "./hooks/usePeerConnection";
 import toast from "react-hot-toast";
 import { useLocation } from "react-router-dom";
@@ -101,7 +101,7 @@ export default function Canvas() {
     updateShapeInCreation,
   } = useShapeStore();
 
-  const { initPeer, disconnect, sendMessage, onMessage } = usePeerStore();
+  const { initPeer, disconnect, sendMessage, onMessage, peer } = usePeerStore();
   const [clean, setClean] = React.useState(false);
   const [camera, setCamera] = React.useState<Camera>({ x: 0, y: 0, z: 1 });
   const location = useLocation();
@@ -134,11 +134,9 @@ export default function Canvas() {
 
   const [mode, setMode] = React.useState<Mode>("select");
   const [shapeType] = React.useState<ShapeType>("text");
-  const [receivedData, setReceivedData] = React.useState<Shape[]>([]);
-  const [opponentInfo, setOpponentInfo] = React.useState<{
-    cards: number;
-    deck: number;
-  }>({ cards: 0, deck: 0 });
+  const [receivedDataMap, setReceivedDataMap] = React.useState<
+    Record<string, Shape>
+  >({});
 
   const [hoveredCard, setHoveredCard] = React.useState<string | null>(null);
   const [isCommandPressed, setIsCommandPressed] = React.useState(false);
@@ -449,16 +447,23 @@ export default function Canvas() {
     dispatch({ type: "ADD_TO_HAND", payload: card });
   };
 
-  const giveCardToOpponent = () => {
-    const selectedCards = shapes.filter((shape) =>
-      selectedShapeIds.includes(shape.id)
-    ) as Card[];
-    sendMessage({ type: "giveCardToOpponent", payload: selectedCards });
-    setShapes((prevShapes) =>
-      prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
-    );
-    setSelectedShapeIds([]);
-  };
+  // need to figure how to make it work with more than 2 players
+  // const giveCardToOpponent = () => {
+  //   const selectedCards = shapes.filter((shape) =>
+  //     selectedShapeIds.includes(shape.id)
+  //   ) as Card[];
+  //   sendMessage({
+  //     type: "giveCardToOpponent",
+  //     payload: selectedCards.map((card) => ({
+  //       ...card,
+  //       id: generateId(),
+  //     })),
+  //   });
+  //   setShapes((prevShapes) =>
+  //     prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
+  //   );
+  //   setSelectedShapeIds([]);
+  // };
 
   const sendCardToBack = () => {
     const selectedCards = shapes.filter((shape) =>
@@ -495,13 +500,19 @@ export default function Canvas() {
   }, [isPanning]);
   useEffect(() => {
     const unsubscribe = useShapeStore.subscribe((state) => {
-      sendMessage({ type: "shapes", payload: state.shapes });
+      sendMessage({
+        type: "shapes",
+        payload: {
+          id: peer?.id,
+          data: state.shapes,
+        },
+      });
     });
 
     return () => {
       unsubscribe();
     };
-  }, [sendMessage]);
+  }, [sendMessage, peer]);
 
   useEffect(() => {
     if (data) {
@@ -520,39 +531,32 @@ export default function Canvas() {
 
   useEffect(() => {
     const unsubscribeShapes = onMessage("shapes", (message) => {
-      setReceivedData(message.payload);
+      setReceivedDataMap((prev) => ({
+        ...prev,
+        [message.payload.id]: message.payload.data,
+      }));
     });
 
     const unsubscribeConnected = onMessage("connected", (message) => {
       toast(`Peer connected: ${message.payload.peerId}`);
     });
 
-    const unsubscribeCards = onMessage("cards", (message) => {
-      setOpponentInfo((prev) => ({ ...prev, cards: message.payload }));
-    });
-
-    const unsubscribeDeck = onMessage("deck", (message) => {
-      setOpponentInfo((prev) => ({ ...prev, deck: message.payload }));
-    });
-
     const unsubscribeProuton = onMessage("prouton", () => {
       toast(`Prouton!`);
     });
 
-    const unsubscribeGiveCardToOpponent = onMessage(
-      "giveCardToOpponent",
-      (message) => {
-        setShapes((prevShapes) => [...prevShapes, ...message.payload]);
-      }
-    );
+    // const unsubscribeGiveCardToOpponent = onMessage(
+    //   "giveCardToOpponent",
+    //   (message) => {
+    //     setShapes((prevShapes) => [...prevShapes, ...message.payload]);
+    //   }
+    // );
 
     return () => {
       unsubscribeShapes();
       unsubscribeConnected();
-      unsubscribeCards();
-      unsubscribeDeck();
       unsubscribeProuton();
-      unsubscribeGiveCardToOpponent();
+      // unsubscribeGiveCardToOpponent();
     };
   }, [onMessage, setShapes]);
 
@@ -585,6 +589,10 @@ export default function Canvas() {
     };
   }, [mousePosition, addPing, editingText]);
 
+  const receivedData = useMemo(() => {
+    return Object.values(receivedDataMap).flat();
+  }, [receivedDataMap]);
+
   const pings = receivedData.filter((shape) => shape.type === "ping");
   const others = receivedData.filter((shape) => shape.type !== "ping");
   const transform = `scale(${camera.z}) translate(${camera.x}px, ${camera.y}px)`;
@@ -599,7 +607,7 @@ export default function Canvas() {
         sendBackToHand={sendBackToHand}
         sendCardToFront={sendCardToFront}
         sendCardToBack={sendCardToBack}
-        giveCardToOpponent={giveCardToOpponent}
+        // giveCardToOpponent={giveCardToOpponent}
         increaseSrcIndex={increaseSrcIndex}
       >
         <svg
@@ -718,18 +726,6 @@ export default function Canvas() {
                 fill="rgba(0, 0, 255, 0.3)"
                 stroke="blue"
               />
-            )}
-            {opponentInfo.cards > 0 && opponentInfo.deck > 0 && (
-              <text
-                x={100}
-                y={100}
-                fontSize={24}
-                style={{
-                  userSelect: "none",
-                }}
-              >
-                {`Opponent data: ${opponentInfo.cards} cards in hand`}
-              </text>
             )}
           </g>
         </svg>
