@@ -106,7 +106,7 @@ export function SelectionPanel({
         <button onClick={() => connectToPeer(peerId)}>Connect</button>
       </div>
 
-      {connections.size > 0 && <div>connected</div>}
+      {connections.size > 0 && <div>connected ({connections.size})</div>}
       {modal}
       {canEditFontSize && (
         <select
