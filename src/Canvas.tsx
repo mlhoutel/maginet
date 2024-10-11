@@ -135,7 +135,7 @@ export default function Canvas() {
   const [mode, setMode] = React.useState<Mode>("select");
   const [shapeType] = React.useState<ShapeType>("text");
   const [receivedDataMap, setReceivedDataMap] = React.useState<
-    Record<string, Shape>
+    Record<string, Shape[]>
   >({});
 
   const [hoveredCard, setHoveredCard] = React.useState<string | null>(null);
