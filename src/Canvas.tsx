@@ -9,7 +9,7 @@ import useCards, {
   mapDataToCards,
   processRawText,
 } from "./hooks/useCards";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { usePeerStore } from "./hooks/usePeerConnection";
 import toast from "react-hot-toast";
 import { useLocation } from "react-router-dom";
@@ -589,10 +589,27 @@ export default function Canvas() {
     };
   }, [mousePosition, addPing, editingText]);
 
-  const receivedData = useMemo(() => {
-    return Object.values(receivedDataMap).flat();
-  }, [receivedDataMap]);
+  const playersColors = [
+    "rgb(255, 0, 0, 0.5)",
+    "rgb(0, 255, 0, 0.5)",
+    "rgb(0, 0, 255, 0.5)",
+    "rgb(255, 255, 0, 0.5)",
+    "rgb(128, 0, 128, 0.5)",
+    "rgb(255, 165, 0, 0.5)",
+  ];
+  const getPlayerColor = (index: number) =>
+    playersColors[index % playersColors.length];
 
+  const receivedData: (Shape & { color: string })[] = Object.values(
+    receivedDataMap
+  )
+    .map((data, index) =>
+      data.map((shape) => ({
+        ...shape,
+        color: getPlayerColor(index),
+      }))
+    )
+    .flat();
   const pings = receivedData.filter((shape) => shape.type === "ping");
   const others = receivedData.filter((shape) => shape.type !== "ping");
   const transform = `scale(${camera.z}) translate(${camera.x}px, ${camera.y}px)`;
@@ -631,7 +648,7 @@ export default function Canvas() {
               Clean
             </text>
             {others &&
-              others.map((shape: Shape) => (
+              others.map((shape) => (
                 <ShapeComponent
                   readOnly={true}
                   key={shape.id}
@@ -643,6 +660,7 @@ export default function Canvas() {
                   setHoveredCard={setHoveredCard}
                   updateDraggingRef={() => {}}
                   selected={false}
+                  color={shape.color}
                 />
               ))}
             {shapes

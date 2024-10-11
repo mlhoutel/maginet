@@ -14,6 +14,7 @@ export function Shape({
   readOnly,
   selected,
   camera,
+  color,
 }: {
   shape: ShapeType;
   mode: Mode;
@@ -22,6 +23,7 @@ export function Shape({
     origin: number[];
   } | null>;
   camera: Camera;
+  color?: string;
   setHoveredCard: React.Dispatch<React.SetStateAction<string | null>>;
   inputRef: React.RefObject<HTMLInputElement>;
   updateDraggingRef: (
@@ -101,7 +103,6 @@ export function Shape({
     style: {
       cursor: readOnly ? "default" : "move",
       filter: selected ? "url(#glow)" : "none",
-      opacity: readOnly ? 0.7 : 1,
     },
   };
 
@@ -142,6 +143,15 @@ export function Shape({
             }
             onMouseLeave={() => setHoveredCard(null)}
           >
+            {readOnly && (
+              <rect
+                x={shape.point[0]}
+                y={shape.point[1] - 10}
+                width={shape.size[0]}
+                height={shape.size[1] + 20}
+                fill={color}
+              />
+            )}
             <image
               href={
                 shape.isFlipped
