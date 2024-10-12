@@ -774,8 +774,8 @@ export default function Canvas() {
               <foreignObject
                 x={editingTextPointX}
                 y={editingTextPointY - inputHeight / 2}
-                height={"100%"}
-                width={"100%"}
+                height={inputHeight}
+                width={inputWidth + 4}
               >
                 <input
                   ref={inputRef}
