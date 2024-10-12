@@ -201,7 +201,7 @@ export function Shape({
             <circle
               cx={shape.point[0]}
               cy={shape.point[1]}
-              r="20"
+              r="30"
               fill="rgba(139, 69, 19)"
             />
             {shape.text && (
