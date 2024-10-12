@@ -187,6 +187,41 @@ export function Shape({
             fill="rgba(255, 0, 0, 0.5)"
           />
         );
+      case "token":
+        return (
+          <g
+            {...commonProps}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              if (readOnly) return;
+              setEditingText({ id: shape.id, text: shape.text! });
+              setTimeout(() => inputRef.current?.focus(), 0);
+            }}
+          >
+            <circle
+              cx={shape.point[0]}
+              cy={shape.point[1]}
+              r="20"
+              fill="rgba(139, 69, 19)"
+            />
+            {shape.text && (
+              <text
+                x={shape.point[0]}
+                y={shape.point[1]}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                style={{
+                  fill: "white",
+                  fontSize: "12px",
+                  pointerEvents: "none",
+                  userSelect: "none",
+                }}
+              >
+                {shape.text}
+              </text>
+            )}
+          </g>
+        );
       default:
         throw new Error(`Unknown shape type: ${shape.type}`);
     }

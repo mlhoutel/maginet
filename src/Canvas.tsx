@@ -50,9 +50,17 @@ export interface Shape {
   rotation?: number;
   isFlipped?: boolean;
   fontSize?: number;
+  values?: [number, number];
 }
 
-type ShapeType = "rectangle" | "circle" | "arrow" | "text" | "image" | "ping";
+type ShapeType =
+  | "rectangle"
+  | "circle"
+  | "arrow"
+  | "text"
+  | "image"
+  | "ping"
+  | "token";
 
 export type Mode = "select" | "create";
 
@@ -203,6 +211,21 @@ export default function Canvas() {
     },
     [setShapes]
   );
+
+  const addToken = () => {
+    setShapes((prev) => [
+      ...prev,
+      {
+        id: generateId(),
+        type: "token",
+        point: [100, 100],
+        size: [40, 40],
+        srcIndex: 0,
+        text: "+1/+1",
+      },
+    ]);
+  };
+
   const sendBackToHand = () => {
     const selectedCards: Card[] = getSelectedCards();
     dispatch({ type: "SEND_TO_HAND", payload: selectedCards });
@@ -407,6 +430,11 @@ export default function Canvas() {
     }
   }
   function onTextBlur() {
+    if (editingText?.text === "") {
+      setShapes((prevShapes) =>
+        prevShapes.filter((shape) => shape.id !== editingText.id)
+      );
+    }
     setEditingText(null);
     setMode("select");
   }
@@ -759,6 +787,7 @@ export default function Canvas() {
           cards={data}
           relatedCards={relatedCards}
           addCardToHand={addCardToHand}
+          addToken={addToken}
         />
       </div>
       <Hand cards={cards} setHoveredCard={setHoveredCard} />

@@ -16,6 +16,7 @@ export function SelectionPanel({
   cards,
   addCardToHand,
   relatedCards,
+  addToken,
 }: {
   onDrawCard: () => void;
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
@@ -26,6 +27,7 @@ export function SelectionPanel({
   addCardToHand: (card: Datum) => void;
   cards?: Datum[];
   relatedCards?: Datum[];
+  addToken: () => void;
 }) {
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
   const sendMessage = usePeerStore((state) => state.sendMessage);
@@ -190,6 +192,7 @@ export function SelectionPanel({
         >
           Disengage all
         </button>
+        <button onClick={addToken}>Add token</button>
       </div>
     </div>
   );
