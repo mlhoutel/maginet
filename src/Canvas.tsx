@@ -213,12 +213,16 @@ export default function Canvas() {
   );
 
   const addToken = () => {
+    const center = screenToCanvas(
+      { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+      camera
+    );
     setShapes((prev) => [
       ...prev,
       {
         id: generateId(),
         type: "token",
-        point: [100, 100],
+        point: [center.x, center.y],
         size: [40, 40],
         srcIndex: 0,
         text: "+1/+1",
