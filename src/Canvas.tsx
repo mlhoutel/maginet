@@ -64,6 +64,26 @@ type ShapeType =
 
 export type Mode = "select" | "create";
 
+let canvas: HTMLCanvasElement;
+
+/**
+ * Uses canvas.measureText to compute and return the width of the given text of given font in pixels.
+ *
+ * @param {String} text The text to be rendered.
+ * @param {String} font The css font descriptor that text is to be rendered with (e.g. "bold 14px verdana").
+ *
+ * @see https://stackoverflow.com/questions/118241/calculate-text-width-with-javascript/21015393#21015393
+ */
+function getTextWidth(text: string, font: string) {
+  // re-use canvas object for better performance
+  canvas = canvas || document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) return 0;
+  context.font = font;
+  const metrics = context.measureText(text);
+  return metrics.width;
+}
+
 function rotateShape(shape: Shape, angle: number): Shape {
   return {
     ...shape,
@@ -425,8 +445,7 @@ export default function Canvas() {
             ? {
                 ...shape,
                 text: updatedText,
-                size: [updatedText.length * 10, 100], // Update size based on text length
-                fontSize: 24,
+                size: [inputWidth, inputHeight], // Update size based on text length
               }
             : shape
         )
@@ -645,7 +664,18 @@ export default function Canvas() {
   const pings = receivedData.filter((shape) => shape.type === "ping");
   const others = receivedData.filter((shape) => shape.type !== "ping");
   const transform = `scale(${camera.z}) translate(${camera.x}px, ${camera.y}px)`;
-
+  const editingTextShape = shapes.find((shape) => shape.id === editingText?.id);
+  const editingTextPointX = editingTextShape?.point[0] ?? 0;
+  const editingTextPointY = editingTextShape?.point[1] ?? 0;
+  let inputWidth = 0;
+  if (editingText) {
+    const textWidth = getTextWidth(
+      editingText.text,
+      `normal ${editingTextShape?.fontSize ?? 12}px Arial`
+    );
+    inputWidth = Math.max(textWidth, 10);
+  }
+  const inputHeight = 32;
   return (
     <div>
       <ContextMenu
@@ -742,16 +772,10 @@ export default function Canvas() {
             )}
             {editingText && (
               <foreignObject
-                x={
-                  shapes.find((shape) => shape.id === editingText.id)
-                    ?.point[0] ?? 0
-                }
-                y={
-                  (shapes.find((shape) => shape.id === editingText.id)
-                    ?.point[1] ?? 0) - 16
-                }
-                width={200}
-                height={32}
+                x={editingTextPointX}
+                y={editingTextPointY - inputHeight / 2}
+                height={"100%"}
+                width={"100%"}
               >
                 <input
                   ref={inputRef}
@@ -759,6 +783,14 @@ export default function Canvas() {
                   value={editingText.text}
                   onChange={onTextChange}
                   onBlur={onTextBlur}
+                  style={{
+                    width: `${inputWidth}px`,
+                    height: `${inputHeight}px`,
+                    fontSize: 12,
+                    outline: "none",
+                    border: "none",
+                    backgroundColor: "rgba(0, 0, 0, 0)",
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       onTextBlur();
