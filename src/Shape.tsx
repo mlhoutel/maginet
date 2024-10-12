@@ -204,6 +204,7 @@ export function Shape({
               r="30"
               fill="rgba(139, 69, 19)"
             />
+            <circle cx={shape.point[0]} cy={shape.point[1]} r="25" />
             {shape.text && (
               <text
                 x={shape.point[0]}
