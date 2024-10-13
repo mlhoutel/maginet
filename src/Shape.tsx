@@ -3,6 +3,7 @@ import { Camera, Mode, Shape as ShapeType } from "./Canvas";
 import { screenToCanvas } from "./utils/vec";
 import vec from "./utils/vec";
 import { useShapeStore } from "./hooks/useShapeStore";
+import { colors } from "./utils/colors";
 
 export function Shape({
   shape,
@@ -122,7 +123,7 @@ export function Shape({
               userSelect: "none",
               fontSize: shape.fontSize || 16,
               fontWeight: "bold",
-              fill: selected ? "#4a90e2" : "black",
+              fill: selected ? "#4a90e2" : shape.color ?? "black",
             }}
             onDoubleClick={(e) => {
               e.stopPropagation();
@@ -202,9 +203,14 @@ export function Shape({
               cx={shape.point[0]}
               cy={shape.point[1]}
               r="30"
-              fill="rgba(139, 69, 19)"
+              fill="#1F2421"
             />
-            <circle cx={shape.point[0]} cy={shape.point[1]} r="25" />
+            <circle
+              cx={shape.point[0]}
+              cy={shape.point[1]}
+              r="25"
+              fill={shape.color ?? "black"}
+            />
             {shape.text && (
               <text
                 x={shape.point[0]}
@@ -212,7 +218,7 @@ export function Shape({
                 textAnchor="middle"
                 dominantBaseline="middle"
                 style={{
-                  fill: "white",
+                  fill: colors[shape.color as keyof typeof colors] ?? "white",
                   fontSize: "12px",
                   pointerEvents: "none",
                   userSelect: "none",

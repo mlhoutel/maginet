@@ -51,6 +51,7 @@ export interface Shape {
   isFlipped?: boolean;
   fontSize?: number;
   values?: [number, number];
+  color?: string;
 }
 
 type ShapeType =
@@ -112,6 +113,17 @@ function normalizeWheel(event: WheelEvent) {
 
   return [deltaX, deltaY, deltaZ];
 }
+
+const playersColors = [
+  "rgb(255, 0, 0, 0.5)",
+  "rgb(0, 255, 0, 0.5)",
+  "rgb(0, 0, 255, 0.5)",
+  "rgb(255, 255, 0, 0.5)",
+  "rgb(128, 0, 128, 0.5)",
+  "rgb(255, 165, 0, 0.5)",
+];
+const getPlayerColor = (index: number) =>
+  playersColors[index % playersColors.length];
 
 export default function Canvas() {
   const {
@@ -498,6 +510,16 @@ export default function Canvas() {
     dispatch({ type: "ADD_TO_HAND", payload: card });
   };
 
+  const changeColor = (color: string) => {
+    if (mode === "select" && selectedShapeIds.length === 1) {
+      setShapes((prevShapes) =>
+        prevShapes.map((shape) =>
+          selectedShapeIds.includes(shape.id) ? { ...shape, color } : shape
+        )
+      );
+    }
+  };
+
   // need to figure how to make it work with more than 2 players
   // const giveCardToOpponent = () => {
   //   const selectedCards = shapes.filter((shape) =>
@@ -639,17 +661,6 @@ export default function Canvas() {
       window.removeEventListener("keyup", handleKeyUp);
     };
   }, [mousePosition, addPing, editingText]);
-
-  const playersColors = [
-    "rgb(255, 0, 0, 0.5)",
-    "rgb(0, 255, 0, 0.5)",
-    "rgb(0, 0, 255, 0.5)",
-    "rgb(255, 255, 0, 0.5)",
-    "rgb(128, 0, 128, 0.5)",
-    "rgb(255, 165, 0, 0.5)",
-  ];
-  const getPlayerColor = (index: number) =>
-    playersColors[index % playersColors.length];
 
   const receivedData: (Shape & { color: string })[] = Object.values(
     receivedDataMap
@@ -824,6 +835,7 @@ export default function Canvas() {
           relatedCards={relatedCards}
           addCardToHand={addCardToHand}
           addToken={addToken}
+          changeColor={changeColor}
         />
       </div>
       <Hand cards={cards} setHoveredCard={setHoveredCard} />

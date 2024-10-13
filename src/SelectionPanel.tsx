@@ -6,6 +6,7 @@ import { usePeerStore } from "./hooks/usePeerConnection";
 import { useRateLimit } from "./hooks/useRateLimit";
 import { useShapeStore } from "./hooks/useShapeStore";
 import { Datum } from "./hooks/useCards";
+import { colors } from "./utils/colors";
 
 export function SelectionPanel({
   onDrawCard,
@@ -17,6 +18,7 @@ export function SelectionPanel({
   addCardToHand,
   relatedCards,
   addToken,
+  changeColor,
 }: {
   onDrawCard: () => void;
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
@@ -28,6 +30,7 @@ export function SelectionPanel({
   cards?: Datum[];
   relatedCards?: Datum[];
   addToken: () => void;
+  changeColor: (color: string) => void;
 }) {
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
   const sendMessage = usePeerStore((state) => state.sendMessage);
@@ -193,6 +196,18 @@ export function SelectionPanel({
           Disengage all
         </button>
         <button onClick={addToken}>Add token</button>
+        {selectedShapes.length === 1 && (
+          <select
+            onChange={(e) => changeColor(e.target.value)}
+            value={selectedShapes[0]?.color ?? "#000000"}
+          >
+            {Object.entries(colors).map(([value]) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
     </div>
   );
