@@ -48,10 +48,10 @@ export default function ContextMenu({
         <button onClick={giveCardToOpponent}>Give Card to Opponent</button>
       </ContextMenuItem> */}
       <ContextMenuItem>
-        <button onClick={sendCardToFront}>Send to Front</button>
+        <button onClick={sendCardToFront}>Bring to Front</button>
       </ContextMenuItem>
       <ContextMenuItem>
-        <button onClick={sendCardToBack}>Send to Back</button>
+        <button onClick={sendCardToBack}>Bring to Back</button>
       </ContextMenuItem>
       <ContextMenuItem>
         <button onClick={increaseSrcIndex}>Transform</button>

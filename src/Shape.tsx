@@ -202,13 +202,13 @@ export function Shape({
             <circle
               cx={shape.point[0]}
               cy={shape.point[1]}
-              r="30"
+              r="25"
               fill="#1F2421"
             />
             <circle
               cx={shape.point[0]}
               cy={shape.point[1]}
-              r="25"
+              r="20"
               fill={shape.color ?? "black"}
             />
             {shape.text && (
@@ -219,7 +219,7 @@ export function Shape({
                 dominantBaseline="middle"
                 style={{
                   fill: colors[shape.color as keyof typeof colors] ?? "white",
-                  fontSize: "12px",
+                  fontSize: "10px",
                   pointerEvents: "none",
                   userSelect: "none",
                 }}
