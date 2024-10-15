@@ -6,6 +6,7 @@ import { usePeerStore } from "./hooks/usePeerConnection";
 import { useRateLimit } from "./hooks/useRateLimit";
 import { useShapeStore } from "./hooks/useShapeStore";
 import { Datum } from "./hooks/useCards";
+import { colors } from "./utils/colors";
 
 export function SelectionPanel({
   onDrawCard,
@@ -16,6 +17,8 @@ export function SelectionPanel({
   cards,
   addCardToHand,
   relatedCards,
+  addToken,
+  changeColor,
 }: {
   onDrawCard: () => void;
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
@@ -26,6 +29,8 @@ export function SelectionPanel({
   addCardToHand: (card: Datum) => void;
   cards?: Datum[];
   relatedCards?: Datum[];
+  addToken: () => void;
+  changeColor: (color: string) => void;
 }) {
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
   const sendMessage = usePeerStore((state) => state.sendMessage);
@@ -46,7 +51,7 @@ export function SelectionPanel({
       maxCalls: 30,
       timeWindow: 60000,
     }); // 3 calls per minute
-  const connection = usePeerStore((state) => state.connection);
+  const connections = usePeerStore((state) => state.connections);
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const d = params.get("deck");
@@ -106,7 +111,7 @@ export function SelectionPanel({
         <button onClick={() => connectToPeer(peerId)}>Connect</button>
       </div>
 
-      {connection && <div>connected</div>}
+      {connections.size > 0 && <div>connected ({connections.size})</div>}
       {modal}
       {canEditFontSize && (
         <select
@@ -190,6 +195,19 @@ export function SelectionPanel({
         >
           Disengage all
         </button>
+        <button onClick={addToken}>Add token</button>
+        {selectedShapes.length === 1 && (
+          <select
+            onChange={(e) => changeColor(e.target.value)}
+            value={selectedShapes[0]?.color ?? "#000000"}
+          >
+            {Object.entries(colors).map(([value]) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
     </div>
   );

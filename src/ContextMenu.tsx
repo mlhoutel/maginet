@@ -9,7 +9,7 @@ interface ContextMenuProps {
   sendBackToDeck: () => void;
   sendBackToHand: () => void;
   copy: () => void;
-  giveCardToOpponent: () => void;
+  // giveCardToOpponent: () => void;
   sendCardToFront: () => void;
   sendCardToBack: () => void;
   increaseSrcIndex: () => void;
@@ -22,7 +22,7 @@ export default function ContextMenu({
   sendBackToDeck,
   sendBackToHand,
   copy,
-  giveCardToOpponent,
+  // giveCardToOpponent,
   sendCardToFront,
   sendCardToBack,
   increaseSrcIndex,
@@ -44,14 +44,14 @@ export default function ContextMenu({
       <ContextMenuItem>
         <button onClick={copy}>Copy</button>
       </ContextMenuItem>
-      <ContextMenuItem>
+      {/* <ContextMenuItem>
         <button onClick={giveCardToOpponent}>Give Card to Opponent</button>
+      </ContextMenuItem> */}
+      <ContextMenuItem>
+        <button onClick={sendCardToFront}>Bring to Front</button>
       </ContextMenuItem>
       <ContextMenuItem>
-        <button onClick={sendCardToFront}>Send to Front</button>
-      </ContextMenuItem>
-      <ContextMenuItem>
-        <button onClick={sendCardToBack}>Send to Back</button>
+        <button onClick={sendCardToBack}>Bring to Back</button>
       </ContextMenuItem>
       <ContextMenuItem>
         <button onClick={increaseSrcIndex}>Transform</button>

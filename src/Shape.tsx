@@ -3,6 +3,7 @@ import { Camera, Mode, Shape as ShapeType } from "./Canvas";
 import { screenToCanvas } from "./utils/vec";
 import vec from "./utils/vec";
 import { useShapeStore } from "./hooks/useShapeStore";
+import { colors } from "./utils/colors";
 
 export function Shape({
   shape,
@@ -14,6 +15,7 @@ export function Shape({
   readOnly,
   selected,
   camera,
+  color,
 }: {
   shape: ShapeType;
   mode: Mode;
@@ -22,6 +24,7 @@ export function Shape({
     origin: number[];
   } | null>;
   camera: Camera;
+  color?: string;
   setHoveredCard: React.Dispatch<React.SetStateAction<string | null>>;
   inputRef: React.RefObject<HTMLInputElement>;
   updateDraggingRef: (
@@ -101,7 +104,6 @@ export function Shape({
     style: {
       cursor: readOnly ? "default" : "move",
       filter: selected ? "url(#glow)" : "none",
-      opacity: readOnly ? 0.7 : 1,
     },
   };
 
@@ -121,7 +123,7 @@ export function Shape({
               userSelect: "none",
               fontSize: shape.fontSize || 16,
               fontWeight: "bold",
-              fill: selected ? "#4a90e2" : "red",
+              fill: selected ? "#4a90e2" : shape.color ?? "black",
             }}
             onDoubleClick={(e) => {
               e.stopPropagation();
@@ -142,6 +144,15 @@ export function Shape({
             }
             onMouseLeave={() => setHoveredCard(null)}
           >
+            {readOnly && (
+              <rect
+                x={shape.point[0]}
+                y={shape.point[1] - 10}
+                width={shape.size[0]}
+                height={shape.size[1] + 20}
+                fill={color}
+              />
+            )}
             <image
               href={
                 shape.isFlipped
@@ -176,6 +187,47 @@ export function Shape({
             r="20"
             fill="rgba(255, 0, 0, 0.5)"
           />
+        );
+      case "token":
+        return (
+          <g
+            {...commonProps}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              if (readOnly) return;
+              setEditingText({ id: shape.id, text: shape.text! });
+              setTimeout(() => inputRef.current?.focus(), 0);
+            }}
+          >
+            <circle
+              cx={shape.point[0]}
+              cy={shape.point[1]}
+              r="25"
+              fill="#1F2421"
+            />
+            <circle
+              cx={shape.point[0]}
+              cy={shape.point[1]}
+              r="20"
+              fill={shape.color ?? "black"}
+            />
+            {shape.text && (
+              <text
+                x={shape.point[0]}
+                y={shape.point[1]}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                style={{
+                  fill: colors[shape.color as keyof typeof colors] ?? "white",
+                  fontSize: "10px",
+                  pointerEvents: "none",
+                  userSelect: "none",
+                }}
+              >
+                {shape.text}
+              </text>
+            )}
+          </g>
         );
       default:
         throw new Error(`Unknown shape type: ${shape.type}`);

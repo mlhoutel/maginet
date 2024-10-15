@@ -50,11 +50,40 @@ export interface Shape {
   rotation?: number;
   isFlipped?: boolean;
   fontSize?: number;
+  values?: [number, number];
+  color?: string;
 }
 
-type ShapeType = "rectangle" | "circle" | "arrow" | "text" | "image" | "ping";
+type ShapeType =
+  | "rectangle"
+  | "circle"
+  | "arrow"
+  | "text"
+  | "image"
+  | "ping"
+  | "token";
 
 export type Mode = "select" | "create";
+
+let canvas: HTMLCanvasElement;
+
+/**
+ * Uses canvas.measureText to compute and return the width of the given text of given font in pixels.
+ *
+ * @param {String} text The text to be rendered.
+ * @param {String} font The css font descriptor that text is to be rendered with (e.g. "bold 14px verdana").
+ *
+ * @see https://stackoverflow.com/questions/118241/calculate-text-width-with-javascript/21015393#21015393
+ */
+function getTextWidth(text: string, font: string) {
+  // re-use canvas object for better performance
+  canvas = canvas || document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) return 0;
+  context.font = font;
+  const metrics = context.measureText(text);
+  return metrics.width;
+}
 
 function rotateShape(shape: Shape, angle: number): Shape {
   return {
@@ -85,6 +114,17 @@ function normalizeWheel(event: WheelEvent) {
   return [deltaX, deltaY, deltaZ];
 }
 
+const playersColors = [
+  "rgb(255, 0, 0, 0.5)",
+  "rgb(0, 255, 0, 0.5)",
+  "rgb(0, 0, 255, 0.5)",
+  "rgb(255, 255, 0, 0.5)",
+  "rgb(128, 0, 128, 0.5)",
+  "rgb(255, 165, 0, 0.5)",
+];
+const getPlayerColor = (index: number) =>
+  playersColors[index % playersColors.length];
+
 export default function Canvas() {
   const {
     shapes,
@@ -101,7 +141,7 @@ export default function Canvas() {
     updateShapeInCreation,
   } = useShapeStore();
 
-  const { initPeer, disconnect, sendMessage, onMessage } = usePeerStore();
+  const { initPeer, disconnect, sendMessage, onMessage, peer } = usePeerStore();
   const [clean, setClean] = React.useState(false);
   const [camera, setCamera] = React.useState<Camera>({ x: 0, y: 0, z: 1 });
   const location = useLocation();
@@ -134,11 +174,9 @@ export default function Canvas() {
 
   const [mode, setMode] = React.useState<Mode>("select");
   const [shapeType] = React.useState<ShapeType>("text");
-  const [receivedData, setReceivedData] = React.useState<Shape[]>([]);
-  const [opponentInfo, setOpponentInfo] = React.useState<{
-    cards: number;
-    deck: number;
-  }>({ cards: 0, deck: 0 });
+  const [receivedDataMap, setReceivedDataMap] = React.useState<
+    Record<string, Shape[]>
+  >({});
 
   const [hoveredCard, setHoveredCard] = React.useState<string | null>(null);
   const [isCommandPressed, setIsCommandPressed] = React.useState(false);
@@ -205,6 +243,25 @@ export default function Canvas() {
     },
     [setShapes]
   );
+
+  const addToken = () => {
+    const center = screenToCanvas(
+      { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+      camera
+    );
+    setShapes((prev) => [
+      ...prev,
+      {
+        id: generateId(),
+        type: "token",
+        point: [center.x, center.y],
+        size: [40, 40],
+        srcIndex: 0,
+        text: "+1/+1",
+      },
+    ]);
+  };
+
   const sendBackToHand = () => {
     const selectedCards: Card[] = getSelectedCards();
     dispatch({ type: "SEND_TO_HAND", payload: selectedCards });
@@ -400,8 +457,7 @@ export default function Canvas() {
             ? {
                 ...shape,
                 text: updatedText,
-                size: [updatedText.length * 10, 100], // Update size based on text length
-                fontSize: 24,
+                size: [inputWidth, inputHeight], // Update size based on text length
               }
             : shape
         )
@@ -409,6 +465,11 @@ export default function Canvas() {
     }
   }
   function onTextBlur() {
+    if (editingText?.text === "") {
+      setShapes((prevShapes) =>
+        prevShapes.filter((shape) => shape.id !== editingText.id)
+      );
+    }
     setEditingText(null);
     setMode("select");
   }
@@ -449,16 +510,33 @@ export default function Canvas() {
     dispatch({ type: "ADD_TO_HAND", payload: card });
   };
 
-  const giveCardToOpponent = () => {
-    const selectedCards = shapes.filter((shape) =>
-      selectedShapeIds.includes(shape.id)
-    ) as Card[];
-    sendMessage({ type: "giveCardToOpponent", payload: selectedCards });
-    setShapes((prevShapes) =>
-      prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
-    );
-    setSelectedShapeIds([]);
+  const changeColor = (color: string) => {
+    if (mode === "select" && selectedShapeIds.length === 1) {
+      setShapes((prevShapes) =>
+        prevShapes.map((shape) =>
+          selectedShapeIds.includes(shape.id) ? { ...shape, color } : shape
+        )
+      );
+    }
   };
+
+  // need to figure how to make it work with more than 2 players
+  // const giveCardToOpponent = () => {
+  //   const selectedCards = shapes.filter((shape) =>
+  //     selectedShapeIds.includes(shape.id)
+  //   ) as Card[];
+  //   sendMessage({
+  //     type: "giveCardToOpponent",
+  //     payload: selectedCards.map((card) => ({
+  //       ...card,
+  //       id: generateId(),
+  //     })),
+  //   });
+  //   setShapes((prevShapes) =>
+  //     prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
+  //   );
+  //   setSelectedShapeIds([]);
+  // };
 
   const sendCardToBack = () => {
     const selectedCards = shapes.filter((shape) =>
@@ -495,13 +573,19 @@ export default function Canvas() {
   }, [isPanning]);
   useEffect(() => {
     const unsubscribe = useShapeStore.subscribe((state) => {
-      sendMessage({ type: "shapes", payload: state.shapes });
+      sendMessage({
+        type: "shapes",
+        payload: {
+          id: peer?.id,
+          data: state.shapes,
+        },
+      });
     });
 
     return () => {
       unsubscribe();
     };
-  }, [sendMessage]);
+  }, [sendMessage, peer]);
 
   useEffect(() => {
     if (data) {
@@ -520,39 +604,32 @@ export default function Canvas() {
 
   useEffect(() => {
     const unsubscribeShapes = onMessage("shapes", (message) => {
-      setReceivedData(message.payload);
+      setReceivedDataMap((prev) => ({
+        ...prev,
+        [message.payload.id]: message.payload.data,
+      }));
     });
 
     const unsubscribeConnected = onMessage("connected", (message) => {
       toast(`Peer connected: ${message.payload.peerId}`);
     });
 
-    const unsubscribeCards = onMessage("cards", (message) => {
-      setOpponentInfo((prev) => ({ ...prev, cards: message.payload }));
-    });
-
-    const unsubscribeDeck = onMessage("deck", (message) => {
-      setOpponentInfo((prev) => ({ ...prev, deck: message.payload }));
-    });
-
     const unsubscribeProuton = onMessage("prouton", () => {
       toast(`Prouton!`);
     });
 
-    const unsubscribeGiveCardToOpponent = onMessage(
-      "giveCardToOpponent",
-      (message) => {
-        setShapes((prevShapes) => [...prevShapes, ...message.payload]);
-      }
-    );
+    // const unsubscribeGiveCardToOpponent = onMessage(
+    //   "giveCardToOpponent",
+    //   (message) => {
+    //     setShapes((prevShapes) => [...prevShapes, ...message.payload]);
+    //   }
+    // );
 
     return () => {
       unsubscribeShapes();
       unsubscribeConnected();
-      unsubscribeCards();
-      unsubscribeDeck();
       unsubscribeProuton();
-      unsubscribeGiveCardToOpponent();
+      // unsubscribeGiveCardToOpponent();
     };
   }, [onMessage, setShapes]);
 
@@ -585,10 +662,31 @@ export default function Canvas() {
     };
   }, [mousePosition, addPing, editingText]);
 
+  const receivedData: (Shape & { color: string })[] = Object.values(
+    receivedDataMap
+  )
+    .map((data, index) =>
+      data.map((shape) => ({
+        ...shape,
+        color: getPlayerColor(index),
+      }))
+    )
+    .flat();
   const pings = receivedData.filter((shape) => shape.type === "ping");
   const others = receivedData.filter((shape) => shape.type !== "ping");
   const transform = `scale(${camera.z}) translate(${camera.x}px, ${camera.y}px)`;
-
+  const editingTextShape = shapes.find((shape) => shape.id === editingText?.id);
+  const editingTextPointX = editingTextShape?.point[0] ?? 0;
+  const editingTextPointY = editingTextShape?.point[1] ?? 0;
+  let inputWidth = 0;
+  if (editingText) {
+    const textWidth = getTextWidth(
+      editingText.text,
+      `normal ${editingTextShape?.fontSize ?? 12}px Arial`
+    );
+    inputWidth = Math.max(textWidth, 10);
+  }
+  const inputHeight = 32;
   return (
     <div>
       <ContextMenu
@@ -599,7 +697,7 @@ export default function Canvas() {
         sendBackToHand={sendBackToHand}
         sendCardToFront={sendCardToFront}
         sendCardToBack={sendCardToBack}
-        giveCardToOpponent={giveCardToOpponent}
+        // giveCardToOpponent={giveCardToOpponent}
         increaseSrcIndex={increaseSrcIndex}
       >
         <svg
@@ -623,7 +721,7 @@ export default function Canvas() {
               Clean
             </text>
             {others &&
-              others.map((shape: Shape) => (
+              others.map((shape) => (
                 <ShapeComponent
                   readOnly={true}
                   key={shape.id}
@@ -635,6 +733,7 @@ export default function Canvas() {
                   setHoveredCard={setHoveredCard}
                   updateDraggingRef={() => {}}
                   selected={false}
+                  color={shape.color}
                 />
               ))}
             {shapes
@@ -684,16 +783,10 @@ export default function Canvas() {
             )}
             {editingText && (
               <foreignObject
-                x={
-                  shapes.find((shape) => shape.id === editingText.id)
-                    ?.point[0] ?? 0
-                }
-                y={
-                  (shapes.find((shape) => shape.id === editingText.id)
-                    ?.point[1] ?? 0) - 16
-                }
-                width={200}
-                height={32}
+                x={editingTextPointX}
+                y={editingTextPointY - inputHeight / 2}
+                height={inputHeight}
+                width={inputWidth + 4}
               >
                 <input
                   ref={inputRef}
@@ -701,6 +794,14 @@ export default function Canvas() {
                   value={editingText.text}
                   onChange={onTextChange}
                   onBlur={onTextBlur}
+                  style={{
+                    width: `${inputWidth}px`,
+                    height: `${inputHeight}px`,
+                    fontSize: 12,
+                    outline: "none",
+                    border: "none",
+                    backgroundColor: "rgba(0, 0, 0, 0)",
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       onTextBlur();
@@ -719,18 +820,6 @@ export default function Canvas() {
                 stroke="blue"
               />
             )}
-            {opponentInfo.cards > 0 && opponentInfo.deck > 0 && (
-              <text
-                x={100}
-                y={100}
-                fontSize={24}
-                style={{
-                  userSelect: "none",
-                }}
-              >
-                {`Opponent data: ${opponentInfo.cards} cards in hand`}
-              </text>
-            )}
           </g>
         </svg>
       </ContextMenu>
@@ -745,6 +834,8 @@ export default function Canvas() {
           cards={data}
           relatedCards={relatedCards}
           addCardToHand={addCardToHand}
+          addToken={addToken}
+          changeColor={changeColor}
         />
       </div>
       <Hand cards={cards} setHoveredCard={setHoveredCard} />
