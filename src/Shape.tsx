@@ -139,9 +139,10 @@ export function Shape({
         return (
           <g
             {...commonProps}
-            onMouseEnter={() =>
-              setHoveredCard(shape.src?.[shape.srcIndex] ?? null)
-            }
+            onMouseEnter={() => {
+              if (readOnly && shape.isFlipped) return;
+              setHoveredCard(shape.src?.[shape.srcIndex] ?? null);
+            }}
             onMouseLeave={() => setHoveredCard(null)}
           >
             {readOnly && (
