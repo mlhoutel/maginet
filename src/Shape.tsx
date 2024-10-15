@@ -15,8 +15,8 @@ export function Shape({
   readOnly,
   selected,
   camera,
-  color,
-}: {
+}: // color,
+{
   shape: ShapeType;
   mode: Mode;
   rDragging: React.MutableRefObject<{
@@ -145,15 +145,6 @@ export function Shape({
             }}
             onMouseLeave={() => setHoveredCard(null)}
           >
-            {readOnly && (
-              <rect
-                x={shape.point[0]}
-                y={shape.point[1] - 10}
-                width={shape.size[0]}
-                height={shape.size[1] + 20}
-                fill={color}
-              />
-            )}
             <image
               href={
                 shape.isFlipped
@@ -164,6 +155,9 @@ export function Shape({
               y={shape.point[1]}
               width={shape.size[0]}
               height={shape.size[1]}
+              style={{
+                opacity: readOnly ? 0.7 : 1,
+              }}
               transform={`rotate(${shape.rotation || 0}, ${
                 shape.point[0] + shape.size[0] / 2
               }, ${shape.point[1] + shape.size[1] / 2})`}
