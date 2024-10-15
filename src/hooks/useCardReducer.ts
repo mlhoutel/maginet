@@ -13,7 +13,10 @@ export type CardAction =
   | { type: "DRAW_CARD" }
   | { type: "MULLIGAN" }
   | { type: "SEND_TO_HAND"; payload: Card[] }
-  | { type: "SEND_TO_DECK"; payload: Card[] }
+  | {
+      type: "SEND_TO_DECK";
+      payload: { cards: Card[]; position: "top" | "bottom" };
+    }
   | { type: "REMOVE_FROM_HAND"; payload: string[] }
   | { type: "ADD_TO_HAND"; payload: Datum }
   | { type: "SHUFFLE_DECK" };
@@ -44,9 +47,15 @@ export function cardReducer(state: CardState, action: CardAction): CardState {
         cards: [...state.cards, ...action.payload],
       };
     case "SEND_TO_DECK":
+      if (action.payload.position === "top") {
+        return {
+          ...state,
+          deck: [...action.payload.cards, ...state.deck],
+        };
+      }
       return {
         ...state,
-        deck: [...state.deck, ...action.payload],
+        deck: [...state.deck, ...action.payload.cards],
       };
     case "REMOVE_FROM_HAND":
       return {

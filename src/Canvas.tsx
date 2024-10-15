@@ -267,9 +267,12 @@ export default function Canvas() {
     dispatch({ type: "SEND_TO_HAND", payload: selectedCards });
     clearSelectedCards();
   };
-  const sendBackToDeck = () => {
+  const sendBackToDeck = (position: "top" | "bottom") => {
     const selectedCards: Card[] = getSelectedCards();
-    dispatch({ type: "SEND_TO_DECK", payload: selectedCards });
+    dispatch({
+      type: "SEND_TO_DECK",
+      payload: { cards: selectedCards, position },
+    });
     clearSelectedCards();
   };
 
