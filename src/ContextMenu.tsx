@@ -6,13 +6,13 @@ interface ContextMenuProps {
   onEngageDisengageCard: () => void;
   children: React.ReactNode;
   onFlip: () => void;
-  sendBackToDeck: () => void;
   sendBackToHand: () => void;
   copy: () => void;
   // giveCardToOpponent: () => void;
   sendCardToFront: () => void;
   sendCardToBack: () => void;
   increaseSrcIndex: () => void;
+  sendBackToDeck: (position: "top" | "bottom") => void;
 }
 
 export default function ContextMenu({
@@ -36,7 +36,14 @@ export default function ContextMenu({
         <button onClick={onFlip}>Flip</button>
       </ContextMenuItem>
       <ContextMenuItem>
-        <button onClick={sendBackToDeck}>Send Back to Deck</button>
+        <button onClick={() => sendBackToDeck("bottom")}>
+          Send to bottom of Deck
+        </button>
+      </ContextMenuItem>
+      <ContextMenuItem>
+        <button onClick={() => sendBackToDeck("top")}>
+          Send to top of Deck
+        </button>
       </ContextMenuItem>
       <ContextMenuItem>
         <button onClick={sendBackToHand}>Send Back to Hand</button>
