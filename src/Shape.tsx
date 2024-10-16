@@ -100,7 +100,6 @@ export function Shape({
       e.stopPropagation();
       setSelectedShapeIds([shape.id]);
       draggingShapeRefs.current = {};
-      // if shift is pressed, add to selected shape ids
       if (e.shiftKey) {
         setShapes((prevShapes) =>
           prevShapes.map((s) =>
