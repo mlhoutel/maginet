@@ -100,6 +100,19 @@ export function Shape({
       e.stopPropagation();
       setSelectedShapeIds([shape.id]);
       draggingShapeRefs.current = {};
+      // if shift is pressed, add to selected shape ids
+      if (e.shiftKey) {
+        setShapes((prevShapes) =>
+          prevShapes.map((s) =>
+            s.id === shape.id
+              ? {
+                  ...s,
+                  rotation: s.rotation && s.rotation > 0 ? 0 : 90,
+                }
+              : s
+          )
+        );
+      }
     },
     style: {
       cursor: readOnly ? "default" : "move",

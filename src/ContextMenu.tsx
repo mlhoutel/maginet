@@ -1,4 +1,9 @@
-import { ContextMenuItem, useContextMenu } from "use-context-menu";
+import {
+  ContextMenuCategory,
+  ContextMenuDivider,
+  ContextMenuItem,
+  useContextMenu,
+} from "use-context-menu";
 import "use-context-menu/styles.css";
 import "./ContextMenu.css";
 
@@ -29,6 +34,7 @@ export default function ContextMenu({
 }: ContextMenuProps) {
   const { contextMenu, onContextMenu } = useContextMenu(
     <div className="custom-context-menu">
+      <ContextMenuCategory>Card actions</ContextMenuCategory>
       <ContextMenuItem>
         <button onClick={onEngageDisengageCard}>Engage/Disengage</button>
       </ContextMenuItem>
@@ -46,22 +52,24 @@ export default function ContextMenu({
         </button>
       </ContextMenuItem>
       <ContextMenuItem>
-        <button onClick={sendBackToHand}>Send Back to Hand</button>
+        <button onClick={sendBackToHand}>Send to Hand</button>
       </ContextMenuItem>
       <ContextMenuItem>
         <button onClick={copy}>Copy</button>
       </ContextMenuItem>
+      <ContextMenuItem>
+        <button onClick={increaseSrcIndex}>Transform</button>
+      </ContextMenuItem>
       {/* <ContextMenuItem>
         <button onClick={giveCardToOpponent}>Give Card to Opponent</button>
       </ContextMenuItem> */}
+      <ContextMenuDivider />
+      <ContextMenuCategory>Card position</ContextMenuCategory>
       <ContextMenuItem>
-        <button onClick={sendCardToFront}>Bring to Front</button>
+        <button onClick={sendCardToFront}>Bring to front</button>
       </ContextMenuItem>
       <ContextMenuItem>
-        <button onClick={sendCardToBack}>Bring to Back</button>
-      </ContextMenuItem>
-      <ContextMenuItem>
-        <button onClick={increaseSrcIndex}>Transform</button>
+        <button onClick={sendCardToBack}>Bring to back</button>
       </ContextMenuItem>
     </div>
   );
