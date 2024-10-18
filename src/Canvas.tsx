@@ -141,7 +141,8 @@ export default function Canvas() {
     updateShapeInCreation,
   } = useShapeStore();
 
-  const { initPeer, disconnect, sendMessage, onMessage, peer } = usePeerStore();
+  const { initPeer, disconnect, sendMessage, onMessage, peer, error } =
+    usePeerStore();
   const [clean, setClean] = React.useState(false);
   const [camera, setCamera] = React.useState<Camera>({ x: 0, y: 0, z: 1 });
   const location = useLocation();
@@ -664,6 +665,12 @@ export default function Canvas() {
       window.removeEventListener("keyup", handleKeyUp);
     };
   }, [mousePosition, addPing, editingText]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error.message);
+    }
+  }, [error]);
 
   const receivedData: (Shape & { color: string })[] = Object.values(
     receivedDataMap
