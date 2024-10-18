@@ -385,6 +385,7 @@ export default function Canvas() {
       }
       return;
     } else if (mode === "select" && !rDragging.current) {
+      e.currentTarget.setPointerCapture(e.pointerId);
       setSelectionRect({
         start: { x, y },
         end: { x, y },
