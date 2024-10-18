@@ -78,6 +78,10 @@
   gap: 10px;
   padding: 10px;
   border-top: 1px solid #ccc;
+  width: 100%;
+  overflow: visible;
+  justify-content: center;
+  min-height: 140px;
 }
 
 .hand img {
