@@ -255,8 +255,9 @@ export default function Canvas() {
         id: generateId(),
         type: "token",
         point: [center.x, center.y],
-        size: [40, 40],
+        size: [55, 55],
         srcIndex: 0,
+        fontSize: 12,
         text: "+1/+1",
       },
     ]);
@@ -460,7 +461,6 @@ export default function Canvas() {
             ? {
                 ...shape,
                 text: updatedText,
-                size: [inputWidth, inputHeight], // Update size based on text length
               }
             : shape
         )
@@ -786,10 +786,14 @@ export default function Canvas() {
             )}
             {editingText && (
               <foreignObject
-                x={editingTextPointX}
+                x={
+                  editingTextShape?.type === "text"
+                    ? editingTextPointX
+                    : editingTextPointX - inputWidth / 2
+                }
                 y={editingTextPointY - inputHeight}
-                height={inputHeight}
-                width={inputWidth + 4}
+                height={"100%"}
+                width={"100%"}
               >
                 <input
                   ref={inputRef}

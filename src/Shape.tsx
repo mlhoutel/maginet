@@ -134,7 +134,6 @@ export function Shape({
               ...commonProps.style,
               userSelect: "none",
               fontSize: shape.fontSize || 16,
-              fontWeight: "bold",
               fill: selected ? "#4a90e2" : shape.color ?? "black",
             }}
             onDoubleClick={(e) => {
@@ -209,13 +208,13 @@ export function Shape({
             <circle
               cx={shape.point[0]}
               cy={shape.point[1]}
-              r="25"
+              r={shape.size[0] / 2}
               fill="#1F2421"
             />
             <circle
               cx={shape.point[0]}
               cy={shape.point[1]}
-              r="20"
+              r={(shape.size[0] / 2) * 0.8}
               fill={shape.color ?? "black"}
             />
             {shape.text && (
@@ -226,7 +225,7 @@ export function Shape({
                 dominantBaseline="middle"
                 style={{
                   fill: colors[shape.color as keyof typeof colors] ?? "white",
-                  fontSize: "10px",
+                  fontSize: `${shape.fontSize}px`,
                   pointerEvents: "none",
                   userSelect: "none",
                 }}
