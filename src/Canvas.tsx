@@ -689,7 +689,7 @@ export default function Canvas() {
     );
     inputWidth = Math.max(textWidth, 10);
   }
-  const inputHeight = 32;
+  const inputHeight = editingTextShape?.fontSize ?? 12;
   return (
     <div>
       <ContextMenu
@@ -800,7 +800,7 @@ export default function Canvas() {
                   style={{
                     width: `${inputWidth}px`,
                     height: `${inputHeight}px`,
-                    fontSize: 12,
+                    fontSize: `${editingTextShape?.fontSize ?? 12}px`,
                     outline: "none",
                     border: "none",
                     backgroundColor: "rgba(0, 0, 0, 0)",
