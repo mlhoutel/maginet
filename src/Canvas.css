@@ -23,6 +23,7 @@
   flex-wrap: wrap;
   box-shadow: var(--box-shadow);
   display: flex;
+  opacity: 0.8;
   flex-direction: column;
 }
 
@@ -44,6 +45,7 @@
   cursor: pointer;
   transition: background-color 0.3s ease;
   flex-grow: 1;
+  opacity: 1;
 }
 
 .selection-panel button:hover {

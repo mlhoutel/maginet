@@ -196,19 +196,19 @@ export function SelectionPanel({
           Disengage all
         </button>
         <button onClick={addToken}>Add token</button>
-        {selectedShapes.length === 1 && (
-          <select
-            onChange={(e) => changeColor(e.target.value)}
-            value={selectedShapes[0]?.color ?? "#000000"}
-          >
-            {Object.entries(colors).map(([value]) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        )}
       </div>
+      {selectedShapes.length === 1 && (
+        <select
+          onChange={(e) => changeColor(e.target.value)}
+          value={selectedShapes[0]?.color ?? "#000000"}
+        >
+          {Object.entries(colors).map(([value]) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   );
 }
