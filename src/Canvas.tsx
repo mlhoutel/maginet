@@ -787,7 +787,7 @@ export default function Canvas() {
             {editingText && (
               <foreignObject
                 x={editingTextPointX}
-                y={editingTextPointY - inputHeight / 2}
+                y={editingTextPointY - inputHeight}
                 height={inputHeight}
                 width={inputWidth + 4}
               >
