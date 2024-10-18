@@ -731,6 +731,19 @@ export default function Canvas() {
             >
               Clean
             </text>
+            <text
+              x={window.innerWidth / 2 - 100}
+              y={200}
+              style={{
+                fontSize: "20px",
+                userSelect: "none",
+                fontFamily: "cursive",
+              }}
+              width={100}
+              height={100}
+            >
+              Maginet - pire to pire edition
+            </text>
             {others &&
               others.map((shape) => (
                 <ShapeComponent
