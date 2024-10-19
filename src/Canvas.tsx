@@ -503,6 +503,7 @@ export default function Canvas() {
       const selectedShapes = shapes.filter((shape) => {
         const [shapeX, shapeY] = shape.point;
         const [shapeWidth, shapeHeight] = shape.size;
+        // TODO: it's not working properly with text and tokens
         const shapeRect = new DOMRect(shapeX, shapeY, shapeWidth, shapeHeight);
         return intersect(rect, shapeRect);
       });
