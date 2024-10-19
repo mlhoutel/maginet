@@ -19,6 +19,8 @@ export function SelectionPanel({
   relatedCards,
   addToken,
   changeColor,
+  gridSize,
+  setGridSize,
 }: {
   onDrawCard: () => void;
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
@@ -31,6 +33,8 @@ export function SelectionPanel({
   relatedCards?: Datum[];
   addToken: () => void;
   changeColor: (color: string) => void;
+  gridSize: number;
+  setGridSize: React.Dispatch<React.SetStateAction<number>>;
 }) {
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
   const sendMessage = usePeerStore((state) => state.sendMessage);
@@ -209,6 +213,15 @@ export function SelectionPanel({
           ))}
         </select>
       )}
+      <label>
+        Grid size:{" "}
+        <input
+          type="number"
+          min={1}
+          value={gridSize}
+          onChange={(e) => setGridSize(parseInt(e.target.value))}
+        />
+      </label>
     </div>
   );
 }

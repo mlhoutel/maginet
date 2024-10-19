@@ -15,6 +15,7 @@ export function Shape({
   readOnly,
   selected,
   camera,
+  gridSize,
 }: {
   shape: ShapeType;
   mode: Mode;
@@ -31,6 +32,7 @@ export function Shape({
   ) => void;
   readOnly: boolean;
   selected: boolean;
+  gridSize: number;
 }) {
   const draggingShapeRefs = useRef<Record<string, ShapeType>>({});
   const {
@@ -40,6 +42,10 @@ export function Shape({
     shapes,
     setEditingText,
   } = useShapeStore();
+
+  const snapToGrid = (point: number[]) => {
+    return point.map((coord) => Math.round(coord / gridSize) * gridSize);
+  };
 
   const updateSelection = (shapeId: string) =>
     selectedShapeIds.includes(shapeId) ? selectedShapeIds : [shapeId];
@@ -73,7 +79,7 @@ export function Shape({
     e.stopPropagation();
 
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
-    const point = [x, y];
+    const point = snapToGrid([x, y]);
 
     const localSelectedShapeIds = updateSelection(shape.id);
     initializeDragging(e, point);
@@ -85,7 +91,7 @@ export function Shape({
     if (mode !== "select" || readOnly || !rDragging.current) return;
 
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
-    const point = [x, y];
+    const point = snapToGrid([x, y]);
     const delta = vec.sub(point, rDragging.current.origin);
 
     setShapes((prevShapes) =>

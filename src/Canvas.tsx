@@ -22,6 +22,7 @@ import { SelectionPanel } from "./SelectionPanel";
 import inputs, { normalizeWheel } from "./inputs";
 import { useGesture } from "@use-gesture/react";
 import { useShapeStore } from "./hooks/useShapeStore";
+import Grid from "./Grid";
 
 export interface Point {
   x: number;
@@ -179,6 +180,7 @@ export default function Canvas() {
     cards: [],
     deck: [],
   });
+  const [gridSize, setGridSize] = React.useState(25);
   const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = React.useState(false);
   const [lastPanPosition, setLastPanPosition] = React.useState<Point | null>(
@@ -292,6 +294,7 @@ export default function Canvas() {
     e.preventDefault();
     const cardId = e.dataTransfer.getData("text/plain");
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
+    const snappedPoint = snapToGrid({ x, y });
     const card = cardState.cards.find((card) => card.id === cardId);
     if (!card) return;
     dispatch({ type: "REMOVE_FROM_HAND", payload: [cardId] });
@@ -300,7 +303,7 @@ export default function Canvas() {
       ...prevShapes,
       {
         id: generateId(),
-        point: [x, y],
+        point: [snappedPoint.x, snappedPoint.y],
         size: [100, 100],
         type: "image",
         src: card.src,
@@ -348,6 +351,7 @@ export default function Canvas() {
       );
     }
   }
+
   function onPointerDownCanvas(e: React.PointerEvent<SVGElement>) {
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
@@ -644,6 +648,11 @@ export default function Canvas() {
     }
   }, [error]);
 
+  const snapToGrid = (point: Point): Point => ({
+    x: Math.round(point.x / gridSize) * gridSize,
+    y: Math.round(point.y / gridSize) * gridSize,
+  });
+
   const receivedData: (Shape & { color: string })[] = Object.values(
     receivedDataMap
   )
@@ -724,6 +733,11 @@ export default function Canvas() {
           onDragOver={(e) => e.preventDefault()}
         >
           <g style={{ transform }}>
+            <Grid
+              width={window.innerWidth}
+              height={window.innerHeight}
+              gridSize={gridSize}
+            />
             <text
               x={window.innerWidth / 2 - 100}
               y={200}
@@ -756,6 +770,7 @@ export default function Canvas() {
                   shape={shape}
                   mode={mode}
                   camera={camera}
+                  gridSize={gridSize}
                   rDragging={{ current: null }}
                   inputRef={{ current: null }}
                   setHoveredCard={setHoveredCard}
@@ -779,6 +794,7 @@ export default function Canvas() {
                   setHoveredCard={setHoveredCard}
                   updateDraggingRef={updateDraggingRef}
                   selected={selectedShapeIds.includes(shape.id)}
+                  gridSize={gridSize}
                 />
               ))}
             {pings &&
@@ -794,6 +810,7 @@ export default function Canvas() {
                   setHoveredCard={setHoveredCard}
                   updateDraggingRef={() => {}}
                   selected={false}
+                  gridSize={gridSize}
                 />
               ))}
             {shapeInCreation && (
@@ -808,6 +825,7 @@ export default function Canvas() {
                 setHoveredCard={setHoveredCard}
                 updateDraggingRef={updateDraggingRef}
                 selected={selectedShapeIds.includes(shapeInCreation.shape.id)}
+                gridSize={gridSize}
               />
             )}
             {editingText && (
@@ -869,6 +887,8 @@ export default function Canvas() {
           addCardToHand={addCardToHand}
           addToken={addToken}
           changeColor={changeColor}
+          gridSize={gridSize}
+          setGridSize={setGridSize}
         />
       </div>
       <Hand cards={cards} setHoveredCard={setHoveredCard} />
