@@ -16,6 +16,7 @@ export function Shape({
   selected,
   camera,
   gridSize,
+  stackIndex = 0, // New prop for stack index
 }: {
   shape: ShapeType;
   mode: Mode;
@@ -33,6 +34,7 @@ export function Shape({
   readOnly: boolean;
   selected: boolean;
   gridSize: number;
+  stackIndex?: number; // New prop for stack index
 }) {
   const draggingShapeRefs = useRef<Record<string, ShapeType>>({});
   const {
@@ -160,7 +162,7 @@ export function Shape({
     const [width, height] = size;
     const transform = `rotate(${rotation || 0} ${x + width / 2} ${
       y + height / 2
-    })`;
+    }) translate(0, ${stackIndex * 5})`; // Apply vertical offset
 
     switch (type) {
       case "text":

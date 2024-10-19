@@ -712,6 +712,21 @@ export default function Canvas() {
     },
   ];
 
+  // Function to group shapes by their position
+  const groupShapesByPosition = (shapes: Shape[]) => {
+    const grouped: Record<string, Shape[]> = {};
+    shapes.forEach((shape) => {
+      const key = `${shape.point[0]}-${shape.point[1]}`;
+      if (!grouped[key]) {
+        grouped[key] = [];
+      }
+      grouped[key].push(shape);
+    });
+    return grouped;
+  };
+
+  const groupedShapes = groupShapesByPosition(shapes);
+
   return (
     <div>
       <ContextMenu
@@ -780,9 +795,8 @@ export default function Canvas() {
                 />
               ))}
 
-            {shapes
-              .filter((shape) => shape.id !== editingText?.id)
-              .map((shape) => (
+            {Object.values(groupedShapes).map((stack) =>
+              stack.map((shape, stackIndex) => (
                 <ShapeComponent
                   readOnly={false}
                   key={shape.id}
@@ -795,8 +809,10 @@ export default function Canvas() {
                   updateDraggingRef={updateDraggingRef}
                   selected={selectedShapeIds.includes(shape.id)}
                   gridSize={gridSize}
+                  stackIndex={stackIndex} // Pass stack index
                 />
-              ))}
+              ))
+            )}
             {pings &&
               pings.map((shape) => (
                 <ShapeComponent
