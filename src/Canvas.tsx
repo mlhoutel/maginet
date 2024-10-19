@@ -191,6 +191,7 @@ const TextElement = ({
     style={{
       fontSize: "12px",
       fontFamily: "monospace",
+      userSelect: "none",
       opacity: 0.7,
     }}
     width={100}
@@ -497,6 +498,20 @@ export default function Canvas() {
 
       setIsDragging(true);
       setDragVector(nextDragVector);
+      const rect = nextDragVector.toDOMRect();
+
+      const selectedShapes = shapes.filter((shape) => {
+        const [shapeX, shapeY] = shape.point;
+        const [shapeWidth, shapeHeight] = shape.size;
+        const shapeRect = new DOMRect(shapeX, shapeY, shapeWidth, shapeHeight);
+        return intersect(rect, shapeRect);
+      });
+
+      if (selectedShapes.length > 0) {
+        setSelectedShapeIds(selectedShapes.map((shape) => shape.id));
+      } else {
+        setSelectedShapeIds([]);
+      }
     }
   }
   const onPointerUpCanvas = (e: React.PointerEvent<SVGElement>) => {
@@ -513,21 +528,6 @@ export default function Canvas() {
       setShapeInCreation(null);
       setMode("select");
     } else if (mode === "select" && dragVector) {
-      const rect = dragVector.toDOMRect();
-
-      const selectedShapes = shapes.filter((shape) => {
-        const [shapeX, shapeY] = shape.point;
-        const [shapeWidth, shapeHeight] = shape.size;
-        const shapeRect = new DOMRect(shapeX, shapeY, shapeWidth, shapeHeight);
-        return intersect(rect, shapeRect);
-      });
-
-      if (selectedShapes.length > 0) {
-        setSelectedShapeIds(selectedShapes.map((shape) => shape.id));
-      } else {
-        setSelectedShapeIds([]);
-      }
-
       setDragVector(null);
       setIsDragging(false);
     }
