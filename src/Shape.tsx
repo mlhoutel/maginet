@@ -169,7 +169,7 @@ export function Shape({
     const [width, height] = size;
     const transform = `rotate(${rotation || 0} ${x + width / 2} ${
       y + height / 2
-    }) translate(0, ${stackIndex * 5})`; // Apply vertical offset
+    }) translate(0, ${stackIndex * 10})`; // Apply vertical offset
 
     switch (type) {
       case "text":
