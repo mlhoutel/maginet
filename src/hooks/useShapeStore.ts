@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Shape, Point } from "../Canvas";
+import { Shape } from "../Canvas";
 import { generateId } from "../utils/math";
 import vec from "../utils/vec";
 
@@ -8,7 +8,6 @@ interface ShapeStore {
   selectedShapeIds: string[];
   shapeInCreation: { shape: Shape; origin: number[] } | null;
   editingText: { id: string; text: string } | null;
-  selectionRect: { start: Point; end: Point } | null;
   setShapes: (shapes: Shape[] | ((shapes: Shape[]) => Shape[])) => void;
   addShape: (shape: Shape) => void;
   updateShape: (id: string, updates: Partial<Shape>) => void;
@@ -18,9 +17,6 @@ interface ShapeStore {
     shapeInCreation: { shape: Shape; origin: number[] } | null
   ) => void;
   setEditingText: (editingText: { id: string; text: string } | null) => void;
-  setSelectionRect: (
-    selectionRect: { start: Point; end: Point } | null
-  ) => void;
   createShape: (type: Shape["type"], point: number[]) => void;
   updateShapeInCreation: (point: number[]) => void;
   flipSelectedShapes: () => void;
@@ -54,7 +50,6 @@ export const useShapeStore = create<ShapeStore>((set) => ({
   setSelectedShapeIds: (ids) => set({ selectedShapeIds: ids }),
   setShapeInCreation: (shapeInCreation) => set({ shapeInCreation }),
   setEditingText: (editingText) => set({ editingText }),
-  setSelectionRect: (selectionRect) => set({ selectionRect }),
   createShape: (type, point) =>
     set(() => ({
       shapeInCreation: {

@@ -23,6 +23,57 @@ import inputs from "./inputs";
 import { useGesture } from "@use-gesture/react";
 import { useShapeStore } from "./hooks/useShapeStore";
 
+class DOMVector {
+  constructor(
+    readonly x: number,
+    readonly y: number,
+    readonly magnitudeX: number,
+    readonly magnitudeY: number
+  ) {
+    this.x = x;
+    this.y = y;
+    this.magnitudeX = magnitudeX;
+    this.magnitudeY = magnitudeY;
+  }
+
+  getDiagonalLength(): number {
+    return Math.sqrt(
+      Math.pow(this.magnitudeX, 2) + Math.pow(this.magnitudeY, 2)
+    );
+  }
+
+  toDOMRect(): DOMRect {
+    return new DOMRect(
+      Math.min(this.x, this.x + this.magnitudeX),
+      Math.min(this.y, this.y + this.magnitudeY),
+      Math.abs(this.magnitudeX),
+      Math.abs(this.magnitudeY)
+    );
+  }
+
+  toTerminalPoint(): DOMPoint {
+    return new DOMPoint(this.x + this.magnitudeX, this.y + this.magnitudeY);
+  }
+
+  add(vector: DOMVector): DOMVector {
+    return new DOMVector(
+      this.x + vector.x,
+      this.y + vector.y,
+      this.magnitudeX + vector.magnitudeX,
+      this.magnitudeY + vector.magnitudeY
+    );
+  }
+
+  clamp(vector: DOMRect): DOMVector {
+    return new DOMVector(
+      this.x,
+      this.y,
+      Math.min(vector.width - this.x, this.magnitudeX),
+      Math.min(vector.height - this.y, this.magnitudeY)
+    );
+  }
+}
+
 export interface Point {
   x: number;
   y: number;
@@ -149,18 +200,24 @@ const TextElement = ({
   </text>
 );
 
+function intersect(rect1: DOMRect, rect2: DOMRect) {
+  if (rect1.right < rect2.left || rect2.right < rect1.left) return false;
+
+  if (rect1.bottom < rect2.top || rect2.bottom < rect1.top) return false;
+
+  return true;
+}
+
 export default function Canvas() {
   const {
     shapes,
     selectedShapeIds,
     shapeInCreation,
     editingText,
-    selectionRect,
     setShapes,
     setSelectedShapeIds,
     setShapeInCreation,
     setEditingText,
-    setSelectionRect,
     createShape,
     updateShapeInCreation,
   } = useShapeStore();
@@ -168,10 +225,14 @@ export default function Canvas() {
   const { initPeer, disconnect, sendMessage, onMessage, peer, error } =
     usePeerStore();
   const [showHelp, setShowHelp] = React.useState(true);
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [dragVector, setDragVector] = React.useState<DOMVector | null>(null);
   const [camera, setCamera] = React.useState<Camera>({ x: 0, y: 0, z: 1 });
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const d = params.get("deck");
+  const selectionRect =
+    dragVector && isDragging ? dragVector.toDOMRect() : null;
 
   const { data } = useCards(
     Array.from(processRawText(d || DEFAULT_DECK.join("\n")))
@@ -410,10 +471,7 @@ export default function Canvas() {
       return;
     } else if (mode === "select" && !rDragging.current) {
       e.currentTarget.setPointerCapture(e.pointerId);
-      setSelectionRect({
-        start: { x, y },
-        end: { x, y },
-      });
+      setDragVector(new DOMVector(x, y, 0, 0));
     }
   }
   function onPointerMoveCanvas(e: React.PointerEvent<SVGElement>) {
@@ -428,11 +486,17 @@ export default function Canvas() {
     setMousePosition({ x, y });
     if (mode === "create" && shapeInCreation) {
       updateShapeInCreation([x, y]);
-    } else if (mode === "select" && selectionRect) {
-      setSelectionRect({
-        ...selectionRect,
-        end: { x, y },
-      });
+    } else if (mode === "select" && dragVector) {
+      const nextDragVector = new DOMVector(
+        dragVector.x,
+        dragVector.y,
+        x - dragVector.x,
+        y - dragVector.y
+      );
+      if (!isDragging && nextDragVector.getDiagonalLength() < 10) return;
+
+      setIsDragging(true);
+      setDragVector(nextDragVector);
     }
   }
   const onPointerUpCanvas = (e: React.PointerEvent<SVGElement>) => {
@@ -448,24 +512,14 @@ export default function Canvas() {
       setShapes((prevShapes) => [...prevShapes, shapeInCreation.shape]);
       setShapeInCreation(null);
       setMode("select");
-    } else if (mode === "select" && selectionRect) {
-      const { start, end } = selectionRect;
-      const rect = {
-        x: Math.min(start.x, end.x),
-        y: Math.min(start.y, end.y),
-        width: Math.abs(start.x - end.x),
-        height: Math.abs(start.y - end.y),
-      };
+    } else if (mode === "select" && dragVector) {
+      const rect = dragVector.toDOMRect();
 
       const selectedShapes = shapes.filter((shape) => {
         const [shapeX, shapeY] = shape.point;
         const [shapeWidth, shapeHeight] = shape.size;
-        return (
-          shapeX >= rect.x &&
-          shapeY >= rect.y &&
-          shapeX + shapeWidth <= rect.x + rect.width &&
-          shapeY + shapeHeight <= rect.y + rect.height
-        );
+        const shapeRect = new DOMRect(shapeX, shapeY, shapeWidth, shapeHeight);
+        return intersect(rect, shapeRect);
       });
 
       if (selectedShapes.length > 0) {
@@ -474,7 +528,8 @@ export default function Canvas() {
         setSelectedShapeIds([]);
       }
 
-      setSelectionRect(null);
+      setDragVector(null);
+      setIsDragging(false);
     }
   };
   function onTextChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -899,10 +954,10 @@ export default function Canvas() {
             )}
             {selectionRect && (
               <rect
-                x={Math.min(selectionRect.start.x, selectionRect.end.x)}
-                y={Math.min(selectionRect.start.y, selectionRect.end.y)}
-                width={Math.abs(selectionRect.start.x - selectionRect.end.x)}
-                height={Math.abs(selectionRect.start.y - selectionRect.end.y)}
+                x={selectionRect.x}
+                y={selectionRect.y}
+                width={selectionRect.width}
+                height={selectionRect.height}
                 fill="rgba(0, 0, 255, 0.3)"
                 stroke="blue"
               />
