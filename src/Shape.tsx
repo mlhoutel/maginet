@@ -139,10 +139,22 @@ export function Shape({
   };
 
   const renderShape = () => {
-    const { point, size, rotation, color, text, type, src, srcIndex, isFlipped } = shape;
+    const {
+      point,
+      size,
+      rotation,
+      color,
+      text,
+      type,
+      src,
+      srcIndex,
+      isFlipped,
+    } = shape;
     const [x, y] = point;
     const [width, height] = size;
-    const transform = `rotate(${rotation || 0} ${x + width / 2} ${y + height / 2})`;
+    const transform = `rotate(${rotation || 0} ${x + width / 2} ${
+      y + height / 2
+    })`;
 
     switch (type) {
       case "text":
@@ -179,7 +191,9 @@ export function Shape({
             onMouseLeave={() => setHoveredCard(null)}
           >
             <image
-              href={isFlipped ? "https://i.imgur.com/LdOBU1I.jpeg" : src?.[srcIndex]}
+              href={
+                isFlipped ? "https://i.imgur.com/LdOBU1I.jpeg" : src?.[srcIndex]
+              }
               x={x}
               y={y}
               width={width}
@@ -191,23 +205,10 @@ export function Shape({
         );
       case "rectangle":
         return (
-          <rect
-            {...commonProps}
-            x={x}
-            y={y}
-            width={width}
-            height={height}
-          />
+          <rect {...commonProps} x={x} y={y} width={width} height={height} />
         );
       case "ping":
-        return (
-          <circle
-            cx={x}
-            cy={y}
-            r="20"
-            fill="rgba(255, 0, 0, 0.5)"
-          />
-        );
+        return <circle cx={x} cy={y} r="20" fill="rgba(255, 0, 0, 0.5)" />;
       case "token":
         return (
           <g
@@ -219,12 +220,7 @@ export function Shape({
               setTimeout(() => inputRef.current?.focus(), 0);
             }}
           >
-            <circle
-              cx={x}
-              cy={y}
-              r={width / 2}
-              fill="#1F2421"
-            />
+            <circle cx={x} cy={y} r={width / 2} fill="#1F2421" />
             <circle
               cx={x}
               cy={y}
