@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Shape as ShapeComponent } from "./Shape";
 import "./Canvas.css";
-import { screenToCanvas } from "./utils/vec";
+import { DOMVector, screenToCanvas } from "./utils/vec";
 import Hand from "./Hand";
 import ContextMenu from "./ContextMenu";
 import useCards, {
@@ -17,62 +17,11 @@ import "./Modal.css";
 import { generateId } from "./utils/math";
 import { useCardReducer } from "./hooks/useCardReducer";
 import { DEFAULT_DECK } from "./DEFAULT_DECK";
-import { zoomCamera, panCamera } from "./utils/canvas_utils";
+import { zoomCamera, panCamera, getTextWidth } from "./utils/canvas_utils";
 import { SelectionPanel } from "./SelectionPanel";
-import inputs from "./inputs";
+import inputs, { normalizeWheel } from "./inputs";
 import { useGesture } from "@use-gesture/react";
 import { useShapeStore } from "./hooks/useShapeStore";
-
-class DOMVector {
-  constructor(
-    readonly x: number,
-    readonly y: number,
-    readonly magnitudeX: number,
-    readonly magnitudeY: number
-  ) {
-    this.x = x;
-    this.y = y;
-    this.magnitudeX = magnitudeX;
-    this.magnitudeY = magnitudeY;
-  }
-
-  getDiagonalLength(): number {
-    return Math.sqrt(
-      Math.pow(this.magnitudeX, 2) + Math.pow(this.magnitudeY, 2)
-    );
-  }
-
-  toDOMRect(): DOMRect {
-    return new DOMRect(
-      Math.min(this.x, this.x + this.magnitudeX),
-      Math.min(this.y, this.y + this.magnitudeY),
-      Math.abs(this.magnitudeX),
-      Math.abs(this.magnitudeY)
-    );
-  }
-
-  toTerminalPoint(): DOMPoint {
-    return new DOMPoint(this.x + this.magnitudeX, this.y + this.magnitudeY);
-  }
-
-  add(vector: DOMVector): DOMVector {
-    return new DOMVector(
-      this.x + vector.x,
-      this.y + vector.y,
-      this.magnitudeX + vector.magnitudeX,
-      this.magnitudeY + vector.magnitudeY
-    );
-  }
-
-  clamp(vector: DOMRect): DOMVector {
-    return new DOMVector(
-      this.x,
-      this.y,
-      Math.min(vector.width - this.x, this.magnitudeX),
-      Math.min(vector.height - this.y, this.magnitudeY)
-    );
-  }
-}
 
 export interface Point {
   x: number;
@@ -96,8 +45,8 @@ export interface Shape {
   size: number[];
   type: ShapeType;
   text?: string;
-  src?: string[];
-  srcIndex: number;
+  src?: string[]; // some cards have multiple images (e.g. double faced cards)
+  srcIndex: number; // index of the current image in the src array
   rotation?: number;
   isFlipped?: boolean;
   fontSize?: number;
@@ -116,54 +65,13 @@ type ShapeType =
 
 export type Mode = "select" | "create";
 
-let canvas: HTMLCanvasElement;
-
-/**
- * Uses canvas.measureText to compute and return the width of the given text of given font in pixels.
- *
- * @param {String} text The text to be rendered.
- * @param {String} font The css font descriptor that text is to be rendered with (e.g. "bold 14px verdana").
- *
- * @see https://stackoverflow.com/questions/118241/calculate-text-width-with-javascript/21015393#21015393
- */
-function getTextWidth(text: string, font: string) {
-  // re-use canvas object for better performance
-  canvas = canvas || document.createElement("canvas");
-  const context = canvas.getContext("2d");
-  if (!context) return 0;
-  context.font = font;
-  const metrics = context.measureText(text);
-  return metrics.width;
-}
-
 function rotateShape(shape: Shape, angle: number): Shape {
   return {
     ...shape,
     rotation: (shape.rotation || 0) + angle,
   };
 }
-const MAX_ZOOM_STEP = 5;
-
-function normalizeWheel(event: WheelEvent) {
-  const { deltaY, deltaX } = event;
-
-  let deltaZ = 0;
-
-  if (event.ctrlKey || event.metaKey) {
-    const signY = Math.sign(event.deltaY);
-    const absDeltaY = Math.abs(event.deltaY);
-
-    let dy = deltaY;
-
-    if (absDeltaY > MAX_ZOOM_STEP) {
-      dy = MAX_ZOOM_STEP * signY;
-    }
-
-    deltaZ = dy;
-  }
-
-  return [deltaX, deltaY, deltaZ];
-}
+export const MAX_ZOOM_STEP = 5;
 
 const playersColors = [
   "rgb(255, 0, 0, 0.5)",
@@ -239,12 +147,12 @@ export default function Canvas() {
     Array.from(processRawText(d || DEFAULT_DECK.join("\n")))
   );
 
+  // for related cards (i.e. cards that reference other cards)
   const allParts =
     data
       ?.filter((v) => v.all_parts && v.all_parts.length > 0)
       .flatMap((v) => v.all_parts) ?? [];
 
-  //fetch related cards
   const { data: relatedCards } = useCards(
     Array.from(
       new Set(
@@ -298,10 +206,12 @@ export default function Canvas() {
   const { cards, deck } = cardState;
 
   const ref = React.useRef<SVGSVGElement>(null);
+  // for dragging shapes in the canvas
   const rDragging = React.useRef<{
     shape: Shape;
     origin: number[];
   } | null>(null);
+  // for editing text in the canvas
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   const drawCard = () => {
@@ -351,17 +261,17 @@ export default function Canvas() {
   };
 
   const sendBackToHand = () => {
-    const selectedCards: Card[] = getSelectedCards();
+    const selectedCards: Card[] = getSelectedImages();
     dispatch({ type: "SEND_TO_HAND", payload: selectedCards });
-    clearSelectedCards();
+    removeSelectedImages();
   };
   const sendBackToDeck = (position: "top" | "bottom") => {
-    const selectedCards: Card[] = getSelectedCards();
+    const selectedCards: Card[] = getSelectedImages();
     dispatch({
       type: "SEND_TO_DECK",
       payload: { cards: selectedCards, position },
     });
-    clearSelectedCards();
+    removeSelectedImages();
   };
 
   const increaseSrcIndex = () => {
@@ -400,7 +310,7 @@ export default function Canvas() {
     ]);
   };
 
-  function clearSelectedCards() {
+  function removeSelectedImages() {
     setShapes((prevShapes) =>
       prevShapes.filter((shape) => {
         if (shape.type === "image") {
@@ -412,7 +322,7 @@ export default function Canvas() {
     setSelectedShapeIds([]);
   }
 
-  function getSelectedCards(): Card[] {
+  function getSelectedImages(): Card[] {
     return shapes
       .filter((shape) => selectedShapeIds.includes(shape.id))
       .filter((shape) => shape.type === "image")
@@ -611,24 +521,6 @@ export default function Canvas() {
     }
   };
 
-  // need to figure how to make it work with more than 2 players
-  // const giveCardToOpponent = () => {
-  //   const selectedCards = shapes.filter((shape) =>
-  //     selectedShapeIds.includes(shape.id)
-  //   ) as Card[];
-  //   sendMessage({
-  //     type: "giveCardToOpponent",
-  //     payload: selectedCards.map((card) => ({
-  //       ...card,
-  //       id: generateId(),
-  //     })),
-  //   });
-  //   setShapes((prevShapes) =>
-  //     prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
-  //   );
-  //   setSelectedShapeIds([]);
-  // };
-
   const sendCardToBack = () => {
     const selectedCards = shapes.filter((shape) =>
       selectedShapeIds.includes(shape.id)
@@ -653,10 +545,8 @@ export default function Canvas() {
     setSelectedShapeIds([]);
   };
 
-  // use effects
   useEffect(() => {
     if (isPanning) {
-      // set grap cursor
       document.body.style.cursor = "grab";
     } else {
       document.body.style.cursor = "default";
@@ -709,18 +599,10 @@ export default function Canvas() {
       toast(`Prouton!`);
     });
 
-    // const unsubscribeGiveCardToOpponent = onMessage(
-    //   "giveCardToOpponent",
-    //   (message) => {
-    //     setShapes((prevShapes) => [...prevShapes, ...message.payload]);
-    //   }
-    // );
-
     return () => {
       unsubscribeShapes();
       unsubscribeConnected();
       unsubscribeProuton();
-      // unsubscribeGiveCardToOpponent();
     };
   }, [onMessage, setShapes]);
 
@@ -828,7 +710,6 @@ export default function Canvas() {
         sendBackToHand={sendBackToHand}
         sendCardToFront={sendCardToFront}
         sendCardToBack={sendCardToBack}
-        // giveCardToOpponent={giveCardToOpponent}
         increaseSrcIndex={increaseSrcIndex}
       >
         <svg

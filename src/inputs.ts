@@ -1,5 +1,6 @@
 import React from "react";
 import vec from "./utils/vec";
+import { MAX_ZOOM_STEP } from "./Canvas";
 
 interface PointerInfo {
   target: string;
@@ -233,3 +234,23 @@ class Inputs {
 const inputs = new Inputs();
 
 export default inputs;
+export function normalizeWheel(event: WheelEvent) {
+  const { deltaY, deltaX } = event;
+
+  let deltaZ = 0;
+
+  if (event.ctrlKey || event.metaKey) {
+    const signY = Math.sign(event.deltaY);
+    const absDeltaY = Math.abs(event.deltaY);
+
+    let dy = deltaY;
+
+    if (absDeltaY > MAX_ZOOM_STEP) {
+      dy = MAX_ZOOM_STEP * signY;
+    }
+
+    deltaZ = dy;
+  }
+
+  return [deltaX, deltaY, deltaZ];
+}
