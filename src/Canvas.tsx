@@ -527,9 +527,14 @@ export default function Canvas() {
       setShapes((prevShapes) => [...prevShapes, shapeInCreation.shape]);
       setShapeInCreation(null);
       setMode("select");
-    } else if (mode === "select" && dragVector) {
-      setDragVector(null);
-      setIsDragging(false);
+    } else if (mode === "select") {
+      if (isDragging) {
+        setDragVector(null);
+        setIsDragging(false);
+      } else {
+        setSelectedShapeIds([]);
+        setDragVector(null);
+      }
     }
   };
   function onTextChange(e: React.ChangeEvent<HTMLInputElement>) {
