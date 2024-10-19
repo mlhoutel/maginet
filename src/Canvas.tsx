@@ -125,6 +125,33 @@ const playersColors = [
 const getPlayerColor = (index: number) =>
   playersColors[index % playersColors.length];
 
+const TextElement = ({
+  x,
+  y,
+  children,
+  onClick,
+}: {
+  x: number;
+  y: number;
+  children: React.ReactNode;
+  onClick?: () => void;
+}) => (
+  <text
+    x={x}
+    y={y}
+    style={{
+      fontSize: "12px",
+      fontFamily: "monospace",
+      opacity: 0.7,
+    }}
+    width={100}
+    height={100}
+    onClick={onClick}
+  >
+    {children}
+  </text>
+);
+
 export default function Canvas() {
   const {
     shapes,
@@ -143,7 +170,7 @@ export default function Canvas() {
 
   const { initPeer, disconnect, sendMessage, onMessage, peer, error } =
     usePeerStore();
-  const [clean, setClean] = React.useState(false);
+  const [showHelp, setShowHelp] = React.useState(true);
   const [camera, setCamera] = React.useState<Camera>({ x: 0, y: 0, z: 1 });
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -698,6 +725,49 @@ export default function Canvas() {
     inputWidth = Math.max(textWidth, 10);
   }
   const inputHeight = editingTextShape?.fontSize ?? 12;
+
+  const textItems = [
+    {
+      x: window.innerWidth / 2 - 100,
+      y: 240,
+      text: "Ctrl + hover on card to show zoomed card.",
+    },
+    {
+      x: window.innerWidth / 2 - 100,
+      y: 260,
+      text: "Get your deck by clicking select deck and pasting the list in the modal.",
+    },
+    {
+      x: window.innerWidth / 2 - 100,
+      y: 280,
+      text: "Shift + click to engage/disengage.",
+    },
+    {
+      x: window.innerWidth / 2 - 100,
+      y: 300,
+      text: "Double click on text to edit.",
+    },
+    {
+      x: window.innerWidth / 2 - 100,
+      y: 320,
+      text: "Connect to a peer to play with them.",
+    },
+    {
+      x: window.innerWidth / 2 - 100,
+      y: 340,
+      text: "Pan and zoom with mouse pad.",
+    },
+    {
+      x: window.innerWidth / 2 - 100,
+      y: 360,
+      text: "Click here to hide help.",
+      onClick: () => {
+        console.log("clicked");
+        setShowHelp(false);
+      },
+    },
+  ];
+
   return (
     <div>
       <ContextMenu
@@ -718,19 +788,8 @@ export default function Canvas() {
           onPointerUp={onPointerUpCanvas}
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
-          className={clean ? "clean" : ""}
         >
           <g style={{ transform }}>
-            <text
-              x={-3000}
-              y={20}
-              width={100}
-              height={100}
-              style={{ cursor: "pointer", backgroundColor: "transparent" }}
-              onClick={() => setClean((prev) => !prev)}
-            >
-              Clean
-            </text>
             <text
               x={window.innerWidth / 2 - 100}
               y={200}
@@ -744,6 +803,17 @@ export default function Canvas() {
             >
               Maginet - pire to pire edition
             </text>
+            {showHelp &&
+              textItems.map((item, index) => (
+                <TextElement
+                  key={index}
+                  x={item.x}
+                  y={item.y}
+                  onClick={item.onClick}
+                >
+                  {item.text}
+                </TextElement>
+              ))}
             {others &&
               others.map((shape) => (
                 <ShapeComponent
@@ -760,6 +830,7 @@ export default function Canvas() {
                   color={shape.color}
                 />
               ))}
+
             {shapes
               .filter((shape) => shape.id !== editingText?.id)
               .map((shape) => (
