@@ -5,6 +5,10 @@ import vec from "./utils/vec";
 import { useShapeStore } from "./hooks/useShapeStore";
 import { colors } from "./utils/colors";
 
+const shouldSnapToGrid = (shape: ShapeType) => {
+  return shape.type !== "text" && shape.type !== "token";
+};
+
 export function Shape({
   shape,
   rDragging,
@@ -46,7 +50,10 @@ export function Shape({
   } = useShapeStore();
 
   const snapToGrid = (point: number[]) => {
-    return point.map((coord) => Math.round(coord / gridSize) * gridSize);
+    if (shouldSnapToGrid(shape)) {
+      return point.map((coord) => Math.round(coord / gridSize) * gridSize);
+    }
+    return point;
   };
 
   const updateSelection = (shapeId: string) =>
