@@ -67,7 +67,7 @@ export function SelectionPanel({
   return (
     <div className="selection-panel">
       <div>
-        <button onClick={onDrawCard}>Draw</button>
+        <button onClick={onDrawCard}>Draw ({cards?.length})</button>
         <button
           disabled={mode === "create"}
           onClick={() => {
