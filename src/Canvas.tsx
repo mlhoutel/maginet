@@ -22,7 +22,7 @@ import { SelectionPanel } from "./SelectionPanel";
 import inputs, { normalizeWheel } from "./inputs";
 import { useGesture } from "@use-gesture/react";
 import { useShapeStore } from "./hooks/useShapeStore";
-import Grid from "./Grid";
+// import Grid from "./Grid";
 
 export interface Point {
   x: number;
@@ -748,11 +748,11 @@ export default function Canvas() {
           onDragOver={(e) => e.preventDefault()}
         >
           <g style={{ transform }}>
-            <Grid
+            {/* <Grid
               width={window.innerWidth}
               height={window.innerHeight}
               gridSize={gridSize}
-            />
+            /> */}
             <text
               x={window.innerWidth / 2 - 100}
               y={200}
