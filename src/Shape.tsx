@@ -76,6 +76,15 @@ export function Shape({
     if (mode !== "select") return;
     e.currentTarget.setPointerCapture(e.pointerId);
     e.stopPropagation();
+    let localSelectedShapeIds = [...selectedShapeIds];
+
+    // if we are clicking on a shape that is not selected
+    // then we start a new selection
+    if (!localSelectedShapeIds.includes(shape.id)) {
+      localSelectedShapeIds = [shape.id];
+      draggingShapeRefs.current = {};
+    }
+
     const id = e.currentTarget.id;
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
@@ -85,9 +94,10 @@ export function Shape({
       origin: point,
     });
 
-    selectedShapeIds.forEach((id) => {
+    localSelectedShapeIds.forEach((id) => {
       draggingShapeRefs.current[id] = shapes.find((s) => s.id === id)!;
     });
+    setSelectedShapeIds(localSelectedShapeIds);
   }
 
   const commonProps = {
@@ -98,8 +108,6 @@ export function Shape({
     onClick: (e: React.MouseEvent<SVGElement>) => {
       if (readOnly) return;
       e.stopPropagation();
-      setSelectedShapeIds([shape.id]);
-      draggingShapeRefs.current = {};
       if (e.shiftKey) {
         setShapes((prevShapes) =>
           prevShapes.map((s) =>
