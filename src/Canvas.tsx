@@ -458,7 +458,10 @@ export default function Canvas() {
             ? {
                 ...shape,
                 text: updatedText,
-                size: [inputWidth, inputHeight],
+                size:
+                  shape.type === "text"
+                    ? [inputWidth, inputHeight]
+                    : shape.size,
               }
             : shape
         )
