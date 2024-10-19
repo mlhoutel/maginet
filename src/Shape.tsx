@@ -15,6 +15,8 @@ export function Shape({
   readOnly,
   selected,
   camera,
+  gridSize,
+  stackIndex = 0, // New prop for stack index
 }: {
   shape: ShapeType;
   mode: Mode;
@@ -31,6 +33,8 @@ export function Shape({
   ) => void;
   readOnly: boolean;
   selected: boolean;
+  gridSize: number;
+  stackIndex?: number; // New prop for stack index
 }) {
   const draggingShapeRefs = useRef<Record<string, ShapeType>>({});
   const {
@@ -40,6 +44,10 @@ export function Shape({
     shapes,
     setEditingText,
   } = useShapeStore();
+
+  const snapToGrid = (point: number[]) => {
+    return point.map((coord) => Math.round(coord / gridSize) * gridSize);
+  };
 
   const updateSelection = (shapeId: string) =>
     selectedShapeIds.includes(shapeId) ? selectedShapeIds : [shapeId];
@@ -73,7 +81,7 @@ export function Shape({
     e.stopPropagation();
 
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
-    const point = [x, y];
+    const point = snapToGrid([x, y]);
 
     const localSelectedShapeIds = updateSelection(shape.id);
     initializeDragging(e, point);
@@ -85,7 +93,7 @@ export function Shape({
     if (mode !== "select" || readOnly || !rDragging.current) return;
 
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
-    const point = [x, y];
+    const point = snapToGrid([x, y]);
     const delta = vec.sub(point, rDragging.current.origin);
 
     setShapes((prevShapes) =>
@@ -154,7 +162,7 @@ export function Shape({
     const [width, height] = size;
     const transform = `rotate(${rotation || 0} ${x + width / 2} ${
       y + height / 2
-    })`;
+    }) translate(0, ${stackIndex * 5})`; // Apply vertical offset
 
     switch (type) {
       case "text":
