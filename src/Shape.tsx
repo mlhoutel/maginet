@@ -6,7 +6,7 @@ import { useShapeStore } from "./hooks/useShapeStore";
 import { colors } from "./utils/colors";
 
 const shouldSnapToGrid = (shape: ShapeType) => {
-  return shape.type !== "text" && shape.type !== "token";
+  return shape.type === "image";
 };
 
 export function Shape({
