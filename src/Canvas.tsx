@@ -129,12 +129,10 @@ const TextElement = ({
   x,
   y,
   children,
-  onClick,
 }: {
   x: number;
   y: number;
   children: React.ReactNode;
-  onClick?: () => void;
 }) => (
   <text
     x={x}
@@ -146,7 +144,6 @@ const TextElement = ({
     }}
     width={100}
     height={100}
-    onClick={onClick}
   >
     {children}
   </text>
@@ -757,15 +754,6 @@ export default function Canvas() {
       y: 340,
       text: "Pan and zoom with mouse pad.",
     },
-    {
-      x: window.innerWidth / 2 - 100,
-      y: 360,
-      text: "Click here to hide help.",
-      onClick: () => {
-        console.log("clicked");
-        setShowHelp(false);
-      },
-    },
   ];
 
   return (
@@ -797,20 +785,20 @@ export default function Canvas() {
                 fontSize: "20px",
                 userSelect: "none",
                 fontFamily: "cursive",
+                cursor: "pointer",
               }}
               width={100}
               height={100}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                setShowHelp(false);
+              }}
             >
               Maginet - pire to pire edition
             </text>
             {showHelp &&
               textItems.map((item, index) => (
-                <TextElement
-                  key={index}
-                  x={item.x}
-                  y={item.y}
-                  onClick={item.onClick}
-                >
+                <TextElement key={index} x={item.x} y={item.y}>
                   {item.text}
                 </TextElement>
               ))}
