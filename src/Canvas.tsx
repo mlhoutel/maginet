@@ -180,7 +180,7 @@ export default function Canvas() {
     cards: [],
     deck: [],
   });
-  const [gridSize, setGridSize] = React.useState(25);
+  const [gridSize, setGridSize] = React.useState(20);
   const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = React.useState(false);
   const [lastPanPosition, setLastPanPosition] = React.useState<Point | null>(
@@ -725,7 +725,9 @@ export default function Canvas() {
     return grouped;
   };
 
-  const groupedShapes = groupShapesByPosition(shapes);
+  const groupedShapes = groupShapesByPosition(
+    shapes.filter((shape) => shape.id !== editingText?.id)
+  );
 
   return (
     <div>
