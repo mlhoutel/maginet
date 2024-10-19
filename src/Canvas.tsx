@@ -851,7 +851,7 @@ export default function Canvas() {
               height={100}
               onPointerDown={(e) => {
                 e.stopPropagation();
-                setShowHelp(false);
+                setShowHelp((prev) => !prev);
               }}
             >
               Maginet - pire to pire edition
