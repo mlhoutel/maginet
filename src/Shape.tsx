@@ -15,8 +15,7 @@ export function Shape({
   readOnly,
   selected,
   camera,
-}: // color,
-{
+}: {
   shape: ShapeType;
   mode: Mode;
   rDragging: React.MutableRefObject<{
@@ -41,20 +40,58 @@ export function Shape({
     shapes,
     setEditingText,
   } = useShapeStore();
-  function onPointerMove(e: React.PointerEvent<SVGElement>) {
-    if (mode !== "select") return;
-    if (readOnly) return;
-    const dragging = rDragging.current;
-    if (!dragging) return;
+
+  const updateSelection = (shapeId: string) =>
+    selectedShapeIds.includes(shapeId) ? selectedShapeIds : [shapeId];
+
+  const initializeDragging = (
+    e: React.PointerEvent<SVGElement>,
+    point: number[]
+  ) => {
+    const id = e.currentTarget.id;
+    updateDraggingRef({
+      shape: shapes.find((s) => s.id === id)!,
+      origin: point,
+    });
+  };
+
+  const updateDraggingShapeRefs = (localSelectedShapeIds: string[]) => {
+    draggingShapeRefs.current =
+      localSelectedShapeIds.length === 1
+        ? {}
+        : Object.fromEntries(
+            localSelectedShapeIds.map((id) => [
+              id,
+              shapes.find((s) => s.id === id)!,
+            ])
+          );
+  };
+
+  const onPointerDown = (e: React.PointerEvent<SVGElement>) => {
+    if (mode !== "select" || readOnly) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.stopPropagation();
 
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
-    const delta = vec.sub(point, dragging.origin);
+
+    const localSelectedShapeIds = updateSelection(shape.id);
+    initializeDragging(e, point);
+    updateDraggingShapeRefs(localSelectedShapeIds);
+    setSelectedShapeIds(localSelectedShapeIds);
+  };
+
+  const onPointerMove = (e: React.PointerEvent<SVGElement>) => {
+    if (mode !== "select" || readOnly || !rDragging.current) return;
+
+    const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
+    const point = [x, y];
+    const delta = vec.sub(point, rDragging.current.origin);
 
     setShapes((prevShapes) =>
       prevShapes.map((s) =>
-        s.id === dragging.shape.id
-          ? { ...s, point: vec.add(dragging.shape.point, delta) }
+        s.id === rDragging.current?.shape.id
+          ? { ...s, point: vec.add(rDragging.current.shape.point, delta) }
           : draggingShapeRefs.current[s.id]
           ? {
               ...s,
@@ -63,7 +100,7 @@ export function Shape({
           : s
       )
     );
-  }
+  };
 
   const onPointerUp = (e: React.PointerEvent<SVGElement>) => {
     e.currentTarget.releasePointerCapture(e.pointerId);
@@ -72,55 +109,29 @@ export function Shape({
     draggingShapeRefs.current = {};
   };
 
-  function onPointerDown(e: React.PointerEvent<SVGElement>) {
-    if (mode !== "select") return;
-    e.currentTarget.setPointerCapture(e.pointerId);
+  const handleClick = (e: React.MouseEvent<SVGElement>) => {
+    if (readOnly) return;
     e.stopPropagation();
-    let localSelectedShapeIds = [...selectedShapeIds];
-
-    // if we are clicking on a shape that is not selected
-    // then we start a new selection
-    if (!localSelectedShapeIds.includes(shape.id)) {
-      localSelectedShapeIds = [shape.id];
-      draggingShapeRefs.current = {};
+    if (e.shiftKey) {
+      setShapes((prevShapes) =>
+        prevShapes.map((s) =>
+          s.id === shape.id
+            ? {
+                ...s,
+                rotation: s.rotation && s.rotation > 0 ? 0 : 90,
+              }
+            : s
+        )
+      );
     }
-
-    const id = e.currentTarget.id;
-    const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
-    const point = [x, y];
-
-    updateDraggingRef({
-      shape: shapes.find((s) => s.id === id)!,
-      origin: point,
-    });
-
-    localSelectedShapeIds.forEach((id) => {
-      draggingShapeRefs.current[id] = shapes.find((s) => s.id === id)!;
-    });
-    setSelectedShapeIds(localSelectedShapeIds);
-  }
+  };
 
   const commonProps = {
     id: shape.id,
     onPointerDown: readOnly ? undefined : onPointerDown,
     onPointerMove: readOnly ? undefined : onPointerMove,
     onPointerUp: readOnly ? undefined : onPointerUp,
-    onClick: (e: React.MouseEvent<SVGElement>) => {
-      if (readOnly) return;
-      e.stopPropagation();
-      if (e.shiftKey) {
-        setShapes((prevShapes) =>
-          prevShapes.map((s) =>
-            s.id === shape.id
-              ? {
-                  ...s,
-                  rotation: s.rotation && s.rotation > 0 ? 0 : 90,
-                }
-              : s
-          )
-        );
-      }
-    },
+    onClick: handleClick,
     style: {
       cursor: readOnly ? "default" : "move",
       filter: selected ? "url(#glow)" : "none",
@@ -128,30 +139,33 @@ export function Shape({
   };
 
   const renderShape = () => {
-    switch (shape.type) {
+    const { point, size, rotation, color, text, type, src, srcIndex, isFlipped } = shape;
+    const [x, y] = point;
+    const [width, height] = size;
+    const transform = `rotate(${rotation || 0} ${x + width / 2} ${y + height / 2})`;
+
+    switch (type) {
       case "text":
         return (
           <text
             {...commonProps}
-            x={shape.point[0]}
-            y={shape.point[1]}
-            transform={`rotate(${shape.rotation || 0} ${
-              shape.point[0] + shape.size[0] / 2
-            } ${shape.point[1] + shape.size[1] / 2})`}
+            x={x}
+            y={y}
+            transform={transform}
             style={{
               ...commonProps.style,
               userSelect: "none",
               fontSize: shape.fontSize || 16,
-              fill: selected ? "#4a90e2" : shape.color ?? "black",
+              fill: selected ? "#4a90e2" : color ?? "black",
             }}
             onDoubleClick={(e) => {
               e.stopPropagation();
               if (readOnly) return;
-              setEditingText({ id: shape.id, text: shape.text! });
+              setEditingText({ id: shape.id, text: text! });
               setTimeout(() => inputRef.current?.focus(), 0);
             }}
           >
-            {shape.text}
+            {text}
           </text>
         );
       case "image":
@@ -159,27 +173,19 @@ export function Shape({
           <g
             {...commonProps}
             onMouseEnter={() => {
-              if (readOnly && shape.isFlipped) return;
-              setHoveredCard(shape.src?.[shape.srcIndex] ?? null);
+              if (readOnly && isFlipped) return;
+              setHoveredCard(src?.[srcIndex] ?? null);
             }}
             onMouseLeave={() => setHoveredCard(null)}
           >
             <image
-              href={
-                shape.isFlipped
-                  ? "https://i.imgur.com/LdOBU1I.jpeg"
-                  : shape.src?.[shape.srcIndex]
-              }
-              x={shape.point[0]}
-              y={shape.point[1]}
-              width={shape.size[0]}
-              height={shape.size[1]}
-              style={{
-                opacity: readOnly ? 0.7 : 1,
-              }}
-              transform={`rotate(${shape.rotation || 0}, ${
-                shape.point[0] + shape.size[0] / 2
-              }, ${shape.point[1] + shape.size[1] / 2})`}
+              href={isFlipped ? "https://i.imgur.com/LdOBU1I.jpeg" : src?.[srcIndex]}
+              x={x}
+              y={y}
+              width={width}
+              height={height}
+              style={{ opacity: readOnly ? 0.7 : 1 }}
+              transform={transform}
             />
           </g>
         );
@@ -187,17 +193,17 @@ export function Shape({
         return (
           <rect
             {...commonProps}
-            x={shape.point[0]}
-            y={shape.point[1]}
-            width={shape.size[0]}
-            height={shape.size[1]}
+            x={x}
+            y={y}
+            width={width}
+            height={height}
           />
         );
       case "ping":
         return (
           <circle
-            cx={shape.point[0]}
-            cy={shape.point[1]}
+            cx={x}
+            cy={y}
             r="20"
             fill="rgba(255, 0, 0, 0.5)"
           />
@@ -209,42 +215,42 @@ export function Shape({
             onDoubleClick={(e) => {
               e.stopPropagation();
               if (readOnly) return;
-              setEditingText({ id: shape.id, text: shape.text! });
+              setEditingText({ id: shape.id, text: text! });
               setTimeout(() => inputRef.current?.focus(), 0);
             }}
           >
             <circle
-              cx={shape.point[0]}
-              cy={shape.point[1]}
-              r={shape.size[0] / 2}
+              cx={x}
+              cy={y}
+              r={width / 2}
               fill="#1F2421"
             />
             <circle
-              cx={shape.point[0]}
-              cy={shape.point[1]}
-              r={(shape.size[0] / 2) * 0.8}
-              fill={shape.color ?? "black"}
+              cx={x}
+              cy={y}
+              r={(width / 2) * 0.8}
+              fill={color ?? "black"}
             />
-            {shape.text && (
+            {text && (
               <text
-                x={shape.point[0]}
-                y={shape.point[1]}
+                x={x}
+                y={y}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 style={{
-                  fill: colors[shape.color as keyof typeof colors] ?? "white",
+                  fill: colors[color as keyof typeof colors] ?? "white",
                   fontSize: `${shape.fontSize}px`,
                   pointerEvents: "none",
                   userSelect: "none",
                 }}
               >
-                {shape.text}
+                {text}
               </text>
             )}
           </g>
         );
       default:
-        throw new Error(`Unknown shape type: ${shape.type}`);
+        throw new Error(`Unknown shape type: ${type}`);
     }
   };
 
