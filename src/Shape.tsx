@@ -3,11 +3,7 @@ import { Camera, Mode, Shape as ShapeType } from "./Canvas";
 import { screenToCanvas } from "./utils/vec";
 import vec from "./utils/vec";
 import { useShapeStore } from "./hooks/useShapeStore";
-import TextShape from "./shapes/TextShape";
-import ImageShape from "./shapes/ImageShape";
-import RectangleShape from "./shapes/RectangleShape";
-import PingShape from "./shapes/PingShape";
-import TokenShape from "./shapes/TokenShape";
+import ShapeFactory from "./components/ShapeFactory";
 
 const shouldSnapToGrid = (shape: ShapeType) => {
   return shape.type === "image";
@@ -157,72 +153,6 @@ export function Shape({
     },
   };
 
-  const renderShape = () => {
-    const { point, size, rotation, type } = shape;
-    const [x, y] = point;
-    const [width, height] = size;
-    const transform = `rotate(${rotation || 0} ${x + width / 2} ${
-      y + height / 2
-    }) translate(0, ${stackIndex * 10})`;
-
-    switch (type) {
-      case "text":
-        return (
-          <TextShape
-            shape={shape}
-            commonProps={{
-              ...commonProps,
-              onDoubleClick: (e) => {
-                e.stopPropagation();
-                if (readOnly) return;
-                setEditingText({ id: shape.id, text: shape.text! });
-                setTimeout(() => inputRef.current?.focus(), 0);
-              },
-            }}
-            transform={transform}
-            selected={selected}
-          />
-        );
-      case "image":
-        return (
-          <ImageShape
-            shape={shape}
-            commonProps={{
-              ...commonProps,
-              onMouseEnter: () => {
-                if (readOnly && shape.isFlipped) return;
-                setHoveredCard(shape.src?.[shape.srcIndex] ?? null);
-              },
-              onMouseLeave: () => setHoveredCard(null),
-            }}
-            transform={transform}
-            readOnly={readOnly}
-          />
-        );
-      case "rectangle":
-        return <RectangleShape shape={shape} commonProps={commonProps} />;
-      case "ping":
-        return <PingShape shape={shape} />;
-      case "token":
-        return (
-          <TokenShape
-            shape={shape}
-            commonProps={{
-              ...commonProps,
-              onDoubleClick: (e) => {
-                e.stopPropagation();
-                if (readOnly) return;
-                setEditingText({ id: shape.id, text: shape.text! });
-                setTimeout(() => inputRef.current?.focus(), 0);
-              },
-            }}
-          />
-        );
-      default:
-        throw new Error(`Unknown shape type: ${type}`);
-    }
-  };
-
   return (
     <>
       <defs>
@@ -234,7 +164,20 @@ export function Shape({
           </feMerge>
         </filter>
       </defs>
-      {renderShape()}
+      <ShapeFactory
+        shape={shape}
+        commonProps={commonProps}
+        transform={`rotate(${shape.rotation || 0} ${
+          shape.point[0] + shape.size[0] / 2
+        } ${shape.point[1] + shape.size[1] / 2}) translate(0, ${
+          stackIndex * 10
+        })`}
+        selected={selected}
+        readOnly={readOnly}
+        setEditingText={setEditingText}
+        inputRef={inputRef}
+        setHoveredCard={setHoveredCard}
+      />
     </>
   );
 }
