@@ -167,16 +167,12 @@ export function Shape({
       <ShapeFactory
         shape={shape}
         commonProps={commonProps}
-        transform={`rotate(${shape.rotation || 0} ${
-          shape.point[0] + shape.size[0] / 2
-        } ${shape.point[1] + shape.size[1] / 2}) translate(0, ${
-          stackIndex * 10
-        })`}
         selected={selected}
         readOnly={readOnly}
         setEditingText={setEditingText}
         inputRef={inputRef}
         setHoveredCard={setHoveredCard}
+        stackIndex={stackIndex}
       />
     </>
   );

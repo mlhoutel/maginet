@@ -9,22 +9,25 @@ import { Shape as ShapeType } from "../Canvas";
 function ShapeFactory({
   shape,
   commonProps,
-  transform,
   selected,
   readOnly,
   setEditingText,
   inputRef,
   setHoveredCard,
+  stackIndex,
 }: {
   shape: ShapeType;
   commonProps: React.SVGProps<SVGElement>;
-  transform: string;
   selected: boolean;
   readOnly: boolean;
   setEditingText: (value: { id: string; text: string }) => void;
   inputRef: React.RefObject<HTMLInputElement>;
   setHoveredCard: React.Dispatch<React.SetStateAction<string | null>>;
+  stackIndex: number;
 }) {
+  const transform = `rotate(${shape.rotation || 0} ${
+    shape.point[0] + shape.size[0] / 2
+  } ${shape.point[1] + shape.size[1] / 2}) translate(0, ${stackIndex * 10})`;
   switch (shape.type) {
     case "text":
       return (
