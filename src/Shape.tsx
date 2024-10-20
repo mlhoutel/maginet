@@ -3,7 +3,7 @@ import { Camera, Mode, Shape as ShapeType } from "./Canvas";
 import { screenToCanvas } from "./utils/vec";
 import vec from "./utils/vec";
 import { useShapeStore } from "./hooks/useShapeStore";
-import ShapeFactory, { STACKING_OFFSET } from "./components/ShapeFactory";
+import ShapeFactory from "./components/ShapeFactory";
 
 const shouldSnapToGrid = (shape: ShapeType) => {
   return shape.type === "image";
