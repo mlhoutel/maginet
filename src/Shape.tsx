@@ -9,6 +9,119 @@ const shouldSnapToGrid = (shape: ShapeType) => {
   return shape.type === "image";
 };
 
+const TextShape = ({
+  shape,
+  commonProps,
+  transform,
+  selected,
+}: {
+  shape: ShapeType;
+  commonProps: React.SVGProps<SVGTextElement>;
+  transform: string;
+  selected: boolean;
+}) => {
+  const { point, text, color, fontSize } = shape;
+  const [x, y] = point;
+  return (
+    <text
+      {...commonProps}
+      x={x}
+      y={y}
+      transform={transform}
+      style={{
+        ...commonProps.style,
+        userSelect: "none",
+        fontSize: fontSize || 16,
+        fill: selected ? "#4a90e2" : color ?? "black",
+      }}
+    >
+      {text}
+    </text>
+  );
+};
+
+const ImageShape = ({
+  shape,
+  commonProps,
+  transform,
+  readOnly,
+}: {
+  shape: ShapeType;
+  commonProps: React.SVGProps<SVGGElement>;
+  transform: string;
+  readOnly: boolean;
+}) => {
+  const { point, size, src, srcIndex, isFlipped } = shape;
+  const [x, y] = point;
+  const [width, height] = size;
+  return (
+    <g {...commonProps}>
+      <image
+        href={isFlipped ? "https://i.imgur.com/LdOBU1I.jpeg" : src?.[srcIndex]}
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        style={{ opacity: readOnly ? 0.7 : 1 }}
+        transform={transform}
+      />
+    </g>
+  );
+};
+
+const RectangleShape = ({
+  shape,
+  commonProps,
+}: {
+  shape: ShapeType;
+  commonProps: React.SVGProps<SVGRectElement>;
+}) => {
+  const { point, size } = shape;
+  const [x, y] = point;
+  const [width, height] = size;
+  return <rect {...commonProps} x={x} y={y} width={width} height={height} />;
+};
+
+const PingShape = ({ shape }: { shape: ShapeType }) => {
+  const { point } = shape;
+  const [x, y] = point;
+  return <circle cx={x} cy={y} r="20" fill="rgba(255, 0, 0, 0.5)" />;
+};
+
+const TokenShape = ({
+  shape,
+  commonProps,
+}: {
+  shape: ShapeType;
+  commonProps: React.SVGProps<SVGGElement>;
+}) => {
+  const { point, size, color, text, fontSize } = shape;
+  const [x, y] = point;
+  const [width] = size;
+  return (
+    <g {...commonProps}>
+      <circle cx={x} cy={y} r={width / 2} fill="#1F2421" />
+      <circle cx={x} cy={y} r={(width / 2) * 0.8} fill={color ?? "black"} />
+      {text && (
+        <text
+          x={x}
+          y={y}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          style={{
+            fill: colors[color as keyof typeof colors] ?? "white",
+            fontSize: `${fontSize}px`,
+            pointerEvents: "none",
+            userSelect: "none",
+          }}
+        >
+          {text}
+        </text>
+      )}
+    </g>
+  );
+};
+
 export function Shape({
   shape,
   rDragging,
@@ -20,7 +133,7 @@ export function Shape({
   selected,
   camera,
   gridSize,
-  stackIndex = 0, // New prop for stack index
+  stackIndex = 0,
 }: {
   shape: ShapeType;
   mode: Mode;
@@ -38,7 +151,7 @@ export function Shape({
   readOnly: boolean;
   selected: boolean;
   gridSize: number;
-  stackIndex?: number; // New prop for stack index
+  stackIndex?: number;
 }) {
   const draggingShapeRefs = useRef<Record<string, ShapeType>>({});
   const {
@@ -154,111 +267,65 @@ export function Shape({
   };
 
   const renderShape = () => {
-    const {
-      point,
-      size,
-      rotation,
-      color,
-      text,
-      type,
-      src,
-      srcIndex,
-      isFlipped,
-    } = shape;
+    const { point, size, rotation, type } = shape;
     const [x, y] = point;
     const [width, height] = size;
     const transform = `rotate(${rotation || 0} ${x + width / 2} ${
       y + height / 2
-    }) translate(0, ${stackIndex * 10})`; // Apply vertical offset
+    }) translate(0, ${stackIndex * 10})`;
 
     switch (type) {
       case "text":
         return (
-          <text
-            {...commonProps}
-            x={x}
-            y={y}
+          <TextShape
+            shape={shape}
+            commonProps={{
+              ...commonProps,
+              onDoubleClick: (e) => {
+                e.stopPropagation();
+                if (readOnly) return;
+                setEditingText({ id: shape.id, text: shape.text! });
+                setTimeout(() => inputRef.current?.focus(), 0);
+              },
+            }}
             transform={transform}
-            style={{
-              ...commonProps.style,
-              userSelect: "none",
-              fontSize: shape.fontSize || 16,
-              fill: selected ? "#4a90e2" : color ?? "black",
-            }}
-            onDoubleClick={(e) => {
-              e.stopPropagation();
-              if (readOnly) return;
-              setEditingText({ id: shape.id, text: text! });
-              setTimeout(() => inputRef.current?.focus(), 0);
-            }}
-          >
-            {text}
-          </text>
+            selected={selected}
+          />
         );
       case "image":
         return (
-          <g
-            {...commonProps}
-            onMouseEnter={() => {
-              if (readOnly && isFlipped) return;
-              setHoveredCard(src?.[srcIndex] ?? null);
+          <ImageShape
+            shape={shape}
+            commonProps={{
+              ...commonProps,
+              onMouseEnter: () => {
+                if (readOnly && shape.isFlipped) return;
+                setHoveredCard(shape.src?.[shape.srcIndex] ?? null);
+              },
+              onMouseLeave: () => setHoveredCard(null),
             }}
-            onMouseLeave={() => setHoveredCard(null)}
-          >
-            <image
-              href={
-                isFlipped ? "https://i.imgur.com/LdOBU1I.jpeg" : src?.[srcIndex]
-              }
-              x={x}
-              y={y}
-              width={width}
-              height={height}
-              style={{ opacity: readOnly ? 0.7 : 1 }}
-              transform={transform}
-            />
-          </g>
+            transform={transform}
+            readOnly={readOnly}
+          />
         );
       case "rectangle":
-        return (
-          <rect {...commonProps} x={x} y={y} width={width} height={height} />
-        );
+        return <RectangleShape shape={shape} commonProps={commonProps} />;
       case "ping":
-        return <circle cx={x} cy={y} r="20" fill="rgba(255, 0, 0, 0.5)" />;
+        return <PingShape shape={shape} />;
       case "token":
         return (
-          <g
-            {...commonProps}
-            onDoubleClick={(e) => {
-              e.stopPropagation();
-              if (readOnly) return;
-              setEditingText({ id: shape.id, text: text! });
-              setTimeout(() => inputRef.current?.focus(), 0);
+          <TokenShape
+            shape={shape}
+            commonProps={{
+              ...commonProps,
+              onDoubleClick: (e) => {
+                e.stopPropagation();
+                if (readOnly) return;
+                setEditingText({ id: shape.id, text: shape.text! });
+                setTimeout(() => inputRef.current?.focus(), 0);
+              },
             }}
-          >
-            <circle cx={x} cy={y} r={width / 2} fill="#1F2421" />
-            <circle
-              cx={x}
-              cy={y}
-              r={(width / 2) * 0.8}
-              fill={color ?? "black"}
-            />
-            {text && (
-              <text
-                x={x}
-                y={y}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                style={{
-                  fill: colors[color as keyof typeof colors] ?? "white",
-                  fontSize: `${shape.fontSize}px`,
-                  pointerEvents: "none",
-                  userSelect: "none",
-                }}
-              >
-                {text}
-              </text>
-            )}
-          </g>
+          />
         );
       default:
         throw new Error(`Unknown shape type: ${type}`);
