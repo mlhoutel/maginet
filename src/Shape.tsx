@@ -157,7 +157,7 @@ export function Shape({
     },
   };
 
-  const renderShape = () => {
+  const ShapeFactory = () => {
     const { point, size, rotation, type } = shape;
     const [x, y] = point;
     const [width, height] = size;
@@ -234,7 +234,7 @@ export function Shape({
           </feMerge>
         </filter>
       </defs>
-      {renderShape()}
+      <ShapeFactory />
     </>
   );
 }
