@@ -3,7 +3,7 @@ import { Camera, Mode, Shape as ShapeType } from "./Canvas";
 import { screenToCanvas } from "./utils/vec";
 import vec from "./utils/vec";
 import { useShapeStore } from "./hooks/useShapeStore";
-import ShapeFactory from "./components/ShapeFactory";
+import ShapeFactory, { STACKING_OFFSET } from "./components/ShapeFactory";
 
 const shouldSnapToGrid = (shape: ShapeType) => {
   return shape.type === "image";
@@ -59,17 +59,6 @@ export function Shape({
   const updateSelection = (shapeId: string) =>
     selectedShapeIds.includes(shapeId) ? selectedShapeIds : [shapeId];
 
-  const initializeDragging = (
-    e: React.PointerEvent<SVGElement>,
-    point: number[]
-  ) => {
-    const id = e.currentTarget.id;
-    updateDraggingRef({
-      shape: shapes.find((s) => s.id === id)!,
-      origin: point,
-    });
-  };
-
   const updateDraggingShapeRefs = (localSelectedShapeIds: string[]) => {
     draggingShapeRefs.current =
       localSelectedShapeIds.length === 1
@@ -88,10 +77,20 @@ export function Shape({
     e.stopPropagation();
 
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
-    const point = snapToGrid([x, y]);
+    let point = snapToGrid([x, y]);
+    if (stackIndex > 0) {
+      // point = snapToGrid(vec.sub([x, y], [0, stackIndex * STACKING_OFFSET]));
+      // setShapes((prevShapes) =>
+      //   prevShapes.map((s) => (s.id === shape.id ? { ...s, point } : s))
+      // );
+    }
 
     const localSelectedShapeIds = updateSelection(shape.id);
-    initializeDragging(e, point);
+    const id = e.currentTarget.id;
+    updateDraggingRef({
+      shape: shapes.find((s) => s.id === id)!,
+      origin: point,
+    });
     updateDraggingShapeRefs(localSelectedShapeIds);
     setSelectedShapeIds(localSelectedShapeIds);
   };
@@ -100,6 +99,7 @@ export function Shape({
     if (mode !== "select" || readOnly || !rDragging.current) return;
 
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
+    // does not work well with stacking and when mouse is not over the shape
     const point = snapToGrid([x, y]);
     const delta = vec.sub(point, rDragging.current.origin);
 
@@ -145,6 +145,7 @@ export function Shape({
     id: shape.id,
     onPointerDown: readOnly ? undefined : onPointerDown,
     onPointerMove: readOnly ? undefined : onPointerMove,
+    onPointerLeave: readOnly ? undefined : onPointerUp,
     onPointerUp: readOnly ? undefined : onPointerUp,
     onClick: handleClick,
     style: {

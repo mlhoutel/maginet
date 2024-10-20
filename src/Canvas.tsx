@@ -729,6 +729,8 @@ export default function Canvas() {
     shapes.filter((shape) => shape.id !== editingText?.id)
   );
 
+  const othersGrouped = groupShapesByPosition(others);
+
   return (
     <div>
       <ContextMenu
@@ -779,8 +781,8 @@ export default function Canvas() {
                   {item.text}
                 </TextElement>
               ))}
-            {others &&
-              others.map((shape) => (
+            {Object.values(othersGrouped).map((stack) =>
+              stack.map((shape, stackIndex) => (
                 <ShapeComponent
                   readOnly={true}
                   key={shape.id}
@@ -794,8 +796,10 @@ export default function Canvas() {
                   updateDraggingRef={() => {}}
                   selected={false}
                   color={shape.color}
+                  stackIndex={stackIndex}
                 />
-              ))}
+              ))
+            )}
 
             {Object.values(groupedShapes).map((stack) =>
               stack.map((shape, stackIndex) => (
@@ -811,7 +815,7 @@ export default function Canvas() {
                   updateDraggingRef={updateDraggingRef}
                   selected={selectedShapeIds.includes(shape.id)}
                   gridSize={gridSize}
-                  stackIndex={stackIndex} // Pass stack index
+                  stackIndex={stackIndex}
                 />
               ))
             )}
@@ -907,6 +911,7 @@ export default function Canvas() {
           changeColor={changeColor}
           gridSize={gridSize}
           setGridSize={setGridSize}
+          deck={deck}
         />
       </div>
       <Hand cards={cards} setHoveredCard={setHoveredCard} />

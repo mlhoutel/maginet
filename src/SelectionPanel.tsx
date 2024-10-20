@@ -1,6 +1,6 @@
 import React from "react";
 import { useLocation, Form } from "react-router-dom";
-import { Camera, Mode } from "./Canvas";
+import { Camera, Card, Mode } from "./Canvas";
 import useModal from "./hooks/useModal";
 import { usePeerStore } from "./hooks/usePeerConnection";
 import { useRateLimit } from "./hooks/useRateLimit";
@@ -21,6 +21,7 @@ export function SelectionPanel({
   changeColor,
   gridSize,
   setGridSize,
+  deck,
 }: {
   onDrawCard: () => void;
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
@@ -35,6 +36,7 @@ export function SelectionPanel({
   changeColor: (color: string) => void;
   gridSize: number;
   setGridSize: React.Dispatch<React.SetStateAction<number>>;
+  deck?: Card[];
 }) {
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
   const sendMessage = usePeerStore((state) => state.sendMessage);
@@ -63,11 +65,10 @@ export function SelectionPanel({
     selectedShapes.length === 1 && selectedShapes[0]?.type === "text";
 
   const allCards = cards ? [...cards, ...(relatedCards ?? [])] : [];
-
   return (
     <div className="selection-panel">
       <div>
-        <button onClick={onDrawCard}>Draw ({cards?.length})</button>
+        <button onClick={onDrawCard}>Draw ({deck?.length})</button>
         <button
           disabled={mode === "create"}
           onClick={() => {

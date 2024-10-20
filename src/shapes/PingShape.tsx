@@ -1,4 +1,3 @@
-import React from "react";
 import { Shape as ShapeType } from "../Canvas";
 
 const PingShape = ({ shape }: { shape: ShapeType }) => {
