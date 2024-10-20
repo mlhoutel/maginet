@@ -1,5 +1,6 @@
 import React from "react";
 import { Shape as ShapeType } from "../Canvas";
+import { colors } from "../utils/colors";
 
 const TextShape = ({
   shape,
