@@ -3,123 +3,14 @@ import { Camera, Mode, Shape as ShapeType } from "./Canvas";
 import { screenToCanvas } from "./utils/vec";
 import vec from "./utils/vec";
 import { useShapeStore } from "./hooks/useShapeStore";
-import { colors } from "./utils/colors";
+import TextShape from "./shapes/TextShape";
+import ImageShape from "./shapes/ImageShape";
+import RectangleShape from "./shapes/RectangleShape";
+import PingShape from "./shapes/PingShape";
+import TokenShape from "./shapes/TokenShape";
 
 const shouldSnapToGrid = (shape: ShapeType) => {
   return shape.type === "image";
-};
-
-const TextShape = ({
-  shape,
-  commonProps,
-  transform,
-  selected,
-}: {
-  shape: ShapeType;
-  commonProps: React.SVGProps<SVGTextElement>;
-  transform: string;
-  selected: boolean;
-}) => {
-  const { point, text, color, fontSize } = shape;
-  const [x, y] = point;
-  return (
-    <text
-      {...commonProps}
-      x={x}
-      y={y}
-      transform={transform}
-      style={{
-        ...commonProps.style,
-        userSelect: "none",
-        fontSize: fontSize || 16,
-        fill: selected ? "#4a90e2" : color ?? "black",
-      }}
-    >
-      {text}
-    </text>
-  );
-};
-
-const ImageShape = ({
-  shape,
-  commonProps,
-  transform,
-  readOnly,
-}: {
-  shape: ShapeType;
-  commonProps: React.SVGProps<SVGGElement>;
-  transform: string;
-  readOnly: boolean;
-}) => {
-  const { point, size, src, srcIndex, isFlipped } = shape;
-  const [x, y] = point;
-  const [width, height] = size;
-  return (
-    <g {...commonProps}>
-      <image
-        href={isFlipped ? "https://i.imgur.com/LdOBU1I.jpeg" : src?.[srcIndex]}
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        style={{ opacity: readOnly ? 0.7 : 1 }}
-        transform={transform}
-      />
-    </g>
-  );
-};
-
-const RectangleShape = ({
-  shape,
-  commonProps,
-}: {
-  shape: ShapeType;
-  commonProps: React.SVGProps<SVGRectElement>;
-}) => {
-  const { point, size } = shape;
-  const [x, y] = point;
-  const [width, height] = size;
-  return <rect {...commonProps} x={x} y={y} width={width} height={height} />;
-};
-
-const PingShape = ({ shape }: { shape: ShapeType }) => {
-  const { point } = shape;
-  const [x, y] = point;
-  return <circle cx={x} cy={y} r="20" fill="rgba(255, 0, 0, 0.5)" />;
-};
-
-const TokenShape = ({
-  shape,
-  commonProps,
-}: {
-  shape: ShapeType;
-  commonProps: React.SVGProps<SVGGElement>;
-}) => {
-  const { point, size, color, text, fontSize } = shape;
-  const [x, y] = point;
-  const [width] = size;
-  return (
-    <g {...commonProps}>
-      <circle cx={x} cy={y} r={width / 2} fill="#1F2421" />
-      <circle cx={x} cy={y} r={(width / 2) * 0.8} fill={color ?? "black"} />
-      {text && (
-        <text
-          x={x}
-          y={y}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          style={{
-            fill: colors[color as keyof typeof colors] ?? "white",
-            fontSize: `${fontSize}px`,
-            pointerEvents: "none",
-            userSelect: "none",
-          }}
-        >
-          {text}
-        </text>
-      )}
-    </g>
-  );
 };
 
 export function Shape({
