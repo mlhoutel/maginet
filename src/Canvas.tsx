@@ -701,7 +701,7 @@ export default function Canvas() {
 
             {others.map((shape) => (
               <ShapeComponent
-                readOnly={false}
+                readOnly={true}
                 key={shape.id}
                 shape={shape}
                 mode={mode}
