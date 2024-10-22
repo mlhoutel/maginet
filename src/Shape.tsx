@@ -3,7 +3,7 @@ import { Camera, Mode, Shape as ShapeType } from "./Canvas";
 import { screenToCanvas } from "./utils/vec";
 import vec from "./utils/vec";
 import { useShapeStore } from "./hooks/useShapeStore";
-import ShapeFactory from "./components/ShapeFactory";
+import ShapeFactory, { STACKING_OFFSET } from "./components/ShapeFactory";
 
 const shouldSnapToGrid = (shape: ShapeType) => {
   return shape.type === "image";
@@ -77,18 +77,21 @@ export function Shape({
     e.stopPropagation();
 
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
-    let point = snapToGrid([x, y]);
-    if (stackIndex > 0) {
-      // point = snapToGrid(vec.sub([x, y], [0, stackIndex * STACKING_OFFSET]));
-      // setShapes((prevShapes) =>
-      //   prevShapes.map((s) => (s.id === shape.id ? { ...s, point } : s))
-      // );
-    }
+    const point = snapToGrid([x, y]);
 
     const localSelectedShapeIds = updateSelection(shape.id);
     const id = e.currentTarget.id;
+    const currentShape = shapes.find((s) => s.id === id)!;
     updateDraggingRef({
-      shape: shapes.find((s) => s.id === id)!,
+      shape: {
+        ...currentShape,
+        point:
+          stackIndex > 0 && selectedShapeIds.length === 1
+            ? snapToGrid(
+                vec.add(currentShape.point, [0, stackIndex * STACKING_OFFSET])
+              )
+            : currentShape.point,
+      },
       origin: point,
     });
     updateDraggingShapeRefs(localSelectedShapeIds);
