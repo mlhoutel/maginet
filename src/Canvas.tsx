@@ -22,7 +22,6 @@ import { SelectionPanel } from "./SelectionPanel";
 import inputs, { normalizeWheel } from "./inputs";
 import { useGesture } from "@use-gesture/react";
 import { useShapeStore } from "./hooks/useShapeStore";
-// import Grid from "./Grid";
 
 export interface Point {
   x: number;
@@ -85,31 +84,6 @@ const playersColors = [
 const getPlayerColor = (index: number) =>
   playersColors[index % playersColors.length];
 
-const TextElement = ({
-  x,
-  y,
-  children,
-}: {
-  x: number;
-  y: number;
-  children: React.ReactNode;
-}) => (
-  <text
-    x={x}
-    y={y}
-    style={{
-      fontSize: "12px",
-      fontFamily: "monospace",
-      userSelect: "none",
-      opacity: 0.7,
-    }}
-    width={100}
-    height={100}
-  >
-    {children}
-  </text>
-);
-
 function intersect(rect1: DOMRect, rect2: DOMRect) {
   if (rect1.right < rect2.left || rect2.right < rect1.left) return false;
 
@@ -134,7 +108,6 @@ export default function Canvas() {
 
   const { initPeer, disconnect, sendMessage, onMessage, peer, error } =
     usePeerStore();
-  const [showHelp, setShowHelp] = React.useState(true);
   const [isDragging, setIsDragging] = React.useState(false);
   const [dragVector, setDragVector] = React.useState<DOMVector | null>(null);
   const [camera, setCamera] = React.useState<Camera>({ x: 0, y: 0, z: 1 });
@@ -180,7 +153,6 @@ export default function Canvas() {
     cards: [],
     deck: [],
   });
-  const [gridSize, setGridSize] = React.useState(20);
   const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = React.useState(false);
   const [lastPanPosition, setLastPanPosition] = React.useState<Point | null>(
@@ -294,7 +266,6 @@ export default function Canvas() {
     e.preventDefault();
     const cardId = e.dataTransfer.getData("text/plain");
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
-    const snappedPoint = snapToGrid({ x, y });
     const card = cardState.cards.find((card) => card.id === cardId);
     if (!card) return;
     dispatch({ type: "REMOVE_FROM_HAND", payload: [cardId] });
@@ -303,7 +274,7 @@ export default function Canvas() {
       ...prevShapes,
       {
         id: generateId(),
-        point: [snappedPoint.x, snappedPoint.y],
+        point: [x, y],
         size: [100, 100],
         type: "image",
         src: card.src,
@@ -648,11 +619,6 @@ export default function Canvas() {
     }
   }, [error]);
 
-  const snapToGrid = (point: Point): Point => ({
-    x: Math.round(point.x / gridSize) * gridSize,
-    y: Math.round(point.y / gridSize) * gridSize,
-  });
-
   const receivedData: (Shape & { color: string })[] = Object.values(
     receivedDataMap
   )
@@ -679,57 +645,7 @@ export default function Canvas() {
   }
   const inputHeight = editingTextShape?.fontSize ?? 12;
 
-  const textItems = [
-    {
-      x: window.innerWidth / 2 - 100,
-      y: 240,
-      text: "Ctrl + hover on card to show zoomed card.",
-    },
-    {
-      x: window.innerWidth / 2 - 100,
-      y: 260,
-      text: "Get your deck by clicking select deck and pasting the list in the modal.",
-    },
-    {
-      x: window.innerWidth / 2 - 100,
-      y: 280,
-      text: "Shift + click to engage/disengage.",
-    },
-    {
-      x: window.innerWidth / 2 - 100,
-      y: 300,
-      text: "Double click on text to edit.",
-    },
-    {
-      x: window.innerWidth / 2 - 100,
-      y: 320,
-      text: "Connect to a peer to play with them.",
-    },
-    {
-      x: window.innerWidth / 2 - 100,
-      y: 340,
-      text: "Pan and zoom with mouse pad.",
-    },
-  ];
-
-  // Function to group shapes by their position
-  const groupShapesByPosition = (shapes: Shape[]) => {
-    const grouped: Record<string, Shape[]> = {};
-    shapes.forEach((shape) => {
-      const key = `${shape.point[0]}-${shape.point[1]}`;
-      if (!grouped[key]) {
-        grouped[key] = [];
-      }
-      grouped[key].push(shape);
-    });
-    return grouped;
-  };
-
-  const groupedShapes = groupShapesByPosition(
-    shapes.filter((shape) => shape.id !== editingText?.id)
-  );
-
-  const othersGrouped = groupShapesByPosition(others);
+  const shapesFiltered = shapes.filter((shape) => shape.id !== editingText?.id);
 
   return (
     <div>
@@ -752,11 +668,6 @@ export default function Canvas() {
           onDragOver={(e) => e.preventDefault()}
         >
           <g style={{ transform }}>
-            {/* <Grid
-              width={window.innerWidth}
-              height={window.innerHeight}
-              gridSize={gridSize}
-            /> */}
             <text
               x={window.innerWidth / 2 - 100}
               y={200}
@@ -768,57 +679,40 @@ export default function Canvas() {
               }}
               width={100}
               height={100}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                setShowHelp((prev) => !prev);
-              }}
             >
               Maginet - pire to pire edition
             </text>
-            {showHelp &&
-              textItems.map((item, index) => (
-                <TextElement key={index} x={item.x} y={item.y}>
-                  {item.text}
-                </TextElement>
-              ))}
-            {Object.values(othersGrouped).map((stack) =>
-              stack.map((shape, stackIndex) => (
-                <ShapeComponent
-                  readOnly={true}
-                  key={shape.id}
-                  shape={shape}
-                  mode={mode}
-                  camera={camera}
-                  gridSize={gridSize}
-                  rDragging={{ current: null }}
-                  inputRef={{ current: null }}
-                  setHoveredCard={setHoveredCard}
-                  updateDraggingRef={() => {}}
-                  selected={false}
-                  color={shape.color}
-                  stackIndex={stackIndex}
-                />
-              ))
-            )}
 
-            {Object.values(groupedShapes).map((stack) =>
-              stack.map((shape, stackIndex) => (
-                <ShapeComponent
-                  readOnly={false}
-                  key={shape.id}
-                  shape={shape}
-                  mode={mode}
-                  rDragging={rDragging}
-                  inputRef={inputRef}
-                  camera={camera}
-                  setHoveredCard={setHoveredCard}
-                  updateDraggingRef={updateDraggingRef}
-                  selected={selectedShapeIds.includes(shape.id)}
-                  gridSize={gridSize}
-                  stackIndex={stackIndex}
-                />
-              ))
-            )}
+            {shapesFiltered.map((shape) => (
+              <ShapeComponent
+                readOnly={false}
+                key={shape.id}
+                shape={shape}
+                mode={mode}
+                camera={camera}
+                rDragging={rDragging}
+                inputRef={inputRef}
+                setHoveredCard={setHoveredCard}
+                updateDraggingRef={updateDraggingRef}
+                selected={selectedShapeIds.includes(shape.id)}
+                color={shape.color}
+              />
+            ))}
+
+            {others.map((shape) => (
+              <ShapeComponent
+                readOnly={false}
+                key={shape.id}
+                shape={shape}
+                mode={mode}
+                rDragging={{ current: null }}
+                inputRef={{ current: null }}
+                camera={camera}
+                setHoveredCard={setHoveredCard}
+                updateDraggingRef={() => {}}
+                selected={selectedShapeIds.includes(shape.id)}
+              />
+            ))}
             {pings &&
               pings.map((shape) => (
                 <ShapeComponent
@@ -832,24 +726,8 @@ export default function Canvas() {
                   setHoveredCard={setHoveredCard}
                   updateDraggingRef={() => {}}
                   selected={false}
-                  gridSize={gridSize}
                 />
               ))}
-            {shapeInCreation && (
-              <ShapeComponent
-                readOnly={false}
-                key={shapeInCreation.shape.id}
-                shape={shapeInCreation.shape}
-                mode={mode}
-                camera={camera}
-                inputRef={inputRef}
-                rDragging={rDragging}
-                setHoveredCard={setHoveredCard}
-                updateDraggingRef={updateDraggingRef}
-                selected={selectedShapeIds.includes(shapeInCreation.shape.id)}
-                gridSize={gridSize}
-              />
-            )}
             {editingText && (
               <foreignObject
                 x={
@@ -909,8 +787,6 @@ export default function Canvas() {
           addCardToHand={addCardToHand}
           addToken={addToken}
           changeColor={changeColor}
-          gridSize={gridSize}
-          setGridSize={setGridSize}
           deck={deck}
         />
       </div>
