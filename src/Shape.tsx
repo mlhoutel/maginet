@@ -1,9 +1,9 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Camera, Mode, Shape as ShapeType } from "./Canvas";
 import { screenToCanvas } from "./utils/vec";
 import vec from "./utils/vec";
 import { useShapeStore } from "./hooks/useShapeStore";
-import ShapeFactory, { STACKING_OFFSET } from "./components/ShapeFactory";
+import ShapeFactory from "./components/ShapeFactory";
 
 const shouldSnapToGrid = (shape: ShapeType) => {
   return shape.type === "image";
@@ -41,6 +41,12 @@ export function Shape({
   stackIndex?: number;
 }) {
   const draggingShapeRefs = useRef<Record<string, ShapeType>>({});
+  const [initialPointerPosition, setInitialPointerPosition] = useState<
+    number[] | null
+  >(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const DRAG_THRESHOLD = 2;
+
   const {
     setShapes,
     setSelectedShapeIds,
@@ -77,21 +83,15 @@ export function Shape({
     e.stopPropagation();
 
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
+    setInitialPointerPosition([x, y]);
+
     const point = snapToGrid([x, y]);
 
     const localSelectedShapeIds = updateSelection(shape.id);
     const id = e.currentTarget.id;
     const currentShape = shapes.find((s) => s.id === id)!;
     updateDraggingRef({
-      shape: {
-        ...currentShape,
-        point:
-          stackIndex > 0 && selectedShapeIds.length === 1
-            ? snapToGrid(
-                vec.add(currentShape.point, [0, stackIndex * STACKING_OFFSET])
-              )
-            : currentShape.point,
-      },
+      shape: currentShape,
       origin: point,
     });
     updateDraggingShapeRefs(localSelectedShapeIds);
@@ -102,22 +102,33 @@ export function Shape({
     if (mode !== "select" || readOnly || !rDragging.current) return;
 
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
-    // does not work well with stacking and when mouse is not over the shape
     const point = snapToGrid([x, y]);
-    const delta = vec.sub(point, rDragging.current.origin);
 
-    setShapes((prevShapes) =>
-      prevShapes.map((s) =>
-        s.id === rDragging.current?.shape.id
-          ? { ...s, point: vec.add(rDragging.current.shape.point, delta) }
-          : draggingShapeRefs.current[s.id]
-          ? {
-              ...s,
-              point: vec.add(draggingShapeRefs.current[s.id].point, delta),
-            }
-          : s
-      )
-    );
+    if (initialPointerPosition) {
+      const [initialX, initialY] = initialPointerPosition;
+      const distance = Math.sqrt((x - initialX) ** 2 + (y - initialY) ** 2);
+
+      if (!isDragging && distance > DRAG_THRESHOLD) {
+        setIsDragging(true);
+      }
+    }
+
+    if (isDragging) {
+      const delta = vec.sub(point, rDragging.current.origin);
+
+      setShapes((prevShapes) =>
+        prevShapes.map((s) =>
+          s.id === rDragging.current?.shape.id
+            ? { ...s, point: vec.add(rDragging.current.shape.point, delta) }
+            : draggingShapeRefs.current[s.id]
+            ? {
+                ...s,
+                point: vec.add(draggingShapeRefs.current[s.id].point, delta),
+              }
+            : s
+        )
+      );
+    }
   };
 
   const onPointerUp = (e: React.PointerEvent<SVGElement>) => {
@@ -125,6 +136,8 @@ export function Shape({
     e.stopPropagation();
     updateDraggingRef(null);
     draggingShapeRefs.current = {};
+    setInitialPointerPosition(null);
+    setIsDragging(false);
   };
 
   const handleClick = (e: React.MouseEvent<SVGElement>) => {
