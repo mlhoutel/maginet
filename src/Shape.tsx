@@ -70,12 +70,10 @@ export function Shape({
 
     const localSelectedShapeIds = updateSelection(shape.id);
     const id = e.currentTarget.id;
-    console.log("onPointerDown", id);
     updateDraggingRef({
       shape: shapes.find((s) => s.id === id)!,
       origin: point,
     });
-    console.log("onPointerDown", rDragging.current);
     updateDraggingShapeRefs(localSelectedShapeIds);
     setSelectedShapeIds(localSelectedShapeIds);
   };
