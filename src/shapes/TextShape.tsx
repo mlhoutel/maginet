@@ -25,6 +25,7 @@ const TextShape = ({
         userSelect: "none",
         fontSize: fontSize || 16,
         fill: selected ? "#4a90e2" : color ?? "black",
+        fontFamily: "Arial",
       }}
     >
       {text}

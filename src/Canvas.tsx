@@ -618,9 +618,9 @@ export default function Canvas() {
   if (editingText) {
     const textWidth = getTextWidth(
       editingText.text,
-      `normal ${editingTextShape?.fontSize ?? 12}px Arial`
+      `normal ${editingTextShape?.fontSize ?? 16}px Arial`
     );
-    inputWidth = Math.max(textWidth, 10);
+    inputWidth = Math.max(textWidth, 16);
   }
   const inputHeight = editingTextShape?.fontSize ?? 12;
 
@@ -712,9 +712,14 @@ export default function Canvas() {
                   style={{
                     width: `${inputWidth}px`,
                     height: `${inputHeight}px`,
-                    fontSize: `${editingTextShape?.fontSize ?? 12}px`,
+                    fontSize: `${editingTextShape?.fontSize ?? 16}px`,
+                    fontFamily: "Arial",
+                    display: "block",
                     outline: "none",
                     border: "none",
+                    textAlign: "left",
+                    padding: "0",
+                    margin: "0",
                     backgroundColor: "rgba(0, 0, 0, 0)",
                   }}
                   onKeyDown={(e) => {
