@@ -457,7 +457,6 @@ export default function Canvas() {
     setShapes((prevShapes) => [...prevShapes, ...selectedShapes]);
   };
   const addCardToHand = (card: Datum) => {
-    console.log("addCardToHand", card);
     dispatch({ type: "ADD_TO_HAND", payload: card });
   };
 

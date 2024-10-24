@@ -71,6 +71,7 @@ export function cardReducer(state: CardState, action: CardAction): CardState {
       return {
         ...state,
         cards: [...state.cards, mapDataToCard(action.payload)],
+        deck: removeFirst(state.deck, mapDataToCard(action.payload)),
       };
     default:
       return state;
@@ -79,4 +80,9 @@ export function cardReducer(state: CardState, action: CardAction): CardState {
 
 export function useCardReducer(initialState: CardState) {
   return useReducer(cardReducer, initialState);
+}
+
+function removeFirst(deck: Card[], card: Card) {
+  const idx = deck.findIndex((p) => p.src[0] === card.src[0]);
+  return deck.filter((_, i) => i !== idx);
 }

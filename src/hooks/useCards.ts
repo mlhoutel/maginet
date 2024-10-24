@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { shuffle } from "../utils/math";
+import { generateId, shuffle } from "../utils/math";
 import { Card } from "../Canvas";
 
 const fetchCards = async (names: string[]) => {
@@ -222,12 +222,12 @@ export function mapDataToCards(data?: Datum[]): Card[] {
 export function mapDataToCard(data: Datum): Card {
   if (data.image_uris?.normal) {
     return {
-      id: data.id,
+      id: generateId(),
       src: [data.image_uris.normal],
     };
   } else if (data.card_faces?.length) {
     return {
-      id: data.id,
+      id: generateId(),
       src: data.card_faces.map((face) => face.image_uris.normal),
     };
   }
