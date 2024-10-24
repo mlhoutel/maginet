@@ -18,6 +18,7 @@ export function SelectionPanel({
   addCardToHand,
   relatedCards,
   addToken,
+  setCamera,
   changeColor,
   deck,
 }: {
@@ -197,6 +198,13 @@ export function SelectionPanel({
           Disengage all
         </button>
         <button onClick={addToken}>Add token</button>
+        <button
+          onClick={() => {
+            setCamera((prev) => ({ ...prev, x: 0, y: 0 }));
+          }}
+        >
+          Return to center
+        </button>
       </div>
       {selectedShapes.length === 1 && (
         <select
