@@ -147,7 +147,8 @@ export function SelectionPanel({
               };
             };
             const card = allCards.find(
-              (c) => c.name === target.card_name.value
+              (c) =>
+                c.name.toLowerCase() === target.card_name.value.toLowerCase()
             );
             if (card) {
               addCardToHand(card);
