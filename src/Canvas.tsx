@@ -54,14 +54,7 @@ export interface Shape {
   color?: string;
 }
 
-type ShapeType =
-  | "rectangle"
-  | "circle"
-  | "arrow"
-  | "text"
-  | "image"
-  | "ping"
-  | "token";
+type ShapeType = "rectangle" | "circle" | "arrow" | "text" | "image" | "token";
 
 export type Mode = "select" | "create";
 
@@ -194,27 +187,6 @@ export default function Canvas() {
   const mulligan = () => {
     dispatch({ type: "MULLIGAN" });
   };
-  const addPing = React.useCallback(
-    (x: number, y: number) => {
-      const newPing: Shape = {
-        id: generateId(),
-        point: [x, y],
-        size: [40, 40],
-        type: "ping",
-        srcIndex: 0,
-      };
-      setShapes((prevShapes) => [...prevShapes, newPing]);
-
-      // Remove the ping after 2 seconds
-      setTimeout(() => {
-        setShapes((prevShapes) =>
-          prevShapes.filter((shape) => shape.id !== newPing.id)
-        );
-      }, 2000);
-    },
-    [setShapes]
-  );
-
   const addToken = () => {
     const center = screenToCanvas(
       { x: window.innerWidth / 2, y: window.innerHeight / 2 },
@@ -593,8 +565,11 @@ export default function Canvas() {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Control") {
         setIsCommandPressed(true);
-      } else if ((event.key === "p" || event.key === "P") && !editingText) {
-        addPing(mousePosition.x, mousePosition.y);
+      } else if (event.key === "Backspace" && selectedShapeIds.length > 0) {
+        setShapes((prevShapes) =>
+          prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
+        );
+        setSelectedShapeIds([]);
       }
     }
 
@@ -611,7 +586,13 @@ export default function Canvas() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [mousePosition, addPing, editingText]);
+  }, [
+    mousePosition,
+    editingText,
+    selectedShapeIds,
+    setShapes,
+    setSelectedShapeIds,
+  ]);
 
   useEffect(() => {
     if (error) {
@@ -629,8 +610,7 @@ export default function Canvas() {
       }))
     )
     .flat();
-  const pings = receivedData.filter((shape) => shape.type === "ping");
-  const others = receivedData.filter((shape) => shape.type !== "ping");
+  const others = receivedData;
   const transform = `scale(${camera.z}) translate(${camera.x}px, ${camera.y}px)`;
   const editingTextShape = shapes.find((shape) => shape.id === editingText?.id);
   const editingTextPointX = editingTextShape?.point[0] ?? 0;
@@ -713,21 +693,6 @@ export default function Canvas() {
                 selected={selectedShapeIds.includes(shape.id)}
               />
             ))}
-            {pings &&
-              pings.map((shape) => (
-                <ShapeComponent
-                  readOnly={true}
-                  key={shape.id}
-                  shape={shape}
-                  mode={mode}
-                  camera={camera}
-                  rDragging={{ current: null }}
-                  inputRef={{ current: null }}
-                  setHoveredCard={setHoveredCard}
-                  updateDraggingRef={() => {}}
-                  selected={false}
-                />
-              ))}
             {editingText && (
               <foreignObject
                 x={

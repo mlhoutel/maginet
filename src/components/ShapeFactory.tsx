@@ -2,7 +2,6 @@ import React from "react";
 import TextShape from "../shapes/TextShape";
 import ImageShape from "../shapes/ImageShape";
 import RectangleShape from "../shapes/RectangleShape";
-import PingShape from "../shapes/PingShape";
 import TokenShape from "../shapes/TokenShape";
 import { Shape as ShapeType } from "../Canvas";
 
@@ -73,8 +72,6 @@ function ShapeFactory({
           commonProps={commonProps as React.SVGProps<SVGRectElement>}
         />
       );
-    case "ping":
-      return <PingShape shape={shape} />;
     case "token":
       return (
         <TokenShape
