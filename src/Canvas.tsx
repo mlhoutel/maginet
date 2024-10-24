@@ -564,7 +564,11 @@ export default function Canvas() {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Control") {
         setIsCommandPressed(true);
-      } else if (event.key === "Backspace" && selectedShapeIds.length > 0) {
+      } else if (
+        event.key === "Backspace" &&
+        selectedShapeIds.length > 0 &&
+        editingText === null
+      ) {
         setShapes((prevShapes) =>
           prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
         );
