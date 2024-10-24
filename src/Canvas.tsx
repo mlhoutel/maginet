@@ -622,7 +622,7 @@ export default function Canvas() {
     );
     inputWidth = Math.max(textWidth, 16);
   }
-  const inputHeight = editingTextShape?.fontSize ?? 12;
+  const inputHeight = editingTextShape?.fontSize ?? 16;
 
   const shapesFiltered = shapes.filter((shape) => shape.id !== editingText?.id);
 
