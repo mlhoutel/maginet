@@ -22,6 +22,7 @@ import { SelectionPanel } from "./SelectionPanel";
 import inputs, { normalizeWheel } from "./inputs";
 import { useGesture } from "@use-gesture/react";
 import { useShapeStore } from "./hooks/useShapeStore";
+// import ActionLog from "./ActionLog";
 
 export interface Point {
   x: number;
@@ -139,6 +140,15 @@ export default function Canvas() {
   const [receivedDataMap, setReceivedDataMap] = React.useState<
     Record<string, Shape[]>
   >({});
+  // const [receivedPlayersInfo, setReceivedPlayersInfo] = React.useState<
+  //   Record<
+  //     string,
+  //     {
+  //       cardsInHand: number;
+  //       lastAction: string;
+  //     }[]
+  //   >
+  // >({});
 
   const [hoveredCard, setHoveredCard] = React.useState<string | null>(null);
   const [isCommandPressed, setIsCommandPressed] = React.useState(false);
@@ -170,7 +180,7 @@ export default function Canvas() {
       eventOptions: { passive: false },
     }
   );
-  const { cards, deck } = cardState;
+  const { cards, deck, lastAction } = cardState;
 
   const ref = React.useRef<SVGSVGElement>(null);
   // for dragging shapes in the canvas
@@ -240,7 +250,7 @@ export default function Canvas() {
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const card = cardState.cards.find((card) => card.id === cardId);
     if (!card) return;
-    dispatch({ type: "REMOVE_FROM_HAND", payload: [cardId] });
+    dispatch({ type: "PLAY_CARD", payload: [cardId] });
 
     setShapes((prevShapes) => [
       ...prevShapes,
@@ -533,6 +543,19 @@ export default function Canvas() {
   }, [initPeer, disconnect]);
 
   useEffect(() => {
+    sendMessage({
+      type: "playersInfo",
+      payload: {
+        peerId: peer?.id,
+        data: {
+          cardsInHand: cards.length,
+          lastAction,
+        },
+      },
+    });
+  }, [cards, lastAction, sendMessage, peer]);
+
+  useEffect(() => {
     const unsubscribeShapes = onMessage("shapes", (message) => {
       setReceivedDataMap((prev) => ({
         ...prev,
@@ -548,10 +571,25 @@ export default function Canvas() {
       toast(`Prouton!`);
     });
 
+    const unsubscribePlayersInfo = onMessage("playersInfo", (message) => {
+      toast(
+        `Received ${message.payload.peerId} info: ${message.payload.data.lastAction}.
+        ${message.payload.data.cardsInHand} cards in hand`
+      );
+      // setReceivedPlayersInfo((prev) => ({
+      //   ...prev,
+      //   [message.payload.peerId]: [
+      //     ...(prev[message.payload.peerId] ?? []),
+      //     message.payload.data,
+      //   ],
+      // }));
+    });
+
     return () => {
       unsubscribeShapes();
       unsubscribeConnected();
       unsubscribeProuton();
+      unsubscribePlayersInfo();
     };
   }, [onMessage, setShapes]);
 
@@ -769,6 +807,17 @@ export default function Canvas() {
           <img src={hoveredCard} alt={`Zoomed ${hoveredCard}`} />
         </div>
       )}
+      {/* <ActionLog
+        actions={Object.entries(receivedPlayersInfo)
+          .map(([playerId, info]) =>
+            info.map((action) => ({
+              playerId,
+              action: action.lastAction,
+              cardsInHand: action.cardsInHand,
+            }))
+          )
+          .flat()}
+      ></ActionLog> */}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Datum, mapDataToCard } from "./useCards";
 export type CardState = {
   cards: Card[];
   deck: Card[];
+  lastAction?: string;
 };
 
 export type CardAction =
@@ -17,11 +18,12 @@ export type CardAction =
       type: "SEND_TO_DECK";
       payload: { cards: Card[]; position: "top" | "bottom" };
     }
-  | { type: "REMOVE_FROM_HAND"; payload: string[] }
+  | { type: "PLAY_CARD"; payload: string[] }
   | { type: "ADD_TO_HAND"; payload: Datum }
   | { type: "SHUFFLE_DECK" };
 
 export function cardReducer(state: CardState, action: CardAction): CardState {
+  state.lastAction = action.type;
   switch (action.type) {
     case "INITIALIZE_DECK":
       return { ...state, deck: action.payload, cards: [] };
@@ -57,7 +59,7 @@ export function cardReducer(state: CardState, action: CardAction): CardState {
         ...state,
         deck: [...state.deck, ...action.payload.cards],
       };
-    case "REMOVE_FROM_HAND":
+    case "PLAY_CARD":
       return {
         ...state,
         cards: state.cards.filter((card) => !action.payload.includes(card.id)),
