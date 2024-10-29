@@ -11,15 +11,28 @@ const TokenShape = ({
 }) => {
   const { point, size, color, text, fontSize } = shape;
   const [x, y] = point;
-  const [width] = size;
+  const [width, height] = size;
+
   return (
     <g {...commonProps}>
-      <circle cx={x} cy={y} r={width / 2} fill="#1F2421" />
-      <circle cx={x} cy={y} r={(width / 2) * 0.8} fill={color ?? "black"} />
+      <ellipse
+        cx={x + width / 2}
+        cy={y + height / 2}
+        rx={width / 2}
+        ry={height / 2}
+        fill="#1F2421"
+      />
+      <ellipse
+        cx={x + width / 2}
+        cy={y + height / 2}
+        rx={(width / 2) * 0.9}
+        ry={(height / 2) * 0.9}
+        fill={color ?? "black"}
+      />
       {text && (
         <text
-          x={x}
-          y={y}
+          x={x + width / 2}
+          y={y + height / 2}
           textAnchor="middle"
           dominantBaseline="middle"
           style={{

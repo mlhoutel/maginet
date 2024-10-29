@@ -55,7 +55,13 @@ export interface Shape {
   color?: string;
 }
 
-type ShapeType = "rectangle" | "circle" | "arrow" | "text" | "image" | "token";
+export type ShapeType =
+  | "rectangle"
+  | "circle"
+  | "arrow"
+  | "text"
+  | "image"
+  | "token";
 
 export type Mode = "select" | "create";
 
@@ -136,7 +142,7 @@ export default function Canvas() {
   );
 
   const [mode, setMode] = React.useState<Mode>("select");
-  const [shapeType] = React.useState<ShapeType>("text");
+  const [shapeType, setShapeType] = React.useState<ShapeType>("text");
   const [receivedDataMap, setReceivedDataMap] = React.useState<
     Record<string, Shape[]>
   >({});
@@ -734,44 +740,62 @@ export default function Canvas() {
                 selected={selectedShapeIds.includes(shape.id)}
               />
             ))}
-            {editingText && (
-              <foreignObject
-                x={
-                  editingTextShape?.type === "text"
-                    ? editingTextPointX
-                    : editingTextPointX - inputWidth / 2
-                }
-                y={editingTextPointY - inputHeight}
-                height={"100%"}
-                width={"100%"}
-              >
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={editingText.text}
-                  onChange={onTextChange}
-                  onBlur={onTextBlur}
-                  style={{
-                    width: `${inputWidth}px`,
-                    height: `${inputHeight}px`,
-                    fontSize: `${editingTextShape?.fontSize ?? 16}px`,
-                    fontFamily: "Arial",
-                    display: "block",
-                    outline: "none",
-                    border: "none",
-                    textAlign: "left",
-                    padding: "0",
-                    margin: "0",
-                    backgroundColor: "rgba(0, 0, 0, 0)",
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      onTextBlur();
-                    }
-                  }}
-                />
-              </foreignObject>
+            {shapeInCreation && (
+              <ShapeComponent
+                readOnly={false}
+                key={shapeInCreation.shape.id}
+                shape={shapeInCreation.shape}
+                mode={mode}
+                camera={camera}
+                inputRef={inputRef}
+                rDragging={rDragging}
+                setHoveredCard={setHoveredCard}
+                updateDraggingRef={updateDraggingRef}
+                selected={selectedShapeIds.includes(shapeInCreation.shape.id)}
+              />
             )}
+            {editingText &&
+              (function () {
+                let x = editingTextPointX;
+                let y = editingTextPointY - inputHeight;
+                if (editingTextShape?.type === "token") {
+                  const [width, height] = editingTextShape.size;
+                  const [x1, y1] = editingTextShape.point;
+                  x = x1 + width / 2;
+                  y = y1 + height / 2;
+                  y -= inputHeight / 2;
+                  x -= inputWidth / 2;
+                }
+                return (
+                  <foreignObject x={x} y={y} height={"100%"} width={"100%"}>
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={editingText.text ?? ""}
+                      onChange={onTextChange}
+                      onBlur={onTextBlur}
+                      style={{
+                        width: `${inputWidth}px`,
+                        height: `${inputHeight}px`,
+                        fontSize: `${editingTextShape?.fontSize ?? 16}px`,
+                        fontFamily: "Arial",
+                        display: "block",
+                        outline: "none",
+                        border: "none",
+                        textAlign: "left",
+                        padding: "0",
+                        margin: "0",
+                        backgroundColor: "rgba(0, 0, 0, 0)",
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          onTextBlur();
+                        }
+                      }}
+                    />
+                  </foreignObject>
+                );
+              })()}
             {selectionRect && (
               <rect
                 x={selectionRect.x}
@@ -798,6 +822,8 @@ export default function Canvas() {
           addCardToHand={addCardToHand}
           addToken={addToken}
           changeColor={changeColor}
+          shapeType={shapeType}
+          setShapeType={setShapeType}
           deck={deck}
         />
       </div>

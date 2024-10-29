@@ -1,6 +1,6 @@
 import React from "react";
 import { useLocation, Form } from "react-router-dom";
-import { Camera, Card, Mode } from "./Canvas";
+import { Camera, Card, Mode, ShapeType } from "./Canvas";
 import useModal from "./hooks/useModal";
 import { usePeerStore } from "./hooks/usePeerConnection";
 import { useRateLimit } from "./hooks/useRateLimit";
@@ -21,6 +21,8 @@ export function SelectionPanel({
   setCamera,
   changeColor,
   deck,
+  shapeType,
+  setShapeType,
 }: {
   onDrawCard: () => void;
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
@@ -34,6 +36,8 @@ export function SelectionPanel({
   addToken: () => void;
   changeColor: (color: string) => void;
   deck?: Card[];
+  shapeType: ShapeType;
+  setShapeType: React.Dispatch<React.SetStateAction<ShapeType>>;
 }) {
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
   const sendMessage = usePeerStore((state) => state.sendMessage);
@@ -66,17 +70,45 @@ export function SelectionPanel({
     <div className="selection-panel">
       <div>
         <button onClick={onDrawCard}>Draw ({deck?.length})</button>
-        <button
-          disabled={mode === "create"}
-          onClick={() => {
+      </div>
+      <div>
+        <input
+          type="radio"
+          id="create"
+          name="action"
+          value="create"
+          checked={mode === "create" && shapeType === "text"}
+          onChange={() => {
             setMode("create");
+            setShapeType("text");
           }}
-        >
-          create text
-        </button>
-        <button disabled={mode === "select"} onClick={() => setMode("select")}>
-          select
-        </button>
+        />
+        <label htmlFor="create">Create Text</label>
+      </div>
+      <div>
+        <input
+          type="radio"
+          id="select"
+          name="action"
+          value="select"
+          checked={mode === "select"}
+          onChange={() => setMode("select")}
+        />
+        <label htmlFor="select">Select</label>
+      </div>
+      <div>
+        <input
+          type="radio"
+          id="add"
+          name="action"
+          value="add"
+          checked={mode === "create" && shapeType === "token"}
+          onChange={() => {
+            setMode("create");
+            setShapeType("token");
+          }}
+        />
+        <label htmlFor="add">Add Token</label>
       </div>
       <div>
         <button onClick={onMulligan}>Mulligan</button>
