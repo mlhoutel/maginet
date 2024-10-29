@@ -1,6 +1,7 @@
 import React from "react";
 import { Shape as ShapeType } from "../Canvas";
 import { colors } from "../utils/colors";
+import { DOMVector } from "../utils/vec";
 
 const TokenShape = ({
   shape,
@@ -10,20 +11,35 @@ const TokenShape = ({
   commonProps: React.SVGProps<SVGGElement>;
 }) => {
   const { point, size, color, text, fontSize } = shape;
-  const [x, y] = point;
-  const [width] = size;
+  const vector = new DOMVector(point[0], point[1], size[0], size[1]);
+
+  const coordinates = vector.toDOMRect();
+
+  const { x, y, width, height } = coordinates;
   return (
     <g {...commonProps}>
-      <circle cx={x} cy={y} r={width / 2} fill="#1F2421" />
-      <circle cx={x} cy={y} r={(width / 2) * 0.8} fill={color ?? "black"} />
+      <ellipse
+        cx={x + width / 2}
+        cy={y + height / 2}
+        rx={width / 2}
+        ry={height / 2}
+        fill="#1F2421"
+      />
+      <ellipse
+        cx={x + width / 2}
+        cy={y + height / 2}
+        rx={(width / 2) * 0.9}
+        ry={(height / 2) * 0.9}
+        fill={color ?? "#DCE1DE"}
+      />
       {text && (
         <text
-          x={x}
-          y={y}
+          x={x + width / 2}
+          y={y + height / 2}
           textAnchor="middle"
           dominantBaseline="middle"
           style={{
-            fill: colors[color as keyof typeof colors] ?? "white",
+            fill: colors[color as keyof typeof colors] ?? "black",
             fontSize: `${fontSize}px`,
             pointerEvents: "none",
             userSelect: "none",
