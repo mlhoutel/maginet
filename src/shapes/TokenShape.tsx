@@ -27,7 +27,7 @@ const TokenShape = ({
         cy={y + height / 2}
         rx={(width / 2) * 0.9}
         ry={(height / 2) * 0.9}
-        fill={color ?? "black"}
+        fill={color ?? "#DCE1DE"}
       />
       {text && (
         <text
@@ -36,7 +36,7 @@ const TokenShape = ({
           textAnchor="middle"
           dominantBaseline="middle"
           style={{
-            fill: colors[color as keyof typeof colors] ?? "white",
+            fill: colors[color as keyof typeof colors] ?? "black",
             fontSize: `${fontSize}px`,
             pointerEvents: "none",
             userSelect: "none",
