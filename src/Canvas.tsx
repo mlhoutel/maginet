@@ -756,6 +756,9 @@ export default function Canvas() {
             )}
             {editingText &&
               (function () {
+                // This is obviously shady.
+                // Text input should be moved to shape component
+                // and coordinates should be computed there.
                 let x = editingTextPointX;
                 let y = editingTextPointY - inputHeight;
                 if (editingTextShape?.type === "token") {
