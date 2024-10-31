@@ -69,7 +69,15 @@ function ShapeFactory({
       return (
         <RectangleShape
           shape={shape}
-          commonProps={commonProps as React.SVGProps<SVGRectElement>}
+          commonProps={{
+            ...(commonProps as React.SVGProps<SVGRectElement>),
+            onDoubleClick: (e) => {
+              e.stopPropagation();
+              if (readOnly) return;
+              setEditingText({ id: shape.id, text: shape.text! });
+              setTimeout(() => inputRef.current?.focus(), 0);
+            },
+          }}
         />
       );
     case "token":

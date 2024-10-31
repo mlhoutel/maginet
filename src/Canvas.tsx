@@ -761,7 +761,10 @@ export default function Canvas() {
                 // and coordinates should be computed there.
                 let x = editingTextPointX;
                 let y = editingTextPointY - inputHeight;
-                if (editingTextShape?.type === "token") {
+                if (
+                  editingTextShape?.type === "token" ||
+                  editingTextShape?.type === "rectangle"
+                ) {
                   const [width, height] = editingTextShape.size;
                   const [x1, y1] = editingTextShape.point;
                   x = x1 + width / 2;

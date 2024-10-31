@@ -89,7 +89,6 @@ export function SelectionPanel({
             type="radio"
             id="add"
             name="action"
-            value="add"
             checked={mode === "create" && shapeType === "token"}
             onChange={() => {
               setMode("create");
@@ -97,6 +96,20 @@ export function SelectionPanel({
             }}
           />
           <label htmlFor="add">Token</label>
+        </div>
+
+        <div>
+          <input
+            type="radio"
+            id="rectangle"
+            name="action"
+            checked={mode === "create" && shapeType === "rectangle"}
+            onChange={() => {
+              setMode("create");
+              setShapeType("rectangle");
+            }}
+          />
+          <label htmlFor="rectangle">Rectangle</label>
         </div>
         <div>
           <input
