@@ -759,19 +759,24 @@ export default function Canvas() {
                 // This is obviously shady.
                 // Text input should be moved to shape component
                 // and coordinates should be computed there.
-                let x = editingTextPointX;
-                let y = editingTextPointY - inputHeight;
-                if (
-                  editingTextShape?.type === "token" ||
-                  editingTextShape?.type === "rectangle"
-                ) {
-                  const [width, height] = editingTextShape.size;
-                  const [x1, y1] = editingTextShape.point;
-                  x = x1 + width / 2;
-                  y = y1 + height / 2;
-                  y -= inputHeight / 2;
-                  x -= inputWidth / 2;
+                function determineTextCoordinates() {
+                  if (
+                    editingTextShape?.type === "token" ||
+                    editingTextShape?.type === "rectangle"
+                  ) {
+                    const [width, height] = editingTextShape.size;
+                    const [x1, y1] = editingTextShape.point;
+                    let x = x1 + width / 2;
+                    let y = y1 + height / 2;
+                    y -= inputHeight / 2;
+                    x -= inputWidth / 2;
+                    return { x, y };
+                  }
+                  const x = editingTextPointX;
+                  const y = editingTextPointY - inputHeight;
+                  return { x, y };
                 }
+                const { x, y } = determineTextCoordinates();
                 return (
                   <foreignObject x={x} y={y} height={"100%"} width={"100%"}>
                     <input
