@@ -17,11 +17,12 @@ import "./Modal.css";
 import { generateId } from "./utils/math";
 import { useCardReducer } from "./hooks/useCardReducer";
 import { DEFAULT_DECK } from "./DEFAULT_DECK";
-import { zoomCamera, panCamera, getTextWidth } from "./utils/canvas_utils";
+import { zoomCamera, panCamera } from "./utils/canvas_utils";
 import { SelectionPanel } from "./SelectionPanel";
 import inputs, { normalizeWheel } from "./inputs";
 import { useGesture } from "@use-gesture/react";
 import { useShapeStore } from "./hooks/useShapeStore";
+import EditingTextShape from "./EditingTextShape";
 // import ActionLog from "./ActionLog";
 
 export interface Point {
@@ -411,26 +412,7 @@ export default function Canvas() {
       }
     }
   };
-  function onTextChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (editingText) {
-      const updatedText = e.target.value;
-      setEditingText({ ...editingText, text: updatedText });
-      setShapes((prevShapes) =>
-        prevShapes.map((shape) =>
-          shape.id === editingText.id
-            ? {
-                ...shape,
-                text: updatedText,
-                size:
-                  shape.type === "text"
-                    ? [inputWidth, inputHeight]
-                    : shape.size,
-              }
-            : shape
-        )
-      );
-    }
-  }
+
   function onTextBlur() {
     if (editingText?.text === "") {
       setShapes((prevShapes) =>
@@ -660,17 +642,6 @@ export default function Canvas() {
   const others = receivedData;
   const transform = `scale(${camera.z}) translate(${camera.x}px, ${camera.y}px)`;
   const editingTextShape = shapes.find((shape) => shape.id === editingText?.id);
-  const editingTextPointX = editingTextShape?.point[0] ?? 0;
-  const editingTextPointY = editingTextShape?.point[1] ?? 0;
-  let inputWidth = 0;
-  if (editingText) {
-    const textWidth = getTextWidth(
-      editingText.text,
-      `normal ${editingTextShape?.fontSize ?? 16}px Arial`
-    );
-    inputWidth = Math.max(textWidth, 16);
-  }
-  const inputHeight = editingTextShape?.fontSize ?? 16;
 
   const shapesFiltered = shapes.filter((shape) => shape.id !== editingText?.id);
 
@@ -754,59 +725,16 @@ export default function Canvas() {
                 selected={selectedShapeIds.includes(shapeInCreation.shape.id)}
               />
             )}
-            {editingText &&
-              (function () {
-                // This is obviously shady.
-                // Text input should be moved to shape component
-                // and coordinates should be computed there.
-                function determineTextCoordinates() {
-                  if (
-                    editingTextShape?.type === "token" ||
-                    editingTextShape?.type === "rectangle"
-                  ) {
-                    const [width, height] = editingTextShape.size;
-                    const [x1, y1] = editingTextShape.point;
-                    let x = x1 + width / 2;
-                    let y = y1 + height / 2;
-                    y -= inputHeight / 2;
-                    x -= inputWidth / 2;
-                    return { x, y };
-                  }
-                  const x = editingTextPointX;
-                  const y = editingTextPointY - inputHeight;
-                  return { x, y };
-                }
-                const { x, y } = determineTextCoordinates();
-                return (
-                  <foreignObject x={x} y={y} height={"100%"} width={"100%"}>
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={editingText.text ?? ""}
-                      onChange={onTextChange}
-                      onBlur={onTextBlur}
-                      style={{
-                        width: `${inputWidth}px`,
-                        height: `${inputHeight}px`,
-                        fontSize: `${editingTextShape?.fontSize ?? 16}px`,
-                        fontFamily: "Arial",
-                        display: "block",
-                        outline: "none",
-                        border: "none",
-                        textAlign: "left",
-                        padding: "0",
-                        margin: "0",
-                        backgroundColor: "rgba(0, 0, 0, 0)",
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          onTextBlur();
-                        }
-                      }}
-                    />
-                  </foreignObject>
-                );
-              })()}
+            {editingText && (
+              <EditingTextShape
+                editingTextShape={editingTextShape}
+                onTextBlur={onTextBlur}
+                inputRef={inputRef}
+                editingText={editingText}
+                setEditingText={setEditingText}
+                setShapes={setShapes}
+              />
+            )}
             {selectionRect && (
               <rect
                 x={selectionRect.x}
