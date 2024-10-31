@@ -22,7 +22,7 @@ const RectangleShape = ({
         y={y}
         width={width}
         height={height}
-        stroke={color ?? "white"}
+        stroke={color ?? "black"}
         fill="transparent"
       />
       {text && (
