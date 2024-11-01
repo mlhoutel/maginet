@@ -31,6 +31,14 @@ function ShapeFactory({
   } ${shape.point[1] + shape.size[1] / 2}) translate(0, ${
     stackIndex * STACKING_OFFSET
   })`;
+
+  const editText = (e: { stopPropagation: () => void }) => {
+    e.stopPropagation();
+    if (readOnly) return;
+    setEditingText({ id: shape.id, text: shape.text! });
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
   switch (shape.type) {
     case "text":
       return (
@@ -38,12 +46,7 @@ function ShapeFactory({
           shape={shape}
           commonProps={{
             ...(commonProps as React.SVGProps<SVGTextElement>),
-            onDoubleClick: (e) => {
-              e.stopPropagation();
-              if (readOnly) return;
-              setEditingText({ id: shape.id, text: shape.text! });
-              setTimeout(() => inputRef.current?.focus(), 0);
-            },
+            onDoubleClick: editText,
           }}
           transform={transform}
           selected={selected}
@@ -71,12 +74,7 @@ function ShapeFactory({
           shape={shape}
           commonProps={{
             ...(commonProps as React.SVGProps<SVGRectElement>),
-            onDoubleClick: (e) => {
-              e.stopPropagation();
-              if (readOnly) return;
-              setEditingText({ id: shape.id, text: shape.text! });
-              setTimeout(() => inputRef.current?.focus(), 0);
-            },
+            onDoubleClick: editText,
           }}
         />
       );
@@ -86,12 +84,7 @@ function ShapeFactory({
           shape={shape}
           commonProps={{
             ...(commonProps as React.SVGProps<SVGGElement>),
-            onDoubleClick: (e) => {
-              e.stopPropagation();
-              if (readOnly) return;
-              setEditingText({ id: shape.id, text: shape.text! });
-              setTimeout(() => inputRef.current?.focus(), 0);
-            },
+            onDoubleClick: editText,
           }}
         />
       );
