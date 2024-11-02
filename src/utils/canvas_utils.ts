@@ -50,3 +50,48 @@ export function getTextWidth(text: string, font: string) {
   const metrics = context.measureText(text);
   return metrics.width;
 }
+if (document.getElementById("__textMeasure")) {
+  document.getElementById("__textMeasure")!.remove();
+}
+// A div used for measurement
+const mdiv = document.createElement("pre");
+mdiv.id = "__textMeasure";
+
+Object.assign(mdiv.style, {
+  whiteSpace: "pre",
+  width: "auto",
+  border: "1px solid red",
+  padding: "4px",
+  margin: "0px",
+  opacity: "0",
+  position: "absolute",
+  top: "-500px",
+  left: "0px",
+  zIndex: "9999",
+});
+
+mdiv.tabIndex = -1;
+
+document.body.appendChild(mdiv);
+
+export const getBounds = (
+  text: string,
+  x: number,
+  y: number,
+  fontSize?: number
+) => {
+  mdiv.innerHTML = text || " "; // + '&nbsp;'
+  mdiv.style.font = `${fontSize || 16}px Arial`;
+  mdiv.innerHTML = text + "&zwj;";
+
+  const [minX, minY] = [x, y];
+  const [width, height] = [mdiv.offsetWidth, mdiv.offsetHeight];
+  return {
+    minX,
+    maxX: minX + width,
+    minY,
+    maxY: minY + height,
+    width,
+    height,
+  };
+};

@@ -1,16 +1,17 @@
 import React from "react";
-import { getTextWidth } from "./utils/canvas_utils";
+import { getBounds } from "./utils/canvas_utils";
 import { Shape } from "./Canvas";
 
 interface EditableTextProps {
   editingTextShape?: Shape;
   onTextBlur: () => void;
   editingText: { id: string; text: string };
-  inputRef: React.RefObject<HTMLInputElement>;
+  inputRef: React.RefObject<HTMLTextAreaElement>;
   setEditingText: (value: { id: string; text: string }) => void;
   setShapes: React.Dispatch<React.SetStateAction<Shape[]>>;
 }
 
+// Todo refactor: use a div to get text dimensions
 export default function EditableText({
   editingTextShape,
   onTextBlur,
@@ -19,16 +20,13 @@ export default function EditableText({
   setEditingText,
   setShapes,
 }: EditableTextProps) {
-  const editingTextPointX = editingTextShape?.point[0] ?? 0;
-  const editingTextPointY = editingTextShape?.point[1] ?? 0;
-  let inputWidth = 0;
-  const textWidth = getTextWidth(
-    editingText.text,
-    `normal ${editingTextShape?.fontSize ?? 16}px Arial`
-  );
-  inputWidth = Math.max(textWidth, 16);
+  const { point, text, fontSize } = editingTextShape!;
+  const bounds = getBounds(text ?? "", point[0], point[1], fontSize);
 
-  const inputHeight = editingTextShape?.fontSize ?? 16;
+  const inputWidth = bounds.width;
+
+  const inputHeight = bounds.height;
+
   function determineTextCoordinates() {
     if (
       editingTextShape?.type === "token" ||
@@ -42,12 +40,12 @@ export default function EditableText({
       x -= inputWidth / 2;
       return { x, y };
     }
-    const x = editingTextPointX;
-    const y = editingTextPointY - inputHeight;
+    const x = editingTextShape?.point[0];
+    const y = editingTextShape?.point[1];
     return { x, y };
   }
   const { x, y } = determineTextCoordinates();
-  function onTextChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function onTextChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const updatedText = e.target.value;
     setEditingText({ ...editingText, text: updatedText });
     setShapes((prevShapes) =>
@@ -63,29 +61,35 @@ export default function EditableText({
       )
     );
   }
+
   return (
-    <foreignObject x={x} y={y} height={"100%"} width={"100%"}>
-      <input
+    <foreignObject x={x} y={y} height={bounds.height} width={bounds.width}>
+      <textarea
         ref={inputRef}
-        type="text"
         value={editingText.text ?? ""}
         onChange={onTextChange}
         onBlur={onTextBlur}
+        onPointerDown={(e) => e.stopPropagation()}
         style={{
-          width: `${inputWidth}px`,
-          height: `${inputHeight}px`,
           fontSize: `${editingTextShape?.fontSize ?? 16}px`,
           fontFamily: "Arial",
-          display: "block",
-          outline: "none",
+          width: "100%",
+          height: "100%",
           border: "none",
-          textAlign: "left",
-          padding: "0",
-          margin: "0",
-          backgroundColor: "rgba(0, 0, 0, 0)",
+          padding: "4px",
+          whiteSpace: "pre",
+          resize: "none",
+          minHeight: 1,
+          minWidth: 1,
+          outline: 0,
+          overflow: "hidden",
+          pointerEvents: "all",
+          backfaceVisibility: "hidden",
+          display: "inline-block",
+          backgroundColor: "transparent",
         }}
         onKeyDown={(e) => {
-          if (e.key === "Enter") {
+          if (e.key === "Enter" && !e.shiftKey) {
             onTextBlur();
           }
         }}
