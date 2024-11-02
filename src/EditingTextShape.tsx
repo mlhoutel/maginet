@@ -44,9 +44,14 @@ export default function EditableText({
     const y = editingTextShape?.point[1];
     return { x, y };
   }
+
+  function normalizeText(text: string) {
+    return text.replace(/\t/g, "        ").replace(/\r?\n|\r/g, "\n");
+  }
+
   const { x, y } = determineTextCoordinates();
   function onTextChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    const updatedText = e.target.value;
+    const updatedText = normalizeText(e.target.value);
     setEditingText({ ...editingText, text: updatedText });
     setShapes((prevShapes) =>
       prevShapes.map((shape) =>
