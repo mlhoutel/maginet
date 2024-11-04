@@ -15,7 +15,6 @@ function ShapeFactory({
   setEditingText,
   inputRef,
   setHoveredCard,
-  stackIndex,
 }: {
   shape: ShapeType;
   commonProps: React.SVGProps<SVGElement>;
@@ -28,9 +27,7 @@ function ShapeFactory({
 }) {
   const transform = `rotate(${shape.rotation || 0} ${
     shape.point[0] + shape.size[0] / 2
-  } ${shape.point[1] + shape.size[1] / 2}) translate(0, ${
-    stackIndex * STACKING_OFFSET
-  })`;
+  } ${shape.point[1] + shape.size[1] / 2})`;
 
   const editText = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();

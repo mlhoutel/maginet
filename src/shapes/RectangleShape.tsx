@@ -10,14 +10,18 @@ const RectangleShape = ({
   shape: ShapeType;
   commonProps: React.SVGProps<SVGRectElement>;
 }) => {
-  const { point, size, text, fontSize } = shape;
+  const { point, size, text, fontSize, rotation } = shape;
   const vector = new DOMVector(point[0], point[1], size[0], size[1]);
   const coordinates = vector.toDOMRect();
   const { x, y, width, height } = coordinates;
   const bounds = getBounds(text ?? "", point[0], point[1], fontSize);
 
+  const transform = `rotate(${rotation || 0} ${x + width / 2} ${
+    y + height / 2
+  }) translate(${x} ${y})`;
+
   return (
-    <g transform={`translate(${x} ${y})`} {...commonProps}>
+    <g transform={transform} {...commonProps}>
       <rect width={width} height={height} stroke={"black"} x={0} y={0} />
       {text && (
         <foreignObject x={0} y={0} width={bounds.width} height={bounds.height}>

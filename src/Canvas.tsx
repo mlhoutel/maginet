@@ -428,7 +428,8 @@ export default function Canvas() {
     if (mode === "select" && selectedShapeIds.length > 0) {
       setShapes((prevShapes) =>
         prevShapes.map((shape) =>
-          selectedShapeIds.includes(shape.id) && shape.type === "image"
+          selectedShapeIds.includes(shape.id) &&
+          (shape.type === "image" || shape.type === "rectangle")
             ? shape.rotation !== 0
               ? rotateShape(shape, -90)
               : rotateShape(shape, 90)
