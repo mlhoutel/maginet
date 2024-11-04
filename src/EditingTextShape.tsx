@@ -28,10 +28,7 @@ export default function EditableText({
   const inputHeight = bounds.height;
 
   function determineTextCoordinates() {
-    if (
-      editingTextShape?.type === "token" ||
-      editingTextShape?.type === "rectangle"
-    ) {
+    if (editingTextShape?.type === "token") {
       const [width, height] = editingTextShape.size;
       const [x1, y1] = editingTextShape.point;
       let x = x1 + width / 2;
@@ -92,11 +89,6 @@ export default function EditableText({
           backfaceVisibility: "hidden",
           display: "inline-block",
           backgroundColor: "transparent",
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            onTextBlur();
-          }
         }}
       />
     </foreignObject>
