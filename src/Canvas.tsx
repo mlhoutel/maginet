@@ -674,7 +674,20 @@ export default function Canvas() {
             >
               Maginet - pire to pire edition
             </text>
-
+            {others.map((shape) => (
+              <ShapeComponent
+                readOnly={true}
+                key={shape.id}
+                shape={shape}
+                mode={mode}
+                rDragging={{ current: null }}
+                inputRef={{ current: null }}
+                camera={camera}
+                setHoveredCard={setHoveredCard}
+                updateDraggingRef={() => {}}
+                selected={selectedShapeIds.includes(shape.id)}
+              />
+            ))}
             {shapesFiltered.map((shape) => (
               <ShapeComponent
                 readOnly={false}
@@ -688,21 +701,6 @@ export default function Canvas() {
                 updateDraggingRef={updateDraggingRef}
                 selected={selectedShapeIds.includes(shape.id)}
                 color={shape.color}
-              />
-            ))}
-
-            {others.map((shape) => (
-              <ShapeComponent
-                readOnly={true}
-                key={shape.id}
-                shape={shape}
-                mode={mode}
-                rDragging={{ current: null }}
-                inputRef={{ current: null }}
-                camera={camera}
-                setHoveredCard={setHoveredCard}
-                updateDraggingRef={() => {}}
-                selected={selectedShapeIds.includes(shape.id)}
               />
             ))}
             {shapeInCreation && (
