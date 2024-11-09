@@ -7,6 +7,7 @@ import { useRateLimit } from "./hooks/useRateLimit";
 import { useShapeStore } from "./hooks/useShapeStore";
 import { Datum } from "./hooks/useCards";
 import { colors } from "./utils/colors";
+import { getBounds } from "./utils/canvas_utils";
 
 export function SelectionPanel({
   onDrawCard,
@@ -183,11 +184,22 @@ export function SelectionPanel({
               value={selectedShapes[0]?.fontSize}
               onChange={(e) => {
                 setShapes((prevShapes) =>
-                  prevShapes.map((shape) =>
-                    selectedShapeIds.includes(shape.id)
-                      ? { ...shape, fontSize: parseInt(e.target.value) }
-                      : shape
-                  )
+                  prevShapes.map((shape) => {
+                    const bounds = getBounds(
+                      shape.text ?? "",
+                      shape.point[0],
+                      shape.point[1],
+                      parseInt(e.target.value)
+                    );
+
+                    return selectedShapeIds.includes(shape.id)
+                      ? {
+                          ...shape,
+                          fontSize: parseInt(e.target.value),
+                          size: [bounds.width, bounds.height],
+                        }
+                      : shape;
+                  })
                 );
               }}
             >
