@@ -22,7 +22,14 @@ const RectangleShape = ({
 
   return (
     <g transform={transform} {...commonProps}>
-      <rect width={width} height={height} stroke={"black"} x={0} y={0} />
+      <rect
+        width={width}
+        height={height}
+        fill="transparent"
+        stroke="black"
+        x={0}
+        y={0}
+      />
       {text && (
         <foreignObject x={0} y={0} width={bounds.width} height={bounds.height}>
           <div
