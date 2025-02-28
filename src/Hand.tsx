@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Card } from "./Canvas";
+import { Card } from "./types/canvas";
 
 interface HandProps {
   cards: Card[];

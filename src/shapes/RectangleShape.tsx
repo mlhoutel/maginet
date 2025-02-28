@@ -1,5 +1,5 @@
 import React from "react";
-import { Shape as ShapeType } from "../Canvas";
+import { Shape as ShapeType } from "../types/canvas";
 import { DOMVector } from "../utils/vec";
 import { getBounds } from "../utils/canvas_utils";
 

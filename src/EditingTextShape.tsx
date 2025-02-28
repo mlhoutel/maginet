@@ -1,6 +1,6 @@
 import React from "react";
 import { getBounds } from "./utils/canvas_utils";
-import { Shape } from "./Canvas";
+import { Shape } from "./types/canvas";
 
 interface EditableTextProps {
   editingTextShape?: Shape;

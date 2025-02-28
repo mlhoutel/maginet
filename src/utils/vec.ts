@@ -1,4 +1,4 @@
-import { Point, Camera } from "../Canvas";
+import { Point, Camera } from "../types/canvas";
 
 export function screenToCanvas(point: Point, camera: Camera): Point {
   return {

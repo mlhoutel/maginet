@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { generateId, shuffle } from "../utils/math";
-import { Card } from "../Canvas";
+import { Card } from "../types/canvas";
 
 const fetchCards = async (names: string[]) => {
   const response = await fetch("https://api.scryfall.com/cards/collection", {

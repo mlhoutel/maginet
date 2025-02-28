@@ -1,4 +1,4 @@
-import { Camera } from "../Canvas";
+import { Camera } from "../types/canvas";
 import vec from "./vec";
 
 export function panCamera(camera: Camera, dx: number, dy: number): Camera {

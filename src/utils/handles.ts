@@ -1,4 +1,4 @@
-import { Shape } from "../Canvas";
+import { Shape } from "../types/canvas";
 
 export function getEdgesOfRectange(rectangle: Shape) {
   // Top, Right, Bottom, Left

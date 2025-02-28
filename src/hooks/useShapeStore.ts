@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Shape } from "../Canvas";
+import { Shape } from "../types/canvas";
 import { generateId } from "../utils/math";
 import vec from "../utils/vec";
 

@@ -1,5 +1,5 @@
 import { useReducer } from "react";
-import { Card } from "../Canvas";
+import { Card } from "../types/canvas";
 import { generateId, shuffle } from "../utils/math";
 import { Datum, mapDataToCard } from "./useCards";
 

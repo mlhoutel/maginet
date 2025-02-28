@@ -1,5 +1,5 @@
 import React from "react";
-import { Shape as ShapeType } from "../Canvas";
+import { Shape as ShapeType } from "../types/canvas";
 
 const ImageShape = ({
   shape,

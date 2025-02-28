@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Camera, Mode, Shape as ShapeType } from "./Canvas";
+import { Camera, Mode, Shape as ShapeType } from "./types/canvas";
 import { screenToCanvas } from "./utils/vec";
 import vec from "./utils/vec";
 import { useShapeStore } from "./hooks/useShapeStore";
@@ -88,7 +88,7 @@ export function Shape({
     setShapes((prevShapes) =>
       prevShapes.map((s) =>
         s.id === rDragging.current?.shape.id
-          ? { ...s, point: vec.add(rDragging.current.shape.point, delta) }
+          ? { ...s, point: vec.add(rDragging.current!.shape.point, delta) }
           : draggingShapeRefs.current[s.id]
           ? {
               ...s,

@@ -1,5 +1,5 @@
 import React from "react";
-import { Shape as ShapeType } from "../Canvas";
+import { Shape as ShapeType } from "../types/canvas";
 import { getBounds } from "../utils/canvas_utils";
 
 // TODO Refactor use foreignObject to render text to keep return to lines
