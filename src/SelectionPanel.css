@@ -1,1 +1,136 @@
- 
+.selection-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 260px;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-left: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+  border-bottom-left-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 90vh;
+  overflow-y: auto;
+  color: black;
+  z-index: 100;
+}
+
+.selection-panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.selection-panel-section:last-child {
+  border-bottom: none;
+}
+
+.selection-panel h3 {
+  font-size: 14px;
+  margin: 0 0 8px 0;
+  color: #444;
+  font-weight: 600;
+}
+
+.selection-panel button {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.selection-panel button:active {
+  transform: translateY(1px);
+}
+
+.selection-panel-button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.shape-type-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shape-type-option {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.shape-type-option label {
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.color-selector,
+.font-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.color-selector label,
+.font-size-selector label {
+  font-size: 13px;
+  min-width: 70px;
+}
+
+.color-selector select,
+.font-size-selector select {
+  flex: 1;
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.peer-connection {
+  display: flex;
+  gap: 8px;
+}
+
+.peer-connection input {
+  flex: 1;
+  padding: 6px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.peer-id-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.peer-id-display input {
+  flex: 1;
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid #eee;
+  background-color: #f8f8f8;
+  font-size: 12px;
+}
+
+.card-search {
+  display: flex;
+  gap: 8px;
+}
+
+.card-search input {
+  flex: 1;
+  padding: 6px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
