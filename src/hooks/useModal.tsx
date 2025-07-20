@@ -7,8 +7,7 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-
-import Modal from "../Modal";
+import { Modal } from "./Modal";
 
 export default function useModal(): [
   JSX.Element | null,

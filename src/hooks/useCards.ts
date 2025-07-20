@@ -215,21 +215,103 @@ export function processRawText(fromArena: string) {
     return [];
   });
 }
-export function mapDataToCards(data?: Datum[]): Card[] {
-  return data?.map(mapDataToCard) ?? [];
+export function mapDataToCards(data?: Datum[], originalNames?: string[]): Card[] {
+  if (!data) return [];
+  
+  // If we have the original card names with quantities, use them
+  if (originalNames) {
+    const allCards: Card[] = [];
+    
+    for (const cardName of originalNames) {
+      // Find the matching card data from the API response
+      const cardData = data.find(d => d.name.toLowerCase() === cardName.toLowerCase());
+      if (cardData) {
+        allCards.push(mapDataToCard(cardData));
+      } else {
+        console.warn(`Card not found in API response: ${cardName}`);
+      }
+    }
+    
+    return allCards;
+  }
+  
+  // Fallback to the old behavior if no original names provided
+  const allCards: Card[] = [];
+  const processedIds = new Set<string>();
+  
+  for (const datum of data) {
+    if (!processedIds.has(datum.id)) {
+      allCards.push(mapDataToCard(datum));
+      processedIds.add(datum.id);
+    }
+  }
+  
+  return allCards;
+}
+
+export async function fetchRelatedCards(data: Datum[]): Promise<Card[]> {
+  const relatedCardNames = new Set<string>();
+  const mainCardNames = new Set(data.map(d => d.name));
+  
+  // Collect all related card names
+  for (const datum of data) {
+    if (datum.all_parts && datum.all_parts.length > 1) {
+      for (const part of datum.all_parts) {
+        if (!mainCardNames.has(part.name)) {
+          relatedCardNames.add(part.name);
+        }
+      }
+    }
+  }
+  
+  if (relatedCardNames.size === 0) {
+    return [];
+  }
+  
+  // Fetch full data for related cards
+  try {
+    const relatedData = await getCards(Array.from(relatedCardNames));
+    const relatedCards = relatedData.flatMap(collection => collection.data || []);
+    
+    // Map to Card objects and mark as related
+    return relatedCards.map(cardData => {
+      const card = mapDataToCard(cardData);
+      // Find which main card this is related to
+      const parentCard = data.find(d => 
+        d.all_parts?.some(part => part.name === cardData.name)
+      );
+      
+      return {
+        ...card,
+        isRelatedCard: true,
+        relatedTo: parentCard?.name || 'Unknown',
+      };
+    });
+  } catch (error) {
+    console.warn('Failed to fetch related cards:', error);
+    return [];
+  }
 }
 
 export function mapDataToCard(data: Datum): Card {
   if (data.image_uris?.normal) {
+    console.log('🎯 Creating card with image:', data.name, data.image_uris.normal);
     return {
       id: generateId(),
       src: [data.image_uris.normal],
+      srcIndex: 0,
+      name: data.name,
     };
   } else if (data.card_faces?.length) {
+    const faceImages = data.card_faces.map((face) => face.image_uris.normal);
+    console.log('🎯 Creating multi-face card:', data.name, faceImages);
     return {
       id: generateId(),
-      src: data.card_faces.map((face) => face.image_uris.normal),
+      src: faceImages,
+      srcIndex: 0,
+      name: data.name,
     };
   }
+  console.error('❌ Invalid card data for:', data.name, data);
   throw new Error("Invalid card data");
 }
