@@ -3,8 +3,8 @@
   position: fixed;
   top: 20px;
   right: 20px;
-  width: 300px;
-  height: 420px;
+  width: calc(300*1,5)px;
+  height: calc(420*1,5)px;;
   border: 2px solid #000;
   border-radius: 8px;
   background: white;
