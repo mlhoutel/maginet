@@ -186,72 +186,72 @@ export function MTGContextMenu({ addCardToHand, sendToTopOfDeck, sendToBottomOfD
     return cardSrc.length > 1;
   });
 
-  return (
-    <DefaultContextMenu>
-      {hasMTGCards && (
-        <>
-          <TldrawUiMenuGroup id="mtg-card-actions">
+  if (hasMTGCards) {
+    return (
+      <DefaultContextMenu>
+        <TldrawUiMenuGroup id="mtg-card-actions">
+          <TldrawUiMenuItem
+            id="tap"
+            label="Tap"
+            icon="rotate-cw"
+            onSelect={tapCard}
+          />
+          <TldrawUiMenuItem
+            id="remove-from-canvas"
+            label="Remove from Canvas"
+            icon="trash-2"
+            onSelect={removeFromCanvas}
+          />
+          <TldrawUiMenuItem
+            id="send-to-hand"
+            label="Send to Hand"
+            icon="arrow-left"
+            onSelect={sendToHand}
+          />
+          <TldrawUiMenuItem
+            id="send-to-top-of-deck"
+            label="Send to Top of Deck"
+            icon="arrow-up"
+            onSelect={sendToTopOfDeckAction}
+          />
+          <TldrawUiMenuItem
+            id="send-to-bottom-of-deck"
+            label="Send to Bottom of Deck"
+            icon="arrow-down"
+            onSelect={sendToBottomOfDeckAction}
+          />
+          <TldrawUiMenuItem
+            id="copy"
+            label="Copy"
+            icon="copy"
+            onSelect={copyCard}
+          />
+          {hasMultiFaced && (
             <TldrawUiMenuItem
-              id="tap"
-              label="Tap"
-              icon="rotate-cw"
-              onSelect={tapCard}
+              id="transform"
+              label="Transform"
+              icon="refresh-cw"
+              onSelect={transformCard}
             />
-            <TldrawUiMenuItem
-              id="remove-from-canvas"
-              label="Remove from Canvas"
-              icon="trash-2"
-              onSelect={removeFromCanvas}
-            />
-            <TldrawUiMenuItem
-              id="send-to-hand"
-              label="Send to Hand"
-              icon="arrow-left"
-              onSelect={sendToHand}
-            />
-            <TldrawUiMenuItem
-              id="send-to-top-of-deck"
-              label="Send to Top of Deck"
-              icon="arrow-up"
-              onSelect={sendToTopOfDeckAction}
-            />
-            <TldrawUiMenuItem
-              id="send-to-bottom-of-deck"
-              label="Send to Bottom of Deck"
-              icon="arrow-down"
-              onSelect={sendToBottomOfDeckAction}
-            />
-            <TldrawUiMenuItem
-              id="copy"
-              label="Copy"
-              icon="copy"
-              onSelect={copyCard}
-            />
-            {hasMultiFaced && (
-              <TldrawUiMenuItem
-                id="transform"
-                label="Transform"
-                icon="refresh-cw"
-                onSelect={transformCard}
-              />
-            )}
-          </TldrawUiMenuGroup>
-          <TldrawUiMenuGroup id="mtg-position-actions">
-            <TldrawUiMenuItem
-              id="bring-to-front"
-              label="Bring to front"
-              icon="chevron-up"
-              onSelect={bringToFront}
-            />
-            <TldrawUiMenuItem
-              id="send-to-back"
-              label="Bring to back"
-              icon="chevron-down"
-              onSelect={sendToBack}
-            />
-          </TldrawUiMenuGroup>
-        </>
-      )}
-    </DefaultContextMenu>
-  );
+          )}
+        </TldrawUiMenuGroup>
+        <TldrawUiMenuGroup id="mtg-position-actions">
+          <TldrawUiMenuItem
+            id="bring-to-front"
+            label="Bring to front"
+            icon="chevron-up"
+            onSelect={bringToFront}
+          />
+          <TldrawUiMenuItem
+            id="send-to-back"
+            label="Bring to back"
+            icon="chevron-down"
+            onSelect={sendToBack}
+          />
+        </TldrawUiMenuGroup>
+      </DefaultContextMenu>
+    );
+  }
+
+  return <DefaultContextMenu />;
 }
