@@ -3,6 +3,8 @@ import {
   Tldraw,
   useEditor,
   AssetRecordType,
+  DefaultMenuPanel,
+  TLComponents,
 } from 'tldraw';
 import { useSyncDemo } from '@tldraw/sync';
 import 'tldraw/tldraw.css';
@@ -254,20 +256,38 @@ export const TldrawCanvas = React.memo(function TldrawCanvas({
     roomId,
   });
 
+  // Custom menu panel positioned in bottom-right
+  const CustomMenuPanel = React.useCallback(() => {
+    return (
+      <div style={{
+        position: 'fixed',
+        bottom: '20px',
+        right: '20px',
+        zIndex: 1000,
+        pointerEvents: 'auto',
+      }}>
+        <DefaultMenuPanel />
+      </div>
+    );
+  }, []);
+
+  const components: TLComponents = React.useMemo(() => ({
+    MenuPanel: CustomMenuPanel,
+    ContextMenu: () => (
+      <MTGContextMenu
+        addCardToHand={addCardToHand}
+        sendToTopOfDeck={sendToTopOfDeck}
+        sendToBottomOfDeck={sendToBottomOfDeck}
+      />
+    ),
+  }), [CustomMenuPanel, addCardToHand, sendToTopOfDeck, sendToBottomOfDeck]);
+
 
   return (
     <div style={{ position: 'absolute', inset: 0, top: 0, left: 0, right: 0, bottom: 0 }}>
       <Tldraw
         store={store}
-        components={{
-          ContextMenu: () => (
-            <MTGContextMenu
-              addCardToHand={addCardToHand}
-              sendToTopOfDeck={sendToTopOfDeck}
-              sendToBottomOfDeck={sendToBottomOfDeck}
-            />
-          ),
-        }}
+        components={components}
       >
         <TldrawDropHandler playCardFromHand={playCardFromHand} />
         <TldrawCardPreview />
