@@ -290,7 +290,7 @@ export const TldrawCanvas = React.memo(function TldrawCanvas({
 
       {/* Global card preview element */}
       <div id="simple-card-preview" className="simple-card-preview">
-        <img src="" alt="Card preview" />
+        <img alt="Card preview" />
       </div>
     </div>
   );
