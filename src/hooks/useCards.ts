@@ -224,11 +224,34 @@ export function mapDataToCards(data?: Datum[], originalNames?: string[]): Card[]
 
     for (const cardName of originalNames) {
       // Find the matching card data from the API response
-      // Handle double-faced cards where the deck name might only match the front face
+      // Handle various card naming conventions (double-faced, split, etc.)
       const cardData = data.find(d => {
-        const apiName = d.name.toLowerCase();
-        const searchName = cardName.toLowerCase();
-        return apiName === searchName || apiName.startsWith(searchName + ' //');
+        const apiName = d.name.toLowerCase().trim();
+        const searchName = cardName.toLowerCase().trim();
+        
+        // Exact match
+        if (apiName === searchName) return true;
+        
+        // Double-faced cards: "Front Name // Back Name" vs "Front Name"
+        if (apiName.includes(' // ')) {
+          const frontName = apiName.split(' // ')[0];
+          if (frontName === searchName) return true;
+        }
+        
+        // Split cards: "Left // Right" vs "Left" or "Right"
+        if (apiName.includes(' // ')) {
+          const parts = apiName.split(' // ');
+          if (parts.some(part => part.trim() === searchName)) return true;
+        }
+        
+        // Adventure cards: "Creature Name // Adventure Name" 
+        // Modal double-faced cards, etc.
+        if (searchName.includes(' // ')) {
+          const searchParts = searchName.split(' // ');
+          if (searchParts.some(part => apiName.includes(part.trim()))) return true;
+        }
+        
+        return false;
       });
       if (cardData) {
         allCards.push(mapDataToCard(cardData));
