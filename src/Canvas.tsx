@@ -6,7 +6,7 @@ import useCards, {
   fetchRelatedCards,
 } from "./hooks/useCards";
 import { useCardReducer } from "./hooks/useCardReducer";
-import { DEFAULT_DECK } from "./DEFAULT_DECK";
+// import { DEFAULT_DECK } from "./DEFAULT_DECK";
 import { TldrawCanvas } from "./TldrawCanvas";
 import { Card } from "./types/canvas";
 import { useEffect, useState } from "react";
@@ -19,7 +19,7 @@ function Canvas() {
   const d = params.get("deck");
 
   // Process deck text to get card names with quantities
-  const originalCardNames = Array.from(processRawText(d || DEFAULT_DECK.join("\n")));
+  const originalCardNames = Array.from(processRawText(d ?? ""));
 
   // Card data from API
   const { data, isLoading } = useCards(originalCardNames);
@@ -41,7 +41,6 @@ function Canvas() {
       const initializeDeck = async () => {
         const mainCards: Card[] = mapDataToCards(data, originalCardNames);
         const fetchedRelatedCards: Card[] = await fetchRelatedCards(data);
-
         // Only main cards go in the drawable deck
         dispatch({ type: "INITIALIZE_DECK", payload: mainCards });
 
