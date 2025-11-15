@@ -122,17 +122,16 @@ function Canvas() {
   // Gesture handling
   useGesture(
     {
-      onWheel: ({ event, delta, ctrlKey, shiftKey }) => {
+      onWheel: ({ event, delta, ctrlKey }) => {
         event.preventDefault();
-        const { point } = inputs.wheel(event as WheelEvent);
-        const z = normalizeWheel(event)[2];
-
-        // Shift key = pan horizontally, otherwise zoom
-        if (shiftKey) {
-          setCamera((camera) => panCamera(camera, delta[1], 0));
-        } else {
-          // Always zoom with scroll wheel (better for mouse users)
+        // Ctrl+scroll or pinch = zoom, regular scroll = pan
+        if (ctrlKey) {
+          const { point } = inputs.wheel(event as WheelEvent);
+          const z = normalizeWheel(event)[2];
           setCamera((prev) => zoomCamera(prev, point, z * 0.618));
+        } else {
+          // Regular scroll pans (good for trackpad)
+          setCamera((camera) => panCamera(camera, delta[0], delta[1]));
         }
       },
     },
