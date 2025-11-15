@@ -577,14 +577,14 @@ function Canvas() {
           x: window.innerWidth / 2,
           y: window.innerHeight / 2,
         };
-        setCamera((prev) => zoomCamera(prev, centerPoint, -0.2));
+        setCamera((prev) => zoomCamera(prev, [centerPoint.x, centerPoint.y], -0.2));
       } else if (event.key === "-" || event.key === "_") {
         // Zoom out at center of screen with smooth increment
         const centerPoint = {
           x: window.innerWidth / 2,
           y: window.innerHeight / 2,
         };
-        setCamera((prev) => zoomCamera(prev, centerPoint, 0.2));
+        setCamera((prev) => zoomCamera(prev, [centerPoint.x, centerPoint.y], 0.2));
       } else if (
         event.key === "Backspace" &&
         selectedShapeIds.length > 0
