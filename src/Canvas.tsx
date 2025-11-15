@@ -128,10 +128,12 @@ function Canvas() {
         if (ctrlKey) {
           const { point } = inputs.wheel(event as WheelEvent);
           const z = normalizeWheel(event)[2];
-          setCamera((prev) => zoomCamera(prev, point, z * 0.618));
+          // Reduced zoom sensitivity for smoother zooming
+          setCamera((prev) => zoomCamera(prev, point, z * 0.3));
         } else {
           // Regular scroll pans (good for trackpad)
-          setCamera((camera) => panCamera(camera, delta[0], delta[1]));
+          // Smooth pan with reduced sensitivity
+          setCamera((camera) => panCamera(camera, delta[0] * 0.8, delta[1] * 0.8));
         }
       },
     },
@@ -566,19 +568,19 @@ function Canvas() {
         setIsSpacePressed(true);
         document.body.style.cursor = "grab";
       } else if (event.key === "+" || event.key === "=") {
-        // Zoom in at center of screen
+        // Zoom in at center of screen with smooth increment
         const centerPoint = {
           x: window.innerWidth / 2,
           y: window.innerHeight / 2,
         };
-        setCamera((prev) => zoomCamera(prev, centerPoint, -0.5));
+        setCamera((prev) => zoomCamera(prev, centerPoint, -0.2));
       } else if (event.key === "-" || event.key === "_") {
-        // Zoom out at center of screen
+        // Zoom out at center of screen with smooth increment
         const centerPoint = {
           x: window.innerWidth / 2,
           y: window.innerHeight / 2,
         };
-        setCamera((prev) => zoomCamera(prev, centerPoint, 0.5));
+        setCamera((prev) => zoomCamera(prev, centerPoint, 0.2));
       } else if (
         event.key === "Backspace" &&
         selectedShapeIds.length > 0
