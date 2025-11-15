@@ -68,6 +68,7 @@ function Canvas() {
   >({});
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [isCommandPressed, setIsCommandPressed] = useState(false);
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPosition, setLastPanPosition] = useState<Point | null>(null);
@@ -121,15 +122,17 @@ function Canvas() {
   // Gesture handling
   useGesture(
     {
-      onWheel: ({ event, delta, ctrlKey }) => {
+      onWheel: ({ event, delta, ctrlKey, shiftKey }) => {
         event.preventDefault();
-        if (ctrlKey) {
-          const { point } = inputs.wheel(event as WheelEvent);
-          const z = normalizeWheel(event)[2];
-          setCamera((prev) => zoomCamera(prev, point, z * 0.618));
-          return;
+        const { point } = inputs.wheel(event as WheelEvent);
+        const z = normalizeWheel(event)[2];
+
+        // Shift key = pan horizontally, otherwise zoom
+        if (shiftKey) {
+          setCamera((camera) => panCamera(camera, delta[1], 0));
         } else {
-          setCamera((camera) => panCamera(camera, delta[0], delta[1]));
+          // Always zoom with scroll wheel (better for mouse users)
+          setCamera((prev) => zoomCamera(prev, point, z * 0.618));
         }
       },
     },
@@ -326,8 +329,8 @@ function Canvas() {
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
 
-    // Handle panning with Alt key
-    if (e.button === 0 && e.altKey) {
+    // Handle panning with middle mouse button, Space+drag, or Alt+drag
+    if (e.button === 1 || (e.button === 0 && (isSpacePressed || e.altKey))) {
       setIsPanning(true);
       setLastPanPosition({ x: e.clientX, y: e.clientY });
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -464,11 +467,13 @@ function Canvas() {
   // Effects
   useEffect(() => {
     if (isPanning) {
+      document.body.style.cursor = "grabbing";
+    } else if (isSpacePressed) {
       document.body.style.cursor = "grab";
     } else {
       document.body.style.cursor = "default";
     }
-  }, [isPanning]);
+  }, [isPanning, isSpacePressed]);
 
   useEffect(() => {
     const unsubscribe = useShapeStore.subscribe((state) => {
@@ -552,12 +557,32 @@ function Canvas() {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      // Ignore keyboard shortcuts when editing text
+      if (editingText) return;
+
       if (event.key === "Control") {
         setIsCommandPressed(true);
+      } else if (event.key === " ") {
+        event.preventDefault(); // Prevent page scroll
+        setIsSpacePressed(true);
+        document.body.style.cursor = "grab";
+      } else if (event.key === "+" || event.key === "=") {
+        // Zoom in at center of screen
+        const centerPoint = {
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2,
+        };
+        setCamera((prev) => zoomCamera(prev, centerPoint, -0.5));
+      } else if (event.key === "-" || event.key === "_") {
+        // Zoom out at center of screen
+        const centerPoint = {
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2,
+        };
+        setCamera((prev) => zoomCamera(prev, centerPoint, 0.5));
       } else if (
         event.key === "Backspace" &&
-        selectedShapeIds.length > 0 &&
-        editingText === null
+        selectedShapeIds.length > 0
       ) {
         setShapes((prevShapes) =>
           prevShapes.filter((shape) => !selectedShapeIds.includes(shape.id))
@@ -569,6 +594,11 @@ function Canvas() {
     function handleKeyUp(event: KeyboardEvent) {
       if (event.key === "Control") {
         setIsCommandPressed(false);
+      } else if (event.key === " ") {
+        setIsSpacePressed(false);
+        if (!isPanning) {
+          document.body.style.cursor = "default";
+        }
       }
     }
 
@@ -585,6 +615,8 @@ function Canvas() {
     selectedShapeIds,
     setShapes,
     setSelectedShapeIds,
+    isPanning,
+    setCamera,
   ]);
 
   useEffect(() => {
