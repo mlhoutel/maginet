@@ -72,6 +72,7 @@ function Canvas() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPosition, setLastPanPosition] = useState<Point | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Refs
   const ref = useRef<SVGSVGElement>(null);
@@ -567,6 +568,9 @@ function Canvas() {
         event.preventDefault(); // Prevent page scroll
         setIsSpacePressed(true);
         document.body.style.cursor = "grab";
+      } else if (event.key === "?" || event.key === "/") {
+        // Toggle help panel
+        setShowHelp((prev) => !prev);
       } else if (event.key === "+" || event.key === "=") {
         // Zoom in at center of screen with smooth increment
         const centerPoint = {
@@ -755,6 +759,107 @@ function Canvas() {
       {isCommandPressed && hoveredCard && (
         <div className="zoomed-card" style={{ pointerEvents: "none" }}>
           <img src={hoveredCard} alt={`Zoomed ${hoveredCard}`} />
+        </div>
+      )}
+
+      {/* Help button */}
+      <button
+        onClick={() => setShowHelp(!showHelp)}
+        style={{
+          position: "fixed",
+          top: "20px",
+          left: "20px",
+          width: "32px",
+          height: "32px",
+          borderRadius: "50%",
+          border: "2px solid #666",
+          background: showHelp ? "#444" : "#fff",
+          color: showHelp ? "#fff" : "#666",
+          fontSize: "18px",
+          fontWeight: "bold",
+          cursor: "pointer",
+          zIndex: 1001,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+        }}
+        title="Show controls (Press ?)"
+      >
+        ?
+      </button>
+
+      {/* Help panel */}
+      {showHelp && (
+        <div
+          style={{
+            position: "fixed",
+            top: "60px",
+            left: "20px",
+            background: "rgba(0, 0, 0, 0.9)",
+            color: "#fff",
+            padding: "20px",
+            borderRadius: "8px",
+            fontSize: "14px",
+            fontFamily: "monospace",
+            zIndex: 1001,
+            maxWidth: "350px",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+          }}
+        >
+          <h3 style={{ marginTop: 0, marginBottom: "12px", fontSize: "16px" }}>
+            Canvas Controls
+          </h3>
+
+          <div style={{ marginBottom: "16px" }}>
+            <h4 style={{ margin: "8px 0 6px", fontSize: "14px", color: "#aaa" }}>
+              Panning
+            </h4>
+            <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
+              • Two-finger scroll (trackpad)<br />
+              • Middle mouse button + drag<br />
+              • Space + drag<br />
+              • Alt + drag<br />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: "16px" }}>
+            <h4 style={{ margin: "8px 0 6px", fontSize: "14px", color: "#aaa" }}>
+              Zooming
+            </h4>
+            <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
+              • Pinch gesture (trackpad)<br />
+              • Ctrl + scroll wheel<br />
+              • + / - keys<br />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: "16px" }}>
+            <h4 style={{ margin: "8px 0 6px", fontSize: "14px", color: "#aaa" }}>
+              Other
+            </h4>
+            <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
+              • Ctrl + hover card = preview<br />
+              • Backspace = delete selected<br />
+              • ? = toggle this help<br />
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowHelp(false)}
+            style={{
+              marginTop: "8px",
+              padding: "6px 12px",
+              background: "#444",
+              color: "#fff",
+              border: "1px solid #666",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "12px",
+            }}
+          >
+            Close
+          </button>
         </div>
       )}
     </div>
