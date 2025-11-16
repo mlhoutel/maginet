@@ -64,6 +64,40 @@ export default function EditableText({
     );
   }
 
+  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter") {
+      if (e.altKey) {
+        // Option+Enter = insert new line
+        e.preventDefault();
+        const textarea = e.currentTarget;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const newText = editingText.text.substring(0, start) + "\n" + editingText.text.substring(end);
+        const updatedText = normalizeText(newText);
+        setEditingText({ ...editingText, text: updatedText });
+        setShapes((prevShapes) =>
+          prevShapes.map((shape) =>
+            shape.id === editingText.id
+              ? {
+                  ...shape,
+                  text: updatedText,
+                  size: shape.type === "text" ? [inputWidth, inputHeight] : shape.size,
+                }
+              : shape
+          )
+        );
+        // Set cursor position after the newline
+        setTimeout(() => {
+          textarea.selectionStart = textarea.selectionEnd = start + 1;
+        }, 0);
+      } else {
+        // Enter = submit
+        e.preventDefault();
+        onTextBlur();
+      }
+    }
+  };
+
   return (
     <foreignObject x={x} y={y} height={bounds.height} width={bounds.width}>
       <textarea
@@ -71,6 +105,7 @@ export default function EditableText({
         value={editingText.text ?? ""}
         onChange={onTextChange}
         onBlur={onTextBlur}
+        onKeyDown={onKeyDown}
         onPointerDown={(e) => e.stopPropagation()}
         style={{
           fontSize: `${editingTextShape?.fontSize ?? 16}px`,
