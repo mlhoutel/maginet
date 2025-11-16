@@ -308,6 +308,7 @@ function Canvas() {
   const handleDrop = (e: React.DragEvent<SVGElement>) => {
     e.preventDefault();
     const cardId = e.dataTransfer.getData("text/plain");
+    const playFaceDown = e.dataTransfer.getData("playFaceDown") === "true";
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const card = cardState.cards.find((card) => card.id === cardId);
     if (!card) return;
@@ -323,6 +324,7 @@ function Canvas() {
         src: card.src,
         srcIndex: 0,
         rotation: 0,
+        isFlipped: playFaceDown,
       },
     ]);
   };
@@ -836,10 +838,20 @@ function Canvas() {
 
           <div style={{ marginBottom: "16px" }}>
             <h4 style={{ margin: "8px 0 6px", fontSize: "14px", color: "#aaa" }}>
+              Card Actions
+            </h4>
+            <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
+              • Shift + drag from hand = play face-down<br />
+              • Right-click card → Flip = toggle face-down<br />
+              • Ctrl + hover card = preview<br />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: "16px" }}>
+            <h4 style={{ margin: "8px 0 6px", fontSize: "14px", color: "#aaa" }}>
               Other
             </h4>
             <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
-              • Ctrl + hover card = preview<br />
               • Backspace = delete selected<br />
               • ? = toggle this help<br />
             </div>
