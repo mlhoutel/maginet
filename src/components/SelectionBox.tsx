@@ -139,6 +139,18 @@ export function SelectionBox({
     if (newWidth < 10) newWidth = 10;
     if (newHeight < 10) newHeight = 10;
 
+    // 3b) Lock aspect ratio for text/rectangle by applying uniform scale
+    let scaleForText: number | null = null;
+    if (originalShape.type === "text" || originalShape.type === "rectangle") {
+      const widthRatio = origWidth ? newWidth / origWidth : 1;
+      const heightRatio = origHeight ? newHeight / origHeight : 1;
+      const uniformScale = Math.max(widthRatio, heightRatio, 0.1);
+
+      newWidth = origWidth * uniformScale;
+      newHeight = origHeight * uniformScale;
+      scaleForText = uniformScale;
+    }
+
     // 4) Simplified placement: move the CENTER by half the size change along local axes,
     //    then rotate that shift back to screen space.
     const dW = newWidth - origWidth;
@@ -179,13 +191,9 @@ export function SelectionBox({
     const newX = newCenterX - newWidth / 2;
     const newY = newCenterY - newHeight / 2;
 
-    const widthRatio = origWidth ? newWidth / origWidth : 1;
-    const heightRatio = origHeight ? newHeight / origHeight : 1;
-    const scaleFactor = Math.max(0.1, Math.min(widthRatio, heightRatio));
-
     const newFontSize =
-      originalShape.type === "text" || originalShape.type === "rectangle"
-        ? (originalShape.fontSize || 16) * scaleFactor
+      scaleForText && (originalShape.type === "text" || originalShape.type === "rectangle")
+        ? (originalShape.fontSize || 16) * scaleForText
         : undefined;
 
     onResize([newWidth, newHeight], [newX, newY], newFontSize);
