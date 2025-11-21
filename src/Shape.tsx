@@ -138,11 +138,22 @@ export function Shape({
 
   const handleResize = (
     newSize: [number, number],
-    newPoint: [number, number]
+    newPoint: [number, number],
+    newFontSize?: number
   ) => {
     setShapes((prevShapes) =>
       prevShapes.map((s) =>
-        s.id === shape.id ? { ...s, size: newSize, point: newPoint } : s
+        s.id === shape.id
+          ? {
+              ...s,
+              size: newSize,
+              point: newPoint,
+              fontSize:
+                newFontSize && (s.type === "text" || s.type === "rectangle")
+                  ? newFontSize
+                  : s.fontSize,
+            }
+          : s
       )
     );
   };

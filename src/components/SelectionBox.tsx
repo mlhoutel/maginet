@@ -7,7 +7,11 @@ type HandleType = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "rotate";
 interface SelectionBoxProps {
   shape: ShapeType;
   camera: Camera;
-  onResize: (newSize: [number, number], newPoint: [number, number]) => void;
+  onResize: (
+    newSize: [number, number],
+    newPoint: [number, number],
+    newFontSize?: number
+  ) => void;
   onRotate: (newRotation: number) => void;
 }
 
@@ -175,7 +179,16 @@ export function SelectionBox({
     const newX = newCenterX - newWidth / 2;
     const newY = newCenterY - newHeight / 2;
 
-    onResize([newWidth, newHeight], [newX, newY]);
+    const widthRatio = origWidth ? newWidth / origWidth : 1;
+    const heightRatio = origHeight ? newHeight / origHeight : 1;
+    const scaleFactor = Math.max(0.1, Math.min(widthRatio, heightRatio));
+
+    const newFontSize =
+      originalShape.type === "text" || originalShape.type === "rectangle"
+        ? (originalShape.fontSize || 16) * scaleFactor
+        : undefined;
+
+    onResize([newWidth, newHeight], [newX, newY], newFontSize);
     // -----------------------------------------------------------
   };
 
