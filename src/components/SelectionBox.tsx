@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Shape as ShapeType, Camera } from "../types/canvas";
 import { screenToCanvas } from "../utils/vec";
+import { getBounds } from "../utils/canvas_utils";
 
 type HandleType = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "rotate";
 
@@ -28,9 +29,14 @@ export function SelectionBox({
   const [dragStartPos, setDragStartPos] = useState<[number, number] | null>(null);
   const [originalShape, setOriginalShape] = useState<ShapeType | null>(null);
 
-  const { point, size, rotation = 0 } = shape;
+  const { point, size, rotation = 0, text, fontSize } = shape;
   const [x, y] = point;
-  const [width, height] = size;
+  const measured =
+    shape.type === "text"
+      ? getBounds(text ?? "", point[0], point[1], fontSize)
+      : null;
+  const width = measured?.width ?? size[0];
+  const height = measured?.height ?? size[1];
 
   // Center (of the CURRENT rendered shape)
   const centerX = x + width / 2;
