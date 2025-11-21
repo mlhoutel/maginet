@@ -389,6 +389,16 @@ function Canvas() {
     dispatch({ type: "SHUFFLE_DECK" });
   };
 
+  const untapAll = () => {
+    setShapes((prevShapes) =>
+      prevShapes.map((shape) =>
+        (shape.type === "image" || shape.type === "rectangle") && shape.rotation
+          ? { ...shape, rotation: 0 }
+          : shape
+      )
+    );
+  };
+
   const copy = () => {
     const selectedShapes = shapes
       .filter((shape) => selectedShapeIds.includes(shape.id))
@@ -1098,6 +1108,7 @@ function Canvas() {
         rollD6={() => rollDie(6)}
         rollD20={() => rollDie(20)}
         pickStarter={pickStarter}
+        untapAll={untapAll}
       />
       </div>
 

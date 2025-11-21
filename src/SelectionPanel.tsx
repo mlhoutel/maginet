@@ -28,6 +28,7 @@ export function SelectionPanel({
   rollD6,
   rollD20,
   pickStarter,
+  untapAll,
 }: {
   onDrawCard: () => void;
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
@@ -50,6 +51,7 @@ export function SelectionPanel({
   rollD6: () => void;
   rollD20: () => void;
   pickStarter: () => void;
+  untapAll: () => void;
 }) {
   // Peer connection state
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
@@ -242,6 +244,14 @@ export function SelectionPanel({
           <button onClick={rollD6}>Roll d6</button>
           <button onClick={rollD20}>Roll d20</button>
           <button className="primary" onClick={pickStarter}>Pick Starter</button>
+        </div>
+      </div>
+
+      {/* Board Tools */}
+      <div className="selection-panel-section">
+        <h3>Board Tools</h3>
+        <div className="selection-panel-button-group">
+          <button onClick={untapAll}>Untap all</button>
         </div>
       </div>
 
