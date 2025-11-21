@@ -6,7 +6,7 @@ interface EditableTextProps {
   editingTextShape?: Shape;
   onTextBlur: () => void;
   editingText: { id: string; text: string };
-  inputRef: React.RefObject<HTMLTextAreaElement>;
+  inputRef: React.RefObject<HTMLTextAreaElement | null>;
   setEditingText: (value: { id: string; text: string }) => void;
   setShapes: React.Dispatch<React.SetStateAction<Shape[]>>;
 }

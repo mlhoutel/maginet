@@ -2,7 +2,6 @@ import React from "react";
 import { useLocation, Form } from "react-router-dom";
 import useModal from "./hooks/useModal";
 import { usePeerStore } from "./hooks/usePeerConnection";
-import { useRateLimit } from "./hooks/useRateLimit";
 import { useShapeStore } from "./hooks/useShapeStore";
 import { Datum } from "./hooks/useCards";
 import { getBounds } from "./utils/canvas_utils";
@@ -25,6 +24,10 @@ export function SelectionPanel({
   peerPresence,
   heartbeatStaleMs,
   peerNames,
+  rollCoin,
+  rollD6,
+  rollD20,
+  pickStarter,
 }: {
   onDrawCard: () => void;
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
@@ -43,10 +46,13 @@ export function SelectionPanel({
   peerPresence: Record<string, number>;
   heartbeatStaleMs: number;
   peerNames: Record<string, string>;
+  rollCoin: () => void;
+  rollD6: () => void;
+  rollD20: () => void;
+  pickStarter: () => void;
 }) {
   // Peer connection state
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
-  const sendMessage = usePeerStore((state) => state.sendMessage);
   const peer = usePeerStore((state) => state.peer);
   const connections = usePeerStore((state) => state.connections);
   const [peerId, setPeerId] = React.useState("");
@@ -72,16 +78,6 @@ export function SelectionPanel({
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const d = params.get("deck");
-
-  // Prouton rate limiting
-  function prouton() {
-    sendMessage({ type: "prouton", payload: "Prouton!" });
-  }
-  const { rateLimitedFn: rateLimitedProuton, canCall: canCallProuton } =
-    useRateLimit(prouton, {
-      maxCalls: 30,
-      timeWindow: 60000, // 30 calls per minute
-    });
 
   // Derived state
   const canEditFontSize =
@@ -122,10 +118,10 @@ export function SelectionPanel({
         </div>
 
         <div className="peer-id-display">
-          <label>Your ID:</label>
+          <label>ID:</label>
           <input type="text" defaultValue={peer?.id} readOnly />
           <button
-            style={{ fontSize: "12px", padding: "4px 8px" }}
+            className="peer-id-copy-btn"
             onClick={() => {
               if (peer?.id) {
                 navigator.clipboard.writeText(peer.id);
@@ -134,7 +130,7 @@ export function SelectionPanel({
               }
             }}
           >
-            {copied ? "✓" : "Copy"}
+            {copied ? "✓" : "⧉"}
           </button>
         </div>
 
@@ -170,16 +166,6 @@ export function SelectionPanel({
             )}
           </div>
         )}
-
-        <button
-          disabled={!canCallProuton}
-          onClick={() => {
-            rateLimitedProuton();
-          }}
-          style={{ marginTop: "8px" }}
-        >
-          Prouton!
-        </button>
       </div>
       {/* Drawing Tools Section */}
       <div className="selection-panel-section">
@@ -248,6 +234,17 @@ export function SelectionPanel({
               <span className="tool-label">Rect</span>
             </label>
           </div> */}
+        </div>
+      </div>
+
+      {/* Random Tools Section */}
+      <div className="selection-panel-section">
+        <h3>Random Tools</h3>
+        <div className="selection-panel-button-group">
+          <button onClick={rollCoin}>Flip Coin</button>
+          <button onClick={rollD6}>Roll d6</button>
+          <button onClick={rollD20}>Roll d20</button>
+          <button className="primary" onClick={pickStarter}>Pick Starter</button>
         </div>
       </div>
 

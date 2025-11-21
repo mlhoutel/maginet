@@ -21,7 +21,7 @@ function ShapeFactory({
   selected: boolean;
   readOnly: boolean;
   setEditingText: (value: { id: string; text: string }) => void;
-  inputRef: React.RefObject<HTMLTextAreaElement>;
+  inputRef: React.RefObject<HTMLTextAreaElement | null>;
   setHoveredCard: React.Dispatch<React.SetStateAction<string | null>>;
   stackIndex: number;
 }) {

@@ -17,7 +17,7 @@ import useCards, {
 import { usePeerStore } from "./hooks/usePeerConnection";
 import "./Modal.css";
 import { generateId } from "./utils/math";
-import { useCardReducer, CardState } from "./hooks/useCardReducer";
+import { useCardReducer } from "./hooks/useCardReducer";
 import { DEFAULT_DECK } from "./DEFAULT_DECK";
 import { zoomCamera, panCamera } from "./utils/canvas_utils";
 import { SelectionPanel } from "./SelectionPanel";
@@ -51,6 +51,8 @@ const CARD_ACTION_DESCRIPTIONS: Record<string, string> = {
   SHUFFLE_DECK: "shuffled the deck",
 };
 
+type RandomEventType = "coin" | "d6" | "d20" | "starter";
+
 function generatePlayerName() {
   const adjectives = [
     "Swift",
@@ -80,6 +82,21 @@ function generatePlayerName() {
   const noun = nouns[Math.floor(Math.random() * nouns.length)];
   const suffix = Math.floor(Math.random() * 900 + 100); // 3-digit for uniqueness
   return `${adj} ${noun} #${suffix}`;
+}
+
+function describeRandomEvent(event: { type: RandomEventType; result: string }) {
+  switch (event.type) {
+    case "coin":
+      return `flipped a coin: ${event.result}`;
+    case "d6":
+      return `rolled a d6: ${event.result}`;
+    case "d20":
+      return `rolled a d20: ${event.result}`;
+    case "starter":
+      return `starting player: ${event.result}`;
+    default:
+      return `random: ${event.result}`;
+  }
 }
 
 function Canvas() {
@@ -131,10 +148,65 @@ function Canvas() {
   // Refs
   const ref = useRef<SVGSVGElement>(null);
   const rDragging = useRef<{ shape: Shape; origin: number[] } | null>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const lastLoggedActionId = useRef<number | undefined>(undefined);
   const playerNameRef = useRef<string>(generatePlayerName());
-  const isApplyingRemoteCardState = useRef(false);
+  const actionLogRef = useRef<ActionLogEntry[]>([]);
+
+  const updateActionLog = (
+    updater: (prev: ActionLogEntry[]) => ActionLogEntry[] | ActionLogEntry[]
+  ) => {
+    setActionLog((prev) => {
+      const next = updater(prev);
+      actionLogRef.current = next;
+      return next;
+    });
+  };
+
+  const addActionLogEntry = (entry: ActionLogEntry) => {
+    updateActionLog((prev) => [...prev, entry].slice(-MAX_ACTION_LOG_ENTRIES));
+  };
+
+  const sendRandomEvent = (event: { type: RandomEventType; result: string }) => {
+    const entry: ActionLogEntry = {
+      playerId: peer?.id ?? "You",
+      playerName: playerNameRef.current,
+      action: describeRandomEvent(event),
+      cardsInHand: cards.length,
+      timestamp: Date.now(),
+    };
+    addActionLogEntry(entry);
+    if (peer?.id) {
+      sendMessage({
+        type: "random-event",
+        payload: {
+          ...event,
+          peerId: peer.id,
+          playerName: playerNameRef.current,
+          timestamp: entry.timestamp,
+        },
+      });
+    }
+  };
+
+  const rollCoin = () => {
+    const result = Math.random() < 0.5 ? "Heads" : "Tails";
+    sendRandomEvent({ type: "coin", result });
+  };
+
+  const rollDie = (sides: number) => {
+    const result = Math.floor(Math.random() * sides) + 1;
+    const type = sides === 6 ? "d6" : "d20";
+    sendRandomEvent({ type, result: result.toString() });
+  };
+
+  const pickStarter = () => {
+    const participantIds = Array.from(new Set([peer?.id, ...connections.keys()].filter(Boolean))) as string[];
+    if (participantIds.length === 0) return;
+    const chosen = participantIds[Math.floor(Math.random() * participantIds.length)];
+    const name = peerNames[chosen] || chosen;
+    sendRandomEvent({ type: "starter", result: name });
+  };
 
   // URL parameters
   const location = useLocation();
@@ -176,6 +248,11 @@ function Canvas() {
     deck: [],
   });
   const { cards, deck, lastAction } = cardState;
+  const cardStateRef = useRef(cardState);
+
+  useEffect(() => {
+    cardStateRef.current = cardState;
+  }, [cardState]);
 
   // Gesture handling
   useGesture(
@@ -638,31 +715,14 @@ function Canvas() {
       timestamp: Date.now(),
     };
 
-    setActionLog((prev) =>
-      [...prev, entry].slice(-MAX_ACTION_LOG_ENTRIES)
-    );
+    addActionLogEntry(entry);
 
     if (peer?.id) {
       sendMessage({ type: "action-log", payload: entry });
     }
-  }, [cardState.actionId, lastAction, cards.length, peer?.id, sendMessage]);
+  }, [addActionLogEntry, cardState.actionId, lastAction, cards.length, peer?.id, sendMessage]);
 
-  useEffect(() => {
-    if (!peer?.id) return;
-    if (isApplyingRemoteCardState.current) {
-      isApplyingRemoteCardState.current = false;
-      return;
-    }
-
-    sendMessage({
-      type: "card-state",
-      payload: {
-        peerId: peer.id,
-        playerName: playerNameRef.current,
-        state: cardState,
-      },
-    });
-  }, [cardState, peer?.id, sendMessage]);
+  // Keep card state local; do not broadcast deck/hand to peers
 
   useEffect(() => {
     if (!peer?.id) return;
@@ -706,28 +766,14 @@ function Canvas() {
         }));
       }
 
-      if (peer?.id && message.payload.peerId) {
+      if (peer?.id && message.payload.peerId && actionLogRef.current.length > 0) {
         sendMessage(
           {
-            type: "card-state",
-            payload: {
-              peerId: peer.id,
-              playerName: playerNameRef.current,
-              state: cardState,
-            },
+            type: "action-log-snapshot",
+            payload: { entries: actionLogRef.current.slice(-20) },
           },
           message.payload.peerId
         );
-
-        if (actionLog.length > 0) {
-          sendMessage(
-            {
-              type: "action-log-snapshot",
-              payload: { entries: actionLog.slice(-20) },
-            },
-            message.payload.peerId
-          );
-        }
       }
     });
 
@@ -756,7 +802,25 @@ function Canvas() {
         ...incoming,
         timestamp: incoming.timestamp ?? Date.now(),
       };
-      setActionLog((prev) => [...prev, entry].slice(-MAX_ACTION_LOG_ENTRIES));
+      addActionLogEntry(entry);
+    });
+
+    const unsubscribeRandomEvent = onMessage("random-event", (message) => {
+      const { type, result, playerName: name, peerId: fromPeerId, timestamp } = message.payload as {
+        type: RandomEventType;
+        result: string;
+        playerName?: string;
+        peerId?: string;
+        timestamp?: number;
+      };
+      const entry: ActionLogEntry = {
+        playerId: fromPeerId ?? "Peer",
+        playerName: name,
+        action: describeRandomEvent({ type, result }),
+        cardsInHand: 0,
+        timestamp: timestamp ?? Date.now(),
+      };
+      addActionLogEntry(entry);
     });
 
     const unsubscribeActionLogSnapshot = onMessage(
@@ -764,7 +828,7 @@ function Canvas() {
       (message) => {
         const { entries } = message.payload as { entries: ActionLogEntry[] };
         if (Array.isArray(entries) && entries.length > 0) {
-          setActionLog((prev) => {
+          updateActionLog((prev) => {
             const merged = [...prev, ...entries].slice(-MAX_ACTION_LOG_ENTRIES);
             return merged;
           });
@@ -772,19 +836,7 @@ function Canvas() {
       }
     );
 
-    const unsubscribeCardState = onMessage("card-state", (message) => {
-      const { peerId: sourcePeerId, state, playerName } = message.payload as {
-        peerId?: string;
-        state: CardState;
-        playerName?: string;
-      };
-      if (sourcePeerId === peer?.id) return;
-      if (playerName && sourcePeerId) {
-        setPeerNames((prev) => ({ ...prev, [sourcePeerId]: playerName }));
-      }
-      isApplyingRemoteCardState.current = true;
-      dispatch({ type: "SET_STATE", payload: state });
-    });
+    const unsubscribeCardState = onMessage("card-state", () => {});
 
     return () => {
       unsubscribeShapes();
@@ -794,9 +846,10 @@ function Canvas() {
       unsubscribeHeartbeat();
       unsubscribeActionLog();
       unsubscribeActionLogSnapshot();
+      unsubscribeRandomEvent();
       unsubscribeCardState();
     };
-  }, [actionLog, cardState, dispatch, onMessage, peer?.id, sendMessage, setShapes, setPeerPresence]);
+  }, [addActionLogEntry, dispatch, onMessage, peer?.id, sendMessage, setPeerNames, setPeerPresence, updateActionLog]);
 
   useEffect(() => {
     setReceivedDataMap((prev) => {
@@ -1041,6 +1094,10 @@ function Canvas() {
         peerPresence={peerPresence}
         heartbeatStaleMs={HEARTBEAT_STALE_MS}
         peerNames={peerNames}
+        rollCoin={rollCoin}
+        rollD6={() => rollDie(6)}
+        rollD20={() => rollDie(20)}
+        pickStarter={pickStarter}
       />
       </div>
 
