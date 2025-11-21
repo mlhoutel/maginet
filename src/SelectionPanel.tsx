@@ -22,6 +22,8 @@ export function SelectionPanel({
   deck,
   shapeType,
   setShapeType,
+  peerPresence,
+  heartbeatStaleMs,
 }: {
   onDrawCard: () => void;
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
@@ -37,6 +39,8 @@ export function SelectionPanel({
   deck?: Card[];
   shapeType: ShapeType;
   setShapeType: React.Dispatch<React.SetStateAction<ShapeType>>;
+  peerPresence: Record<string, number>;
+  heartbeatStaleMs: number;
 }) {
   // Peer connection state
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
@@ -45,6 +49,7 @@ export function SelectionPanel({
   const connections = usePeerStore((state) => state.connections);
   const [peerId, setPeerId] = React.useState("");
   const [copied, setCopied] = React.useState(false);
+  const [showPeerStatus, setShowPeerStatus] = React.useState(true);
 
   // Modal state
   const [modal, showModal] = useModal();
@@ -59,6 +64,7 @@ export function SelectionPanel({
     selectedShapeIds.includes(shape.id)
   );
   const setShapes = useShapeStore((state) => state.setShapes);
+  const [now, setNow] = React.useState(() => Date.now());
 
   // Deck state
   const location = useLocation();
@@ -79,6 +85,24 @@ export function SelectionPanel({
   const canEditFontSize =
     selectedShapes.length === 1 && selectedShapes[0]?.type === "text";
   const allCards = cards ? [...cards, ...(relatedCards ?? [])] : [];
+  const peerStatusList = React.useMemo(() => {
+    return Array.from(connections.keys()).map((peerId) => {
+      const lastSeen = peerPresence[peerId];
+      const stale = !lastSeen || now - lastSeen > heartbeatStaleMs;
+      return {
+        peerId,
+        stale,
+        label: !lastSeen
+          ? "Waiting..."
+          : `${Math.max(0, Math.round((now - lastSeen) / 1000))}s ago`,
+      };
+    });
+  }, [connections, peerPresence, now, heartbeatStaleMs]);
+
+  React.useEffect(() => {
+    const intervalId = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   return (
     <div className="selection-panel">
@@ -113,9 +137,35 @@ export function SelectionPanel({
         </div>
 
         {connections.size > 0 && (
-          <div className="peer-connection-status">
-            ✓ Connected to {connections.size} peer
-            {connections.size !== 1 ? "s" : ""}
+          <div className={`peer-connection-status ${!showPeerStatus ? "collapsed" : ""}`}>
+            <div className="peer-status-header">
+              <span>
+                ✓ Connected to {connections.size} peer
+                {connections.size !== 1 ? "s" : ""}
+              </span>
+              <button
+                type="button"
+                className="peer-status-toggle"
+                onClick={() => setShowPeerStatus((prev) => !prev)}
+              >
+                {showPeerStatus ? "Hide" : "Show"}
+              </button>
+            </div>
+            {showPeerStatus && peerStatusList.length > 0 && (
+              <div className="peer-status-grid">
+                {peerStatusList.map((status) => (
+                  <div
+                    key={status.peerId}
+                    className={`peer-status ${status.stale ? "stale" : "active"}`}
+                  >
+                    <div className="peer-status-id">{status.peerId}</div>
+                    <div className="peer-status-meta">
+                      {status.stale ? "Waiting..." : `Last seen ${status.label}`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

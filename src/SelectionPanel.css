@@ -262,6 +262,72 @@
   font-weight: 500;
 }
 
+.peer-connection-status.collapsed {
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.peer-status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.peer-status-toggle {
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(22, 101, 52, 0.3);
+  background: rgba(255, 255, 255, 0.8);
+  color: #166534;
+  cursor: pointer;
+}
+
+.peer-status-toggle:hover {
+  background: rgba(255, 255, 255, 1);
+}
+
+.peer-status-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.peer-status {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+}
+
+.peer-status.active {
+  border-color: rgba(34, 197, 94, 0.4);
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.1);
+}
+
+.peer-status.stale {
+  border-color: rgba(234, 179, 8, 0.6);
+  background: rgba(250, 204, 21, 0.1);
+}
+
+.peer-status-id {
+  font-weight: 600;
+  color: #111827;
+  font-family: "Menlo", "Monaco", monospace;
+  font-size: 11px;
+  word-break: break-all;
+}
+
+.peer-status-meta {
+  font-size: 10px;
+  color: #4b5563;
+}
+
 .card-search {
   display: flex;
   gap: 8px;

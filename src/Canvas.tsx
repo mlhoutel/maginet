@@ -38,6 +38,9 @@ import {
   intersect,
 } from "./types/canvas";
 
+const HEARTBEAT_INTERVAL_MS = 5000;
+const HEARTBEAT_STALE_MS = HEARTBEAT_INTERVAL_MS * 3;
+
 function Canvas() {
   // Shape store state and actions
   const {
@@ -54,8 +57,15 @@ function Canvas() {
   } = useShapeStore();
 
   // Peer connection state and actions
-  const { initPeer, disconnect, sendMessage, onMessage, peer, error } =
-    usePeerStore();
+  const {
+    initPeer,
+    disconnect,
+    sendMessage,
+    onMessage,
+    peer,
+    error,
+    connections,
+  } = usePeerStore();
 
   // Local state
   const [isDragging, setIsDragging] = useState(false);
@@ -66,6 +76,7 @@ function Canvas() {
   const [receivedDataMap, setReceivedDataMap] = useState<
     Record<string, Shape[]>
   >({});
+  const [peerPresence, setPeerPresence] = useState<Record<string, number>>({});
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [isCommandPressed, setIsCommandPressed] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
@@ -480,20 +491,58 @@ function Canvas() {
   }, [isPanning, isSpacePressed]);
 
   useEffect(() => {
-    const unsubscribe = useShapeStore.subscribe((state) => {
+    if (!peer?.id) {
+      return;
+    }
+
+    const peerId = peer.id;
+    let rafId: number | null = null;
+    let pendingShapes: Shape[] | null = null;
+
+    const flush = () => {
+      if (!pendingShapes) {
+        rafId = null;
+        return;
+      }
+
       sendMessage({
         type: "shapes",
         payload: {
-          id: peer?.id,
-          data: state.shapes,
+          id: peerId,
+          data: pendingShapes,
         },
       });
+
+      pendingShapes = null;
+      rafId = null;
+    };
+
+    const emitSnapshot = (snapshot: Shape[]) => {
+      sendMessage({
+        type: "shapes",
+        payload: {
+          id: peerId,
+          data: snapshot,
+        },
+      });
+    };
+
+    emitSnapshot(useShapeStore.getState().shapes);
+
+    const unsubscribe = useShapeStore.subscribe((state, prevState) => {
+      if (state.shapes === prevState.shapes) return;
+      pendingShapes = state.shapes;
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(flush);
     });
 
     return () => {
       unsubscribe();
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
     };
-  }, [sendMessage, peer]);
+  }, [sendMessage, peer?.id]);
 
   useEffect(() => {
     if (data) {
@@ -524,6 +573,26 @@ function Canvas() {
   }, [cards, lastAction, sendMessage, peer]);
 
   useEffect(() => {
+    if (!peer?.id) return;
+
+    const sendHeartbeat = () => {
+      const timestamp = Date.now();
+      setPeerPresence((prev) => ({ ...prev, [peer.id]: timestamp }));
+      sendMessage({
+        type: "heartbeat",
+        payload: { peerId: peer.id, timestamp },
+      });
+    };
+
+    sendHeartbeat();
+    const intervalId = window.setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [peer?.id, sendMessage]);
+
+  useEffect(() => {
     const unsubscribeShapes = onMessage("shapes", (message) => {
       setReceivedDataMap((prev) => ({
         ...prev,
@@ -533,6 +602,10 @@ function Canvas() {
 
     const unsubscribeConnected = onMessage("connected", (message) => {
       toast(`Peer connected: ${message.payload.peerId}`);
+      setPeerPresence((prev) => ({
+        ...prev,
+        [message.payload.peerId]: Date.now(),
+      }));
     });
 
     const unsubscribeProuton = onMessage("prouton", () => {
@@ -546,13 +619,50 @@ function Canvas() {
       );
     });
 
+    const unsubscribeHeartbeat = onMessage("heartbeat", (message) => {
+      setPeerPresence((prev) => ({
+        ...prev,
+        [message.payload.peerId]: message.payload.timestamp,
+      }));
+    });
+
     return () => {
       unsubscribeShapes();
       unsubscribeConnected();
       unsubscribeProuton();
       unsubscribePlayersInfo();
+      unsubscribeHeartbeat();
     };
-  }, [onMessage, setShapes]);
+  }, [onMessage, setShapes, setPeerPresence]);
+
+  useEffect(() => {
+    setReceivedDataMap((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      Object.keys(next).forEach((peerId) => {
+        if (!connections.has(peerId)) {
+          delete next[peerId];
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+    setPeerPresence((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      Object.keys(next).forEach((peerId) => {
+        if (!connections.has(peerId) && peerId !== peer?.id) {
+          delete next[peerId];
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [connections, peer?.id]);
 
   useEffect(() => {
     sendMessage({ type: "cards", payload: cards.length });
@@ -745,14 +855,16 @@ function Canvas() {
           onDrawCard={drawCard}
           onShuffleDeck={onShuffleDeck}
           cards={data}
-          relatedCards={relatedCards}
-          addCardToHand={addCardToHand}
-          addToken={addToken}
-          changeColor={changeColor}
-          shapeType={shapeType}
-          setShapeType={setShapeType}
-          deck={deck}
-        />
+        relatedCards={relatedCards}
+        addCardToHand={addCardToHand}
+        addToken={addToken}
+        changeColor={changeColor}
+        shapeType={shapeType}
+        setShapeType={setShapeType}
+        deck={deck}
+        peerPresence={peerPresence}
+        heartbeatStaleMs={HEARTBEAT_STALE_MS}
+      />
       </div>
 
       <Hand cards={cards} setHoveredCard={setHoveredCard} />

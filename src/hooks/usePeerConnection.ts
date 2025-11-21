@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
 import Peer, { DataConnection } from "peerjs";
+import { useShapeStore } from "./useShapeStore";
 interface PeerSyncMessage extends Message {
   type: "peer-sync";
   payload: {
@@ -96,7 +97,7 @@ export const usePeerStore = create<PeerState>((set, get) => ({
       set((state) => ({
         messageCallbacks: {
           ...state.messageCallbacks,
-          [type]: state.messageCallbacks[type].filter((c) => c !== callback),
+          [type]: state.messageCallbacks[type]?.filter((c) => c !== callback) || [],
         },
       }));
     };
@@ -104,13 +105,11 @@ export const usePeerStore = create<PeerState>((set, get) => ({
 }));
 
 function setupConnection(conn: DataConnection) {
-  const { connections, messageCallbacks, peer } = usePeerStore.getState();
-
   conn.on("open", () => {
+    const { connections, peer } = usePeerStore.getState();
     connections.set(conn.peer, conn);
     usePeerStore.setState({ connections: new Map(connections) });
 
-    // Envoyer la liste des pairs connectés au nouveau pair
     const connectedPeers = Array.from(connections.keys()).filter(
       (id) => id !== conn.peer
     );
@@ -118,27 +117,46 @@ function setupConnection(conn: DataConnection) {
       type: "peer-sync",
       payload: { connectedPeers },
     });
+
+    if (peer?.id) {
+      conn.send({
+        type: "connected",
+        payload: { peerId: peer.id },
+      });
+      conn.send({
+        type: "shapes",
+        payload: {
+          id: peer.id,
+          data: useShapeStore.getState().shapes,
+        },
+      });
+    }
   });
 
   conn.on("data", (data: unknown) => {
-    if (isValidMessage(data)) {
-      // Gérer la synchronisation des pairs
-      if (data.type === "peer-sync") {
-        const syncMessage = data as PeerSyncMessage;
-        syncMessage.payload.connectedPeers.forEach((peerId) => {
-          if (!connections.has(peerId) && peer?.id !== peerId) {
-            usePeerStore.getState().connectToPeer(peerId);
-          }
-        });
-      }
-
-      const callbacks = messageCallbacks[data.type] || [];
-      callbacks.forEach((callback) => callback(data, conn.peer));
-    } else {
+    if (!isValidMessage(data)) {
       console.error("Invalid message received:", data);
+      return;
     }
+
+    if (data.type === "peer-sync") {
+      const syncMessage = data as PeerSyncMessage;
+      const { connections, peer } = usePeerStore.getState();
+      syncMessage.payload.connectedPeers.forEach((peerId) => {
+        if (!connections.has(peerId) && peer?.id !== peerId) {
+          usePeerStore.getState().connectToPeer(peerId);
+        }
+      });
+      return;
+    }
+
+    const { messageCallbacks } = usePeerStore.getState();
+    const callbacks = messageCallbacks[data.type] || [];
+    callbacks.forEach((callback) => callback(data, conn.peer));
   });
+
   conn.on("close", () => {
+    const { connections } = usePeerStore.getState();
     connections.delete(conn.peer);
     usePeerStore.setState({ connections: new Map(connections) });
   });
