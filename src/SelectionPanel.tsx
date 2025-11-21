@@ -138,7 +138,7 @@ export function SelectionPanel({
           <div className={`peer-connection-status ${!showPeerStatus ? "collapsed" : ""}`}>
             <div className="peer-status-header">
               <span>
-                ✓ Connected to {connections.size} peer
+                <span className="peer-status-indicator">●</span> Connected to {connections.size} peer
                 {connections.size !== 1 ? "s" : ""}
               </span>
               <button
