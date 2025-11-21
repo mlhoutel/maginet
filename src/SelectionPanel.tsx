@@ -157,9 +157,6 @@ export function SelectionPanel({
                     className={`peer-status ${status.stale ? "stale" : "active"}`}
                   >
                     <div className="peer-status-id">{status.name || status.peerId}</div>
-                    <div className="peer-status-meta">
-                      {status.stale ? "Waiting..." : `Last seen ${status.label}`}
-                    </div>
                   </div>
                 ))}
               </div>

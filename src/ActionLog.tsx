@@ -1,5 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
-import { flushSync } from "react-dom";
+import { useEffect, useRef } from "react";
 import "./ActionLog.css";
 
 export type ActionLogEntry = {
@@ -17,12 +16,13 @@ export default function ActionLog({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useLayoutEffect(() => {
-    // Ensure the list is rendered before measuring/scrolling
-    flushSync(() => {});
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+    const rafId = window.requestAnimationFrame(() => {
+      node.scrollTop = node.scrollHeight;
+    });
+    return () => window.cancelAnimationFrame(rafId);
   }, [actions]);
 
   return (
