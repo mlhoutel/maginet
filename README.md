@@ -1,30 +1,111 @@
-# React + TypeScript + Vite
+# Maginet 2 – Realtime MTG Table
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Maginet 2 is a realtime web table for **Magic: The Gathering**.
 
-Currently, two official plugins are available:
+- Import your deck from a text export (MTGO / MTGA style).
+- See your cards as high‑quality images fetched from Scryfall.
+- Share your peer ID with friends to sync the battlefield in real time.
+- Jump in a voice call (Discord, etc.) and play as if you were around the same table.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+> This project is an unofficial fan tool and is not affiliated with Wizards of the Coast or Scryfall.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+## Tech Stack
 
-- Configure the top-level `parserOptions` property like this:
+- React 19 + TypeScript + Vite
+- Zustand for client state
+- PeerJS for peer‑to‑peer realtime sync
+- @tanstack/react-query for Scryfall API calls
 
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ (or any recent LTS)
+- `pnpm` (recommended) or `npm`
+
+### Install dependencies
+
+```bash
+pnpm install
+# or
+npm install
 ```
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+### Run the app in development
+
+```bash
+pnpm dev
+# or
+npm run dev
+```
+
+Then open the URL shown in the terminal (by default `http://localhost:5173`).
+
+### Build for production
+
+```bash
+pnpm build
+pnpm preview
+```
+
+---
+
+## Importing a Deck
+
+Maginet expects a **text decklist** similar to MTGO / MTGA exports:
+
+```text
+4 Lightning Bolt
+3 Counterspell
+2 Jace, the Mind Sculptor
+23 Island
+```
+
+Steps:
+
+1. Start the app and wait for the UI to load.
+2. On the right side, find the **Deck Management** section.
+3. Click **Select Deck** to open the deck modal.
+4. Paste your decklist text into the textarea.
+5. Click **Submit**.
+
+The app will:
+
+- Call the Scryfall API to fetch card data.
+- Build your deck as a face‑down stack.
+- Show a toast such as “Deck initialized with 60 cards”.
+
+If you don’t import anything, a sample **DEFAULT_DECK** is used so you can play around immediately.
+
+---
+
+## Multiplayer / Realtime Sync
+
+Maginet uses PeerJS to connect browsers directly.
+
+1. **Each player opens Maginet 2** in their browser.
+2. In the **Multiplayer** section (right side):
+   - Your own ID appears under **Your ID**.
+   - Click **Copy** to put it in your clipboard.
+3. **Share your ID** with your friends via chat/voice.
+4. Each friend:
+   - Pastes your ID into **Enter peer ID**.
+   - Clicks **Connect**.
+
+Once connected:
+
+- All shapes on the battlefield (cards, tokens, notes) are synced in real time.
+- Each player uses their own deck and hand, but everyone sees the same board state.
+- Toast messages show when peers connect and basic info about their actions.
+
+Voice chat is **not** built into the app—use Discord, Teams, etc. alongside Maginet.
+
+---
+
+## How to Play
+
+The rules of Magic stay the same—Maginet just gives you a shared virtual table.
