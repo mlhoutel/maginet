@@ -24,6 +24,7 @@ export function SelectionPanel({
   setShapeType,
   peerPresence,
   heartbeatStaleMs,
+  peerNames,
 }: {
   onDrawCard: () => void;
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
@@ -41,6 +42,7 @@ export function SelectionPanel({
   setShapeType: React.Dispatch<React.SetStateAction<ShapeType>>;
   peerPresence: Record<string, number>;
   heartbeatStaleMs: number;
+  peerNames: Record<string, string>;
 }) {
   // Peer connection state
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
@@ -88,9 +90,11 @@ export function SelectionPanel({
   const peerStatusList = Array.from(connections.keys()).map((peerId) => {
     const lastSeen = peerPresence[peerId];
     const stale = !lastSeen || now - lastSeen > heartbeatStaleMs;
+    const name = peerNames[peerId];
     return {
       peerId,
       stale,
+      name,
       label: !lastSeen
         ? "Waiting..."
         : `${Math.max(0, Math.round((now - lastSeen) / 1000))}s ago`,
@@ -156,7 +160,7 @@ export function SelectionPanel({
                     key={status.peerId}
                     className={`peer-status ${status.stale ? "stale" : "active"}`}
                   >
-                    <div className="peer-status-id">{status.peerId}</div>
+                    <div className="peer-status-id">{status.name || status.peerId}</div>
                     <div className="peer-status-meta">
                       {status.stale ? "Waiting..." : `Last seen ${status.label}`}
                     </div>
