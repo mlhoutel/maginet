@@ -33,14 +33,16 @@ export function SelectionBox({
   const [x, y] = point;
   const measured =
     shape.type === "text"
-      ? getBounds(text ?? "", point[0], point[1], fontSize)
+      ? getBounds(text ?? "", 0, 0, fontSize)
       : null;
   const width = measured?.width ?? size[0];
   const height = measured?.height ?? size[1];
 
-  // Center (of the CURRENT rendered shape)
-  const centerX = x + width / 2;
-  const centerY = y + height / 2;
+  // Use the shape's stored size for rotation center (matches render transform),
+  // but position the selection rect around the measured bounds so it hugs text.
+  const centerX = x + size[0] / 2;
+  const centerY = y + size[1] / 2;
+
 
   // Handle positions in unrotated space (we rotate them for display)
   const handles: Record<HandleType, [number, number]> = {
