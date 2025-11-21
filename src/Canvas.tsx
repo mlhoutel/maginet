@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useGesture } from "@use-gesture/react";
@@ -24,7 +24,7 @@ import { SelectionPanel } from "./SelectionPanel";
 import inputs, { normalizeWheel } from "./inputs";
 import { useShapeStore } from "./hooks/useShapeStore";
 import EditingTextShape from "./EditingTextShape";
-// import ActionLog from "./ActionLog";
+import ActionLog, { ActionLogEntry } from "./ActionLog";
 
 import {
   Point,
@@ -40,6 +40,47 @@ import {
 
 const HEARTBEAT_INTERVAL_MS = 5000;
 const HEARTBEAT_STALE_MS = HEARTBEAT_INTERVAL_MS * 3;
+const MAX_ACTION_LOG_ENTRIES = 50;
+const CARD_ACTION_DESCRIPTIONS: Record<string, string> = {
+  DRAW_CARD: "drew a card",
+  MULLIGAN: "took a mulligan",
+  SEND_TO_HAND: "moved cards to hand",
+  SEND_TO_DECK: "returned cards to the deck",
+  PLAY_CARD: "played a card",
+  ADD_TO_HAND: "searched a card",
+  SHUFFLE_DECK: "shuffled the deck",
+};
+
+function generatePlayerName() {
+  const adjectives = [
+    "Swift",
+    "Arcane",
+    "Silent",
+    "Crimson",
+    "Verdant",
+    "Luminous",
+    "Shadow",
+    "Iron",
+    "Lucky",
+    "Misty",
+  ];
+  const nouns = [
+    "Falcon",
+    "Mage",
+    "Knight",
+    "Wisp",
+    "Golem",
+    "Druid",
+    "Rogue",
+    "Phoenix",
+    "Sphinx",
+    "Voyager",
+  ];
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  const suffix = Math.floor(Math.random() * 900 + 100); // 3-digit for uniqueness
+  return `${adj} ${noun} #${suffix}`;
+}
 
 function Canvas() {
   // Shape store state and actions
@@ -77,6 +118,7 @@ function Canvas() {
     Record<string, Shape[]>
   >({});
   const [peerPresence, setPeerPresence] = useState<Record<string, number>>({});
+  const [actionLog, setActionLog] = useState<ActionLogEntry[]>([]);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [isCommandPressed, setIsCommandPressed] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
@@ -89,6 +131,8 @@ function Canvas() {
   const ref = useRef<SVGSVGElement>(null);
   const rDragging = useRef<{ shape: Shape; origin: number[] } | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const lastLoggedActionId = useRef<number | undefined>(undefined);
+  const playerNameRef = useRef<string>(generatePlayerName());
 
   // URL parameters
   const location = useLocation();
@@ -472,12 +516,9 @@ function Canvas() {
     setMode("select");
   }
 
-  const updateDraggingRef = useCallback(
-    (newRef: { shape: Shape; origin: number[] } | null) => {
-      rDragging.current = newRef;
-    },
-    [rDragging]
-  );
+  const updateDraggingRef = (newRef: { shape: Shape; origin: number[] } | null) => {
+    rDragging.current = newRef;
+  };
 
   // Effects
   useEffect(() => {
@@ -573,6 +614,32 @@ function Canvas() {
   }, [cards, lastAction, sendMessage, peer]);
 
   useEffect(() => {
+    if (!lastAction || !cardState.actionId) return;
+
+    if (lastLoggedActionId.current === cardState.actionId) return;
+    lastLoggedActionId.current = cardState.actionId;
+
+    const description = CARD_ACTION_DESCRIPTIONS[lastAction];
+    if (!description) return;
+
+    const entry: ActionLogEntry = {
+      playerId: peer?.id ?? "You",
+      playerName: playerNameRef.current,
+      action: description,
+      cardsInHand: cards.length,
+      timestamp: Date.now(),
+    };
+
+    setActionLog((prev) =>
+      [...prev, entry].slice(-MAX_ACTION_LOG_ENTRIES)
+    );
+
+    if (peer?.id) {
+      sendMessage({ type: "action-log", payload: entry });
+    }
+  }, [cardState.actionId, lastAction, cards.length, peer?.id, sendMessage]);
+
+  useEffect(() => {
     if (!peer?.id) return;
 
     const sendHeartbeat = () => {
@@ -612,12 +679,7 @@ function Canvas() {
       toast(`Prouton!`);
     });
 
-    const unsubscribePlayersInfo = onMessage("playersInfo", (message) => {
-      toast(
-        `Received ${message.payload.peerId} info: ${message.payload.data.lastAction}.
-        ${message.payload.data.cardsInHand} cards in hand`
-      );
-    });
+    const unsubscribePlayersInfo = onMessage("playersInfo", () => {});
 
     const unsubscribeHeartbeat = onMessage("heartbeat", (message) => {
       setPeerPresence((prev) => ({
@@ -626,12 +688,22 @@ function Canvas() {
       }));
     });
 
+    const unsubscribeActionLog = onMessage("action-log", (message) => {
+      const incoming = message.payload as ActionLogEntry;
+      const entry = {
+        ...incoming,
+        timestamp: incoming.timestamp ?? Date.now(),
+      };
+      setActionLog((prev) => [...prev, entry].slice(-MAX_ACTION_LOG_ENTRIES));
+    });
+
     return () => {
       unsubscribeShapes();
       unsubscribeConnected();
       unsubscribeProuton();
       unsubscribePlayersInfo();
       unsubscribeHeartbeat();
+      unsubscribeActionLog();
     };
   }, [onMessage, setShapes, setPeerPresence]);
 
@@ -986,6 +1058,8 @@ function Canvas() {
           </button>
         </div>
       )}
+
+      <ActionLog actions={actionLog} />
     </div>
   );
 }

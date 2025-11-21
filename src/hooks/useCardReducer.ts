@@ -7,6 +7,7 @@ export type CardState = {
   cards: Card[];
   deck: Card[];
   lastAction?: string;
+  actionId?: number;
 };
 
 export type CardAction =
@@ -20,10 +21,14 @@ export type CardAction =
     }
   | { type: "PLAY_CARD"; payload: string[] }
   | { type: "ADD_TO_HAND"; payload: Datum }
-  | { type: "SHUFFLE_DECK" };
+  | { type: "SHUFFLE_DECK" }
+  | { type: "SET_STATE"; payload: CardState };
 
 export function cardReducer(state: CardState, action: CardAction): CardState {
-  state.lastAction = action.type;
+  if (action.type !== "SET_STATE") {
+    state.lastAction = action.type;
+    state.actionId = (state.actionId ?? 0) + 1;
+  }
   switch (action.type) {
     case "INITIALIZE_DECK":
       return { ...state, deck: action.payload, cards: [] };
@@ -74,6 +79,13 @@ export function cardReducer(state: CardState, action: CardAction): CardState {
         ...state,
         cards: [...state.cards, mapDataToCard(action.payload)],
         deck: removeFirst(state.deck, mapDataToCard(action.payload)),
+      };
+    case "SET_STATE":
+      return {
+        cards: action.payload.cards.map((card) => ({ ...card })),
+        deck: action.payload.deck.map((card) => ({ ...card })),
+        lastAction: action.payload.lastAction,
+        actionId: action.payload.actionId,
       };
     default:
       return state;

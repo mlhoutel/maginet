@@ -85,19 +85,17 @@ export function SelectionPanel({
   const canEditFontSize =
     selectedShapes.length === 1 && selectedShapes[0]?.type === "text";
   const allCards = cards ? [...cards, ...(relatedCards ?? [])] : [];
-  const peerStatusList = React.useMemo(() => {
-    return Array.from(connections.keys()).map((peerId) => {
-      const lastSeen = peerPresence[peerId];
-      const stale = !lastSeen || now - lastSeen > heartbeatStaleMs;
-      return {
-        peerId,
-        stale,
-        label: !lastSeen
-          ? "Waiting..."
-          : `${Math.max(0, Math.round((now - lastSeen) / 1000))}s ago`,
-      };
-    });
-  }, [connections, peerPresence, now, heartbeatStaleMs]);
+  const peerStatusList = Array.from(connections.keys()).map((peerId) => {
+    const lastSeen = peerPresence[peerId];
+    const stale = !lastSeen || now - lastSeen > heartbeatStaleMs;
+    return {
+      peerId,
+      stale,
+      label: !lastSeen
+        ? "Waiting..."
+        : `${Math.max(0, Math.round((now - lastSeen) / 1000))}s ago`,
+    };
+  });
 
   React.useEffect(() => {
     const intervalId = window.setInterval(() => setNow(Date.now()), 1000);
