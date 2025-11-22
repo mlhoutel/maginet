@@ -149,9 +149,7 @@ export function Shape({
               size: newSize,
               point: newPoint,
               fontSize:
-                newFontSize && (s.type === "text" || s.type === "rectangle")
-                  ? newFontSize
-                  : s.fontSize,
+                newFontSize && s.type === "text" ? newFontSize : s.fontSize,
             }
           : s
       )

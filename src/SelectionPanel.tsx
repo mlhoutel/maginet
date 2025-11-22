@@ -217,7 +217,7 @@ export function SelectionPanel({
               <span className="tool-label">Token</span>
             </label>
           </div>
-          {/* <div className="shape-type-option">
+          <div className="shape-type-option">
             <input
               type="radio"
               id="rectangle"
@@ -232,7 +232,7 @@ export function SelectionPanel({
               <span className="tool-icon">▢</span>
               <span className="tool-label">Rect</span>
             </label>
-          </div> */}
+          </div>
         </div>
       </div>
 

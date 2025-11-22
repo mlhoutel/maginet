@@ -75,7 +75,6 @@ function ShapeFactory({
           shape={shape}
           commonProps={{
             ...(commonProps as React.SVGProps<SVGRectElement>),
-            onDoubleClick: editText,
           }}
         />
       );

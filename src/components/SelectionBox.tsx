@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Shape as ShapeType, Camera } from "../types/canvas";
-import { screenToCanvas } from "../utils/vec";
+import { DOMVector, screenToCanvas } from "../utils/vec";
 import { getBounds } from "../utils/canvas_utils";
 
 type HandleType = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "rotate";
@@ -24,12 +24,15 @@ const getShapeDimensions = (shape: ShapeType) => {
   if (shape.type === "text") {
     const measured = getBounds(shape.text ?? "", 0, 0, shape.fontSize);
     return {
-      width: measured?.width ?? shape.size?.[0] ?? 0,
-      height: measured?.height ?? shape.size?.[1] ?? 0,
+      width: Math.abs(measured?.width ?? shape.size?.[0] ?? 0),
+      height: Math.abs(measured?.height ?? shape.size?.[1] ?? 0),
     };
   }
 
-  return { width: shape.size?.[0] ?? 0, height: shape.size?.[1] ?? 0 };
+  return {
+    width: Math.abs(shape.size?.[0] ?? 0),
+    height: Math.abs(shape.size?.[1] ?? 0),
+  };
 };
 
 export function SelectionBox({
@@ -43,13 +46,15 @@ export function SelectionBox({
   const [originalShape, setOriginalShape] = useState<ShapeType | null>(null);
 
   const { point, size, rotation = 0 } = shape;
-  const [x, y] = point;
   const { width, height } = getShapeDimensions(shape);
+  const vector = new DOMVector(point[0], point[1], size[0], size[1]);
+  const rect = vector.toDOMRect();
+  const x = rect.x;
+  const y = rect.y;
 
-  // Use the shape's stored size for rotation center (matches render transform),
-  // but position the selection rect around the measured bounds so it hugs text.
-  const centerX = x + size[0] / 2;
-  const centerY = y + size[1] / 2;
+  // Use normalized bounds so handles work even if size components are negative.
+  const centerX = x + width / 2;
+  const centerY = y + height / 2;
 
 
   // Handle positions in unrotated space (we rotate them for display)
@@ -108,7 +113,15 @@ export function SelectionBox({
     }
 
     // ---------- Resize with simplified "center shift" ----------
-    const [origX, origY] = originalShape.point;
+    const originalVector = new DOMVector(
+      originalShape.point[0],
+      originalShape.point[1],
+      originalShape.size[0],
+      originalShape.size[1]
+    );
+    const originalRect = originalVector.toDOMRect();
+    const origX = originalRect.x;
+    const origY = originalRect.y;
     const { width: origWidth, height: origHeight } = getShapeDimensions(originalShape);
     const origRotation = originalShape.rotation || 0;
 
@@ -156,9 +169,9 @@ export function SelectionBox({
     if (newWidth < 10) newWidth = 10;
     if (newHeight < 10) newHeight = 10;
 
-    // 3b) Lock aspect ratio for text/rectangle by applying uniform scale
+    // 3b) Lock aspect ratio for text by applying uniform scale
     let scaleForText: number | null = null;
-    if (originalShape.type === "text" || originalShape.type === "rectangle") {
+    if (originalShape.type === "text") {
       const widthRatio = origWidth ? newWidth / origWidth : 1;
       const heightRatio = origHeight ? newHeight / origHeight : 1;
       const isHorizontal = draggingHandle === "e" || draggingHandle === "w";
@@ -185,11 +198,6 @@ export function SelectionBox({
       newWidth = measured.width;
       newHeight = measured.height;
       newFontSize = nextFontSize;
-    } else if (
-      scaleForText &&
-      (originalShape.type === "text" || originalShape.type === "rectangle")
-    ) {
-      newFontSize = (originalShape.fontSize || 16) * scaleForText;
     }
 
     // 4) Simplified placement: move the CENTER by half the size change along local axes,

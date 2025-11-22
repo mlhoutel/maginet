@@ -555,7 +555,7 @@ function Canvas() {
         const [shapeX, shapeY] = shape.point;
         const [shapeWidth, shapeHeight] = shape.size;
         // TODO: it's not working properly with text and tokens
-        const shapeRect = new DOMRect(shapeX, shapeY, shapeWidth, shapeHeight);
+        const shapeRect = new DOMVector(shapeX, shapeY, shapeWidth, shapeHeight).toDOMRect();
         return intersect(rect, shapeRect);
       });
 
@@ -568,6 +568,15 @@ function Canvas() {
   }
 
   const onPointerUpCanvas = (e: React.PointerEvent<SVGElement>) => {
+    const normalizeShape = (shape: Shape): Shape => {
+      const [w, h] = shape.size;
+      const [px, py] = shape.point;
+      if (w >= 0 && h >= 0) return shape;
+      const nextX = w < 0 ? px + w : px;
+      const nextY = h < 0 ? py + h : py;
+      return { ...shape, point: [nextX, nextY], size: [Math.abs(w), Math.abs(h)] };
+    };
+
     // Handle panning end
     if (isPanning) {
       setIsPanning(false);
@@ -579,7 +588,8 @@ function Canvas() {
     // Handle shape creation end
     if (mode === "create" && shapeInCreation) {
       e.currentTarget.releasePointerCapture(e.pointerId);
-      setShapes((prevShapes) => [...prevShapes, shapeInCreation.shape]);
+      const normalizedShape = normalizeShape(shapeInCreation.shape);
+      setShapes((prevShapes) => [...prevShapes, normalizedShape]);
       setShapeInCreation(null);
       setMode("select");
     }
