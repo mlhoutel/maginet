@@ -19,6 +19,19 @@ interface SelectionBoxProps {
 const HANDLE_SIZE = 8;
 const ROTATION_HANDLE_OFFSET = 30;
 
+// Keep sizing math aligned with what is actually rendered, especially for text.
+const getShapeDimensions = (shape: ShapeType) => {
+  if (shape.type === "text") {
+    const measured = getBounds(shape.text ?? "", 0, 0, shape.fontSize);
+    return {
+      width: measured?.width ?? shape.size?.[0] ?? 0,
+      height: measured?.height ?? shape.size?.[1] ?? 0,
+    };
+  }
+
+  return { width: shape.size?.[0] ?? 0, height: shape.size?.[1] ?? 0 };
+};
+
 export function SelectionBox({
   shape,
   camera,
@@ -29,14 +42,9 @@ export function SelectionBox({
   const [dragStartPos, setDragStartPos] = useState<[number, number] | null>(null);
   const [originalShape, setOriginalShape] = useState<ShapeType | null>(null);
 
-  const { point, size, rotation = 0, text, fontSize } = shape;
+  const { point, size, rotation = 0 } = shape;
   const [x, y] = point;
-  const measured =
-    shape.type === "text"
-      ? getBounds(text ?? "", 0, 0, fontSize)
-      : null;
-  const width = measured?.width ?? size[0];
-  const height = measured?.height ?? size[1];
+  const { width, height } = getShapeDimensions(shape);
 
   // Use the shape's stored size for rotation center (matches render transform),
   // but position the selection rect around the measured bounds so it hugs text.
@@ -101,7 +109,7 @@ export function SelectionBox({
 
     // ---------- Resize with simplified "center shift" ----------
     const [origX, origY] = originalShape.point;
-    const [origWidth, origHeight] = originalShape.size;
+    const { width: origWidth, height: origHeight } = getShapeDimensions(originalShape);
     const origRotation = originalShape.rotation || 0;
 
     // 1) Mouse delta in screen space, then convert to the shape's local axes
@@ -117,6 +125,7 @@ export function SelectionBox({
     // 2) Compute new size in local axes based on which handle is dragged
     let newWidth = origWidth;
     let newHeight = origHeight;
+    let newFontSize: number | undefined;
 
     switch (draggingHandle) {
       case "nw":
@@ -152,11 +161,35 @@ export function SelectionBox({
     if (originalShape.type === "text" || originalShape.type === "rectangle") {
       const widthRatio = origWidth ? newWidth / origWidth : 1;
       const heightRatio = origHeight ? newHeight / origHeight : 1;
-      const uniformScale = Math.max(widthRatio, heightRatio, 0.1);
+      const isHorizontal = draggingHandle === "e" || draggingHandle === "w";
+      const isVertical = draggingHandle === "n" || draggingHandle === "s";
+      const axisScale = isHorizontal
+        ? widthRatio
+        : isVertical
+          ? heightRatio
+          : Math.abs(widthRatio - 1) > Math.abs(heightRatio - 1)
+            ? widthRatio
+            : heightRatio;
+      const uniformScale = Math.max(axisScale, 0.1);
 
       newWidth = origWidth * uniformScale;
       newHeight = origHeight * uniformScale;
       scaleForText = uniformScale;
+    }
+
+    // For text, recompute dimensions from measured bounds to account for padding,
+    // so the pinned corner stays accurate.
+    if (originalShape.type === "text" && scaleForText) {
+      const nextFontSize = (originalShape.fontSize || 16) * scaleForText;
+      const measured = getBounds(originalShape.text ?? "", 0, 0, nextFontSize);
+      newWidth = measured.width;
+      newHeight = measured.height;
+      newFontSize = nextFontSize;
+    } else if (
+      scaleForText &&
+      (originalShape.type === "text" || originalShape.type === "rectangle")
+    ) {
+      newFontSize = (originalShape.fontSize || 16) * scaleForText;
     }
 
     // 4) Simplified placement: move the CENTER by half the size change along local axes,
@@ -198,11 +231,6 @@ export function SelectionBox({
 
     const newX = newCenterX - newWidth / 2;
     const newY = newCenterY - newHeight / 2;
-
-    const newFontSize =
-      scaleForText && (originalShape.type === "text" || originalShape.type === "rectangle")
-        ? (originalShape.fontSize || 16) * scaleForText
-        : undefined;
 
     onResize([newWidth, newHeight], [newX, newY], newFontSize);
     // -----------------------------------------------------------
