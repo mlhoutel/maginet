@@ -24,7 +24,7 @@ import { SelectionPanel } from "./SelectionPanel";
 import inputs, { normalizeWheel } from "./inputs";
 import { useShapeStore } from "./hooks/useShapeStore";
 import EditingTextShape from "./EditingTextShape";
-import ActionLog, { ActionLogEntry } from "./ActionLog";
+import type { ActionLogEntry } from "./ActionLog";
 
 import {
   Point,
@@ -136,7 +136,7 @@ function Canvas() {
   >({});
   const [peerPresence, setPeerPresence] = useState<Record<string, number>>({});
   const [peerNames, setPeerNames] = useState<Record<string, string>>({});
-  const [actionLog, setActionLog] = useState<ActionLogEntry[]>([]);
+  const [, setActionLog] = useState<ActionLogEntry[]>([]);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [isCommandPressed, setIsCommandPressed] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
@@ -153,8 +153,25 @@ function Canvas() {
   const playerNameRef = useRef<string>(generatePlayerName());
   const actionLogRef = useRef<ActionLogEntry[]>([]);
 
+  const logActionToConsole = (
+    entry: ActionLogEntry,
+    origin: string = "Action Log"
+  ) => {
+    const name = entry.playerName || entry.playerId || "Player";
+    const time = entry.timestamp
+      ? new Date(entry.timestamp).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })
+      : null;
+    const summary = `${name} (${entry.cardsInHand} in hand): ${entry.action}`;
+    const suffix = time ? ` @ ${time}` : "";
+    console.info(`[${origin}] ${summary}${suffix}`);
+  };
+
   const updateActionLog = (
-    updater: (prev: ActionLogEntry[]) => ActionLogEntry[] | ActionLogEntry[]
+    updater: (prev: ActionLogEntry[]) => ActionLogEntry[]
   ) => {
     setActionLog((prev) => {
       const next = updater(prev);
@@ -164,6 +181,7 @@ function Canvas() {
   };
 
   const addActionLogEntry = (entry: ActionLogEntry) => {
+    logActionToConsole(entry);
     updateActionLog((prev) => [...prev, entry].slice(-MAX_ACTION_LOG_ENTRIES));
   };
 
@@ -852,6 +870,7 @@ function Canvas() {
             const merged = [...prev, ...entries].slice(-MAX_ACTION_LOG_ENTRIES);
             return merged;
           });
+          entries.forEach((entry) => logActionToConsole(entry, "Action Snapshot"));
         }
       }
     );
@@ -869,7 +888,17 @@ function Canvas() {
       unsubscribeRandomEvent();
       unsubscribeCardState();
     };
-  }, [addActionLogEntry, dispatch, onMessage, peer?.id, sendMessage, setPeerNames, setPeerPresence, updateActionLog]);
+  }, [
+    addActionLogEntry,
+    dispatch,
+    logActionToConsole,
+    onMessage,
+    peer?.id,
+    sendMessage,
+    setPeerNames,
+    setPeerPresence,
+    updateActionLog,
+  ]);
 
   useEffect(() => {
     setReceivedDataMap((prev) => {
@@ -1242,7 +1271,6 @@ function Canvas() {
         </div>
       )}
 
-      <ActionLog actions={actionLog} />
     </div>
   );
 }
