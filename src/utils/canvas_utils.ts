@@ -18,21 +18,18 @@ export function zoomCamera(
   point: number[],
   dz: number
 ): Camera {
-  const next = camera.z - (dz / 50) * camera.z;
+  const next = getCameraZoom(camera.z - (dz / 50) * camera.z);
   const p0 = screenToWorld(point, camera);
-  camera.z = getCameraZoom(next);
-  const p1 = screenToWorld(point, camera);
-  const { x, y } = camera;
-  const newPoint = vec.add([x, y], vec.sub(p1, p0));
-  camera.x = newPoint[0];
-  camera.y = newPoint[1];
+  const zoomed = { ...camera, z: next };
+  const p1 = screenToWorld(point, zoomed);
+  const [x, y] = vec.add([camera.x, camera.y], vec.sub(p1, p0));
 
-  return { ...camera };
+  return { ...zoomed, x, y };
 }
 export function screenToWorld(point: number[], camera: Camera): number[] {
   return vec.sub(vec.div(point, camera.z), [camera.x, camera.y]);
 }
-let canvas: HTMLCanvasElement;
+let canvas: HTMLCanvasElement | null = null;
 /**
  * Uses canvas.measureText to compute and return the width of the given text of given font in pixels.
  *
@@ -42,6 +39,7 @@ let canvas: HTMLCanvasElement;
  * @see https://stackoverflow.com/questions/118241/calculate-text-width-with-javascript/21015393#21015393
  */
 export function getTextWidth(text: string, font: string) {
+  if (typeof document === "undefined") return 0;
   // re-use canvas object for better performance
   canvas = canvas || document.createElement("canvas");
   const context = canvas.getContext("2d");
@@ -50,29 +48,40 @@ export function getTextWidth(text: string, font: string) {
   const metrics = context.measureText(text);
   return metrics.width;
 }
-if (document.getElementById("__textMeasure")) {
-  document.getElementById("__textMeasure")!.remove();
+
+let measureDiv: HTMLPreElement | null = null;
+function ensureMeasureDiv(): HTMLPreElement | null {
+  if (typeof document === "undefined") return null;
+
+  if (measureDiv && measureDiv.isConnected) return measureDiv;
+
+  const existing = document.getElementById("__textMeasure");
+  if (existing && existing instanceof HTMLPreElement) {
+    measureDiv = existing;
+    return measureDiv;
+  }
+
+  const mdiv = document.createElement("pre");
+  mdiv.id = "__textMeasure";
+
+  Object.assign(mdiv.style, {
+    whiteSpace: "pre",
+    width: "auto",
+    border: "1px solid red",
+    padding: "4px",
+    margin: "0px",
+    opacity: "0",
+    position: "absolute",
+    top: "-500px",
+    left: "0px",
+    zIndex: "9999",
+  });
+
+  mdiv.tabIndex = -1;
+  document.body.appendChild(mdiv);
+  measureDiv = mdiv;
+  return measureDiv;
 }
-// A div used for measurement
-const mdiv = document.createElement("pre");
-mdiv.id = "__textMeasure";
-
-Object.assign(mdiv.style, {
-  whiteSpace: "pre",
-  width: "auto",
-  border: "1px solid red",
-  padding: "4px",
-  margin: "0px",
-  opacity: "0",
-  position: "absolute",
-  top: "-500px",
-  left: "0px",
-  zIndex: "9999",
-});
-
-mdiv.tabIndex = -1;
-
-document.body.appendChild(mdiv);
 
 export const getBounds = (
   text: string,
@@ -80,7 +89,19 @@ export const getBounds = (
   y: number,
   fontSize?: number
 ) => {
-  mdiv.innerHTML = text || " "; // + '&nbsp;'
+  const mdiv = ensureMeasureDiv();
+  if (!mdiv) {
+    return {
+      minX: x,
+      maxX: x,
+      minY: y,
+      maxY: y,
+      width: 0,
+      height: 0,
+    };
+  }
+
+  mdiv.innerHTML = text || " ";
   mdiv.style.font = `${fontSize || 16}px Arial`;
   mdiv.innerHTML = text + "&zwj;";
 

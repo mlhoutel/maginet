@@ -140,7 +140,7 @@ function Canvas() {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [isCommandPressed, setIsCommandPressed] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [, setMousePosition] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPosition, setLastPanPosition] = useState<Point | null>(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -160,10 +160,10 @@ function Canvas() {
     const name = entry.playerName || entry.playerId || "Player";
     const time = entry.timestamp
       ? new Date(entry.timestamp).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        })
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })
       : null;
     const summary = `${name} (${entry.cardsInHand} in hand): ${entry.action}`;
     const suffix = time ? ` @ ${time}` : "";
@@ -393,7 +393,7 @@ function Canvas() {
       setShapes((prevShapes) =>
         prevShapes.map((shape) =>
           selectedShapeIds.includes(shape.id) &&
-          (shape.type === "image" || shape.type === "rectangle")
+            (shape.type === "image" || shape.type === "rectangle")
             ? shape.rotation !== 0
               ? rotateShape(shape, -90)
               : rotateShape(shape, 90)
@@ -508,8 +508,8 @@ function Canvas() {
       e.currentTarget.setPointerCapture(e.pointerId);
       if (shapeType === "text") {
         const id = generateId();
-        setShapes([
-          ...shapes,
+        setShapes((prevShapes) => [
+          ...prevShapes,
           {
             id,
             point,
@@ -819,7 +819,7 @@ function Canvas() {
       toast(`Prouton!`);
     });
 
-    const unsubscribePlayersInfo = onMessage("playersInfo", () => {});
+    const unsubscribePlayersInfo = onMessage("playersInfo", () => { });
 
     const unsubscribeHeartbeat = onMessage("heartbeat", (message) => {
       setPeerPresence((prev) => ({
@@ -875,7 +875,7 @@ function Canvas() {
       }
     );
 
-    const unsubscribeCardState = onMessage("card-state", () => {});
+    const unsubscribeCardState = onMessage("card-state", () => { });
 
     return () => {
       unsubscribeShapes();
@@ -1005,7 +1005,6 @@ function Canvas() {
       window.removeEventListener("keyup", handleKeyUp);
     };
   }, [
-    mousePosition,
     editingText,
     selectedShapeIds,
     setShapes,
@@ -1059,7 +1058,7 @@ function Canvas() {
                 inputRef={{ current: null }}
                 camera={camera}
                 setHoveredCard={setHoveredCard}
-                updateDraggingRef={() => {}}
+                updateDraggingRef={() => { }}
                 selected={selectedShapeIds.includes(shape.id)}
               />
             ))}
@@ -1133,22 +1132,22 @@ function Canvas() {
           onDrawCard={drawCard}
           onShuffleDeck={onShuffleDeck}
           cards={data}
-        relatedCards={relatedCards}
-        addCardToHand={addCardToHand}
-        addToken={addToken}
-        changeColor={changeColor}
-        shapeType={shapeType}
-        setShapeType={setShapeType}
-        deck={deck}
-        peerPresence={peerPresence}
-        heartbeatStaleMs={HEARTBEAT_STALE_MS}
-        peerNames={peerNames}
-        rollCoin={rollCoin}
-        rollD6={() => rollDie(6)}
-        rollD20={() => rollDie(20)}
-        pickStarter={pickStarter}
-        untapAll={untapAll}
-      />
+          relatedCards={relatedCards}
+          addCardToHand={addCardToHand}
+          addToken={addToken}
+          changeColor={changeColor}
+          shapeType={shapeType}
+          setShapeType={setShapeType}
+          deck={deck}
+          peerPresence={peerPresence}
+          heartbeatStaleMs={HEARTBEAT_STALE_MS}
+          peerNames={peerNames}
+          rollCoin={rollCoin}
+          rollD6={() => rollDie(6)}
+          rollD20={() => rollDie(20)}
+          pickStarter={pickStarter}
+          untapAll={untapAll}
+        />
       </div>
 
       <Hand cards={cards} setHoveredCard={setHoveredCard} />

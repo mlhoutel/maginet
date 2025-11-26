@@ -25,70 +25,74 @@ export type CardAction =
   | { type: "SET_STATE"; payload: CardState };
 
 export function cardReducer(state: CardState, action: CardAction): CardState {
-  if (action.type !== "SET_STATE") {
-    state.lastAction = action.type;
-    state.actionId = (state.actionId ?? 0) + 1;
+  if (action.type === "SET_STATE") {
+    return {
+      cards: action.payload.cards.map((card) => ({ ...card })),
+      deck: action.payload.deck.map((card) => ({ ...card })),
+      lastAction: action.payload.lastAction,
+      actionId: action.payload.actionId,
+    };
   }
+
+  const baseState: CardState = {
+    ...state,
+    lastAction: action.type,
+    actionId: (state.actionId ?? 0) + 1,
+  };
+
   switch (action.type) {
     case "INITIALIZE_DECK":
-      return { ...state, deck: action.payload, cards: [] };
+      return { ...baseState, deck: action.payload, cards: [] };
     case "DRAW_CARD":
-      if (state.deck.length === 0) return state;
+      if (state.deck.length === 0) return baseState;
       {
         const [drawnCard, ...remainingDeck] = state.deck;
         return {
-          ...state,
+          ...baseState,
           deck: remainingDeck,
           cards: [...state.cards, { ...drawnCard, id: generateId() }],
         };
       }
     case "MULLIGAN":
       return {
-        ...state,
+        ...baseState,
         deck: [...state.deck, ...state.cards],
         cards: [],
       };
     case "SEND_TO_HAND":
       return {
-        ...state,
+        ...baseState,
         cards: [...state.cards, ...action.payload],
       };
     case "SEND_TO_DECK":
       if (action.payload.position === "top") {
         return {
-          ...state,
+          ...baseState,
           deck: [...action.payload.cards, ...state.deck],
         };
       }
       return {
-        ...state,
+        ...baseState,
         deck: [...state.deck, ...action.payload.cards],
       };
     case "PLAY_CARD":
       return {
-        ...state,
+        ...baseState,
         cards: state.cards.filter((card) => !action.payload.includes(card.id)),
       };
     case "SHUFFLE_DECK":
       return {
-        ...state,
+        ...baseState,
         deck: shuffle(state.deck),
       };
     case "ADD_TO_HAND":
       return {
-        ...state,
+        ...baseState,
         cards: [...state.cards, mapDataToCard(action.payload)],
         deck: removeFirst(state.deck, mapDataToCard(action.payload)),
       };
-    case "SET_STATE":
-      return {
-        cards: action.payload.cards.map((card) => ({ ...card })),
-        deck: action.payload.deck.map((card) => ({ ...card })),
-        lastAction: action.payload.lastAction,
-        actionId: action.payload.actionId,
-      };
     default:
-      return state;
+      return baseState;
   }
 }
 
