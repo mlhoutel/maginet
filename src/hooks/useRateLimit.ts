@@ -23,7 +23,7 @@ export function useRateLimit<T extends (...args: any[]) => any>(
   const [remainingCalls, setRemainingCalls] = useState(maxCalls);
   const [resetTime, setResetTime] = useState<number | null>(null);
   const callsRef = useRef<number[]>([]);
-  const timeoutRef = useRef<number | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearOldCalls = useCallback(() => {
     const now = Date.now();

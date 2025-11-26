@@ -21,7 +21,7 @@ export function throttle<T extends (...args: any[]) => void>(
   throttleByAmount: number
 ): T & { cancel: () => void } {
   let lastCalledAt = -Infinity;
-  let timeoutId: number | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
   const throttled = (...args: any[]) => {
     const elapsed = performance.now() - lastCalledAt;
