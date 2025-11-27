@@ -25,7 +25,6 @@ export function SelectionPanel({
   rollCoin,
   rollD6,
   rollD20,
-  pickStarter,
   untapAll,
 }: {
   onDrawCard: () => void;
@@ -234,7 +233,6 @@ export function SelectionPanel({
           <button onClick={rollCoin}>Flip Coin</button>
           <button onClick={rollD6}>Roll d6</button>
           <button onClick={rollD20}>Roll d20</button>
-          <button onClick={pickStarter}>Pick Starter</button>
         </div>
       </div>
 
