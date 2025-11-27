@@ -4,7 +4,6 @@ import useModal from "./hooks/useModal";
 import { usePeerStore } from "./hooks/usePeerConnection";
 import { useShapeStore } from "./hooks/useShapeStore";
 import { Datum } from "./hooks/useCards";
-import { getBounds } from "./utils/canvas_utils";
 import { Camera, Mode, Card, ShapeType } from "./types/canvas";
 import "./SelectionPanel.css";
 
@@ -17,7 +16,6 @@ export function SelectionPanel({
   cards,
   addCardToHand,
   relatedCards,
-  setCamera,
   deck,
   shapeType,
   setShapeType,
@@ -65,15 +63,10 @@ export function SelectionPanel({
   const [modal, showModal] = useModal();
 
   // Shape state
-  const selectedShapeIds = useShapeStore((state) => state.selectedShapeIds);
   const setSelectedShapeIds = useShapeStore(
     (state) => state.setSelectedShapeIds
   );
-  const shapes = useShapeStore((state) => state.shapes);
-  const selectedShapes = shapes.filter((shape) =>
-    selectedShapeIds.includes(shape.id)
-  );
-  const setShapes = useShapeStore((state) => state.setShapes);
+
   const [now, setNow] = React.useState(() => Date.now());
 
   // Deck state
@@ -81,9 +74,7 @@ export function SelectionPanel({
   const params = new URLSearchParams(location.search);
   const d = params.get("deck");
 
-  // Derived state
-  const canEditFontSize =
-    selectedShapes.length === 1 && selectedShapes[0]?.type === "text";
+
   const allCards = cards ? [...cards, ...(relatedCards ?? [])] : [];
   const peerStatusList = Array.from(connections.keys()).map((peerId) => {
     const lastSeen = peerPresence[peerId];
@@ -238,12 +229,12 @@ export function SelectionPanel({
 
       {/* Random Tools Section */}
       <div className="selection-panel-section">
-        <h3>Random Tools</h3>
+        <h3>Random Tools (open console)</h3>
         <div className="selection-panel-button-group">
           <button onClick={rollCoin}>Flip Coin</button>
           <button onClick={rollD6}>Roll d6</button>
           <button onClick={rollD20}>Roll d20</button>
-          <button className="primary" onClick={pickStarter}>Pick Starter</button>
+          <button onClick={pickStarter}>Pick Starter</button>
         </div>
       </div>
 
@@ -262,7 +253,7 @@ export function SelectionPanel({
           <button className="primary" onClick={onDrawCard}>Draw ({deck?.length})</button>
           <button className="danger" onClick={onMulligan}>Mulligan</button>
           <button onClick={onShuffleDeck}>Shuffle</button>
-          <button
+          <button className="primary"
             onClick={() =>
               showModal("Select deck", (closeModal) => (
                 <Form
@@ -335,59 +326,6 @@ export function SelectionPanel({
           </form>
         </div>
       )}
-
-      {/* Properties Section - only display when a shape is selected */}
-      {selectedShapes.length > 0 && canEditFontSize && (
-        <div className="selection-panel-section">
-          <h3>Text Properties</h3>
-          <div className="font-size-selector">
-            <label>Font Size:</label>
-            <select
-              value={selectedShapes[0]?.fontSize}
-              onChange={(e) => {
-                setShapes((prevShapes) =>
-                  prevShapes.map((shape) => {
-                    const bounds = getBounds(
-                      shape.text ?? "",
-                      shape.point[0],
-                      shape.point[1],
-                      parseInt(e.target.value)
-                    );
-
-                    return selectedShapeIds.includes(shape.id)
-                      ? {
-                        ...shape,
-                        fontSize: parseInt(e.target.value),
-                        size: [bounds.width, bounds.height],
-                      }
-                      : shape;
-                  })
-                );
-              }}
-            >
-              <option value={12}>12</option>
-              <option value={16}>16</option>
-              <option value={24}>24</option>
-              <option value={32}>32</option>
-              <option value={48}>48</option>
-              <option value={64}>64</option>
-            </select>
-          </div>
-        </div>
-      )}
-      {/* Canvas Controls */}
-      <div className="selection-panel-section">
-        <h3>Canvas Controls</h3>
-        <div className="selection-panel-button-group">
-          <button
-            onClick={() => {
-              setCamera((prev) => ({ ...prev, x: 0, y: 0 }));
-            }}
-          >
-            Center View
-          </button>
-        </div>
-      </div>
 
       {/* Modal Display */}
       {modal}
