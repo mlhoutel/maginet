@@ -66,8 +66,8 @@ export default function EditableText({
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter") {
-      if (e.altKey) {
-        // Option+Enter = insert new line
+      if (e.shiftKey) {
+        // Shift+Enter = insert new line
         e.preventDefault();
         const textarea = e.currentTarget;
         const start = textarea.selectionStart;
