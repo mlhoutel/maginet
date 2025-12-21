@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Shape as ShapeType, Camera } from "../types/canvas";
 import { DOMVector, screenToCanvas } from "../utils/vec";
 import { getBounds } from "../utils/canvas_utils";
+import { useShapeStore } from "../hooks/useShapeStore";
 
 type HandleType = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "rotate";
 
@@ -93,6 +94,16 @@ export function SelectionBox({
     setDraggingHandle(handle);
     setDragStartPos([x, y]);
     setOriginalShape({ ...shape });
+
+    // Save history before operation starts
+    const store = useShapeStore.getState();
+    store.pushHistory();
+
+    if (handle === 'rotate') {
+      useShapeStore.setState({ isRotatingShape: true });
+    } else {
+      useShapeStore.setState({ isResizingShape: true });
+    }
   };
 
   const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -249,6 +260,12 @@ export function SelectionBox({
     setDraggingHandle(null);
     setDragStartPos(null);
     setOriginalShape(null);
+
+    // Clear operation flags
+    useShapeStore.setState({
+      isResizingShape: false,
+      isRotatingShape: false,
+    });
   };
 
   // Rotate a point (px,py) around center (cx,cy) by 'rot' degrees

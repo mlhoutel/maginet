@@ -112,6 +112,8 @@ function Canvas() {
     setEditingText,
     createShape,
     updateShapeInCreation,
+    undo,
+    redo,
   } = useShapeStore();
 
   // Peer connection state and actions
@@ -952,6 +954,21 @@ function Canvas() {
       // Ignore keyboard shortcuts when editing text
       if (editingText) return;
 
+      // Platform-aware Cmd/Ctrl key
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const cmdKey = isMac ? event.metaKey : event.ctrlKey;
+
+      // Undo/Redo shortcuts
+      if (cmdKey && event.key === 'z') {
+        event.preventDefault();
+        if (event.shiftKey) {
+          redo(); // Cmd+Shift+Z or Ctrl+Shift+Z
+        } else {
+          undo(); // Cmd+Z or Ctrl+Z
+        }
+        return;
+      }
+
       if (event.key === "Control") {
         setIsCommandPressed(true);
       } else if (event.key === " ") {
@@ -1011,6 +1028,8 @@ function Canvas() {
     setSelectedShapeIds,
     isPanning,
     setCamera,
+    undo,
+    redo,
   ]);
 
   useEffect(() => {

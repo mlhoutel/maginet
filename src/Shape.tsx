@@ -71,6 +71,12 @@ export function Shape({
 
     const localSelectedShapeIds = updateSelection(shape.id);
     const id = e.currentTarget.id;
+
+    // Save history before drag starts
+    const store = useShapeStore.getState();
+    store.pushHistory();
+    useShapeStore.setState({ isDraggingShape: true });
+
     updateDraggingRef({
       shape: shapes.find((s) => s.id === id)!,
       origin: point,
@@ -105,6 +111,9 @@ export function Shape({
     e.stopPropagation();
     updateDraggingRef(null);
     draggingShapeRefs.current = {};
+
+    // Clear dragging flag
+    useShapeStore.setState({ isDraggingShape: false });
   };
 
   const handleClick = (e: React.MouseEvent<SVGElement>) => {
