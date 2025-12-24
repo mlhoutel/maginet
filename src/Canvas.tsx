@@ -1181,24 +1181,10 @@ function Canvas() {
       {/* Help button */}
       <button
         onClick={() => setShowHelp(!showHelp)}
+        className="help-button"
         style={{
-          position: "fixed",
-          top: "20px",
-          left: "20px",
-          width: "32px",
-          height: "32px",
-          borderRadius: "50%",
-          border: "2px solid #666",
           background: showHelp ? "#444" : "#fff",
           color: showHelp ? "#fff" : "#666",
-          fontSize: "18px",
-          fontWeight: "bold",
-          cursor: "pointer",
-          zIndex: 1001,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
         }}
         title="Show controls (Press ?). How to play: The rules of Magic stay the same—Maginet just gives you a shared virtual table."
       >
@@ -1267,17 +1253,17 @@ function Canvas() {
             </h4>
             <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
               • Copy your ID in Multiplayer (left sidebar) and share it<br />
-              • Enter a friend's ID in "Enter peer ID"<br />
+              • Paste a friend's ID into the Multiplayer field<br />
               • Click Connect to sync boards<br />
             </div>
           </div>
 
           <div style={{ marginBottom: "16px" }}>
             <h4 style={{ margin: "8px 0 6px", fontSize: "14px", color: "#aaa" }}>
-              Deck Management
+              Deck
             </h4>
             <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
-              • In Deck Management (left sidebar)<br />
+              • In Deck (left sidebar)<br />
               • Click Select Deck<br />
               • Paste your decklist and click Submit<br />
             </div>
