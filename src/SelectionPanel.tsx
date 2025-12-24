@@ -125,7 +125,7 @@ export function SelectionPanel({
                 }
               }}
             >
-              {copied ? "Copied" : "Copy"}
+              {copied ? "✓" : "Copy"}
             </button>
           </div>
 
