@@ -28,15 +28,8 @@
   flex-direction: column;
   gap: 6px;
   padding: 6px;
-  background: rgba(248, 250, 252, 0.7);
-  border: 1px solid rgba(0, 0, 0, 0.04);
   border-radius: 8px;
   flex-shrink: 0;
-}
-
-.selection-panel-section--primary {
-  border-color: rgba(59, 130, 246, 0.18);
-  background: rgba(239, 246, 255, 0.6);
 }
 
 .selection-panel-section:last-child {
@@ -297,7 +290,6 @@
 }
 
 .peer-connection input {
-  width: 100%;
   padding: 6px 8px;
   border-radius: 6px;
   border: 1px solid rgba(0, 0, 0, 0.08);
