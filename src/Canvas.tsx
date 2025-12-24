@@ -2,7 +2,7 @@ import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
-import { useGesture } from "@use-gesture/react";
+import { Handler, useGesture } from "@use-gesture/react";
 
 import { Shape as ShapeComponent } from "./Shape";
 import "./Canvas.css";
@@ -19,7 +19,7 @@ import "./Modal.css";
 import { generateId } from "./utils/math";
 import { useCardReducer } from "./hooks/useCardReducer";
 import { DEFAULT_DECK } from "./DEFAULT_DECK";
-import { zoomCamera, panCamera } from "./utils/canvas_utils";
+import { getCameraZoom, panCamera, screenToWorld } from "./utils/canvas_utils";
 import { SelectionPanel } from "./SelectionPanel";
 import inputs, { normalizeWheel } from "./inputs";
 import { useShapeStore } from "./hooks/useShapeStore";
@@ -37,6 +37,23 @@ import {
   flipShape,
   intersect,
 } from "./types/canvas";
+
+const logActionToConsole = (
+  entry: ActionLogEntry,
+  origin: string = "Action Log"
+) => {
+  const name = entry.playerName || entry.playerId || "Player";
+  const time = entry.timestamp
+    ? new Date(entry.timestamp).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    })
+    : null;
+  const summary = `${name} (${entry.cardsInHand} in hand): ${entry.action}`;
+  const suffix = time ? ` @ ${time}` : "";
+  console.info(`[${origin}] ${summary}${suffix}`);
+};
 
 const HEARTBEAT_INTERVAL_MS = 5000;
 const HEARTBEAT_STALE_MS = HEARTBEAT_INTERVAL_MS * 3;
@@ -154,23 +171,174 @@ function Canvas() {
   const lastLoggedActionId = useRef<number | undefined>(undefined);
   const playerNameRef = useRef<string>(generatePlayerName());
   const actionLogRef = useRef<ActionLogEntry[]>([]);
+  const cameraRef = useRef(camera);
+  const cameraTargetRef = useRef(camera);
+  const cameraVelocityRef = useRef({ x: 0, y: 0, z: 0 });
+  const cameraAnimationRef = useRef<number | null>(null);
+  const cameraLastTimeRef = useRef<number | null>(null);
+  const zoomAnchorRef = useRef<{
+    screen: number[];
+    world: number[];
+  } | null>(null);
 
-  const logActionToConsole = (
-    entry: ActionLogEntry,
-    origin: string = "Action Log"
-  ) => {
-    const name = entry.playerName || entry.playerId || "Player";
-    const time = entry.timestamp
-      ? new Date(entry.timestamp).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      })
-      : null;
-    const summary = `${name} (${entry.cardsInHand} in hand): ${entry.action}`;
-    const suffix = time ? ` @ ${time}` : "";
-    console.info(`[${origin}] ${summary}${suffix}`);
+  const applyCameraImmediate = (next: Camera) => {
+    if (cameraAnimationRef.current !== null) {
+      cancelAnimationFrame(cameraAnimationRef.current);
+      cameraAnimationRef.current = null;
+    }
+    cameraLastTimeRef.current = null;
+    cameraVelocityRef.current = { x: 0, y: 0, z: 0 };
+    zoomAnchorRef.current = null;
+    cameraTargetRef.current = next;
+    cameraRef.current = next;
+    setCamera(next);
   };
+
+  const smoothDamp = (
+    current: number,
+    target: number,
+    currentVelocity: number,
+    smoothTime: number,
+    maxSpeed: number,
+    deltaTime: number
+  ) => {
+    const safeSmoothTime = Math.max(0.0001, smoothTime);
+    const omega = 2 / safeSmoothTime;
+    const x = omega * deltaTime;
+    const exp = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x);
+    let change = current - target;
+    const originalTo = target;
+    const maxChange = maxSpeed * safeSmoothTime;
+    change = Math.max(-maxChange, Math.min(maxChange, change));
+    target = current - change;
+    const temp = (currentVelocity + omega * change) * deltaTime;
+    const nextVelocity = (currentVelocity - omega * temp) * exp;
+    let output = target + (change + temp) * exp;
+
+    if ((originalTo - current > 0) === (output > originalTo)) {
+      output = originalTo;
+      return { value: output, velocity: 0 };
+    }
+
+    return { value: output, velocity: nextVelocity };
+  };
+
+  const animateCamera = (time: number) => {
+    const lastTime = cameraLastTimeRef.current ?? time;
+    const deltaTime = Math.min(0.032, (time - lastTime) / 1000);
+    cameraLastTimeRef.current = time;
+
+    const current = cameraRef.current;
+    const target = cameraTargetRef.current;
+    const velocity = cameraVelocityRef.current;
+
+    const nextX = smoothDamp(
+      current.x,
+      target.x,
+      velocity.x,
+      0.14,
+      8000,
+      deltaTime
+    );
+    const nextY = smoothDamp(
+      current.y,
+      target.y,
+      velocity.y,
+      0.14,
+      8000,
+      deltaTime
+    );
+    const nextZ = smoothDamp(
+      current.z,
+      target.z,
+      velocity.z,
+      0.12,
+      20,
+      deltaTime
+    );
+    const zoomAnchor = zoomAnchorRef.current;
+    const anchoredX = zoomAnchor
+      ? zoomAnchor.screen[0] / nextZ.value - zoomAnchor.world[0]
+      : nextX.value;
+    const anchoredY = zoomAnchor
+      ? zoomAnchor.screen[1] / nextZ.value - zoomAnchor.world[1]
+      : nextY.value;
+
+    const nextCamera = { x: anchoredX, y: anchoredY, z: nextZ.value };
+    cameraVelocityRef.current = {
+      x: zoomAnchor ? 0 : nextX.velocity,
+      y: zoomAnchor ? 0 : nextY.velocity,
+      z: nextZ.velocity,
+    };
+    cameraRef.current = nextCamera;
+    setCamera(nextCamera);
+
+    const positionDelta = Math.hypot(
+      nextCamera.x - target.x,
+      nextCamera.y - target.y
+    );
+    const zoomDelta = Math.abs(nextCamera.z - target.z);
+    const velocityDelta =
+      Math.abs(cameraVelocityRef.current.x) +
+      Math.abs(cameraVelocityRef.current.y) +
+      Math.abs(cameraVelocityRef.current.z);
+
+    if (positionDelta < 0.01 && zoomDelta < 0.0005 && velocityDelta < 0.002) {
+      cameraRef.current = target;
+      cameraVelocityRef.current = { x: 0, y: 0, z: 0 };
+      zoomAnchorRef.current = null;
+      cameraAnimationRef.current = null;
+      cameraLastTimeRef.current = null;
+      setCamera(target);
+      return;
+    }
+
+    cameraAnimationRef.current = requestAnimationFrame(animateCamera);
+  };
+
+  const applyCameraTarget = (next: Camera) => {
+    cameraTargetRef.current = next;
+    if (cameraAnimationRef.current === null) {
+      cameraAnimationRef.current = requestAnimationFrame(animateCamera);
+    }
+  };
+
+  const applyZoomDelta = (point: number[], delta: number) => {
+    if (delta === 0) return;
+    const current = cameraRef.current;
+    const target = cameraTargetRef.current;
+    const zoomFactor = Math.exp(-delta * 0.008);
+    const nextZ = getCameraZoom(target.z * zoomFactor);
+    const worldPoint = screenToWorld(point, current);
+    zoomAnchorRef.current = { screen: point, world: worldPoint };
+    const nextX = point[0] / nextZ - worldPoint[0];
+    const nextY = point[1] / nextZ - worldPoint[1];
+    applyCameraTarget({ x: nextX, y: nextY, z: nextZ });
+  };
+
+  const applyZoomStep = (point: number[], direction: "in" | "out") => {
+    const factor = direction === "in" ? 1.12 : 1 / 1.12;
+    const current = cameraRef.current;
+    const target = cameraTargetRef.current;
+    const nextZ = getCameraZoom(target.z * factor);
+    const worldPoint = screenToWorld(point, current);
+    zoomAnchorRef.current = { screen: point, world: worldPoint };
+    const nextX = point[0] / nextZ - worldPoint[0];
+    const nextY = point[1] / nextZ - worldPoint[1];
+    applyCameraTarget({ x: nextX, y: nextY, z: nextZ });
+  };
+
+  useEffect(() => {
+    cameraRef.current = camera;
+  }, [camera]);
+
+  useEffect(() => {
+    return () => {
+      if (cameraAnimationRef.current !== null) {
+        cancelAnimationFrame(cameraAnimationRef.current);
+      }
+    };
+  }, []);
 
   const updateActionLog = (
     updater: (prev: ActionLogEntry[]) => ActionLogEntry[]
@@ -186,6 +354,14 @@ function Canvas() {
     logActionToConsole(entry);
     updateActionLog((prev) => [...prev, entry].slice(-MAX_ACTION_LOG_ENTRIES));
   };
+
+  const updateActionLogRef = useRef(updateActionLog);
+  const addActionLogEntryRef = useRef(addActionLogEntry);
+  const applyZoomStepRef = useRef(applyZoomStep);
+
+  updateActionLogRef.current = updateActionLog;
+  addActionLogEntryRef.current = addActionLogEntry;
+  applyZoomStepRef.current = applyZoomStep;
 
   const sendRandomEvent = (event: { type: RandomEventType; result: string }) => {
     const entry: ActionLogEntry = {
@@ -274,29 +450,35 @@ function Canvas() {
     cardStateRef.current = cardState;
   }, [cardState]);
 
-  // Gesture handling
-  useGesture(
-    {
-      onWheel: ({ event, delta, ctrlKey }) => {
-        event.preventDefault();
-        // Ctrl+scroll or pinch = zoom, regular scroll = pan
-        if (ctrlKey) {
-          const { point } = inputs.wheel(event as WheelEvent);
-          const z = normalizeWheel(event)[2];
-          // Reduced zoom sensitivity for smoother zooming
-          setCamera((prev) => zoomCamera(prev, point, z * 0.3));
-        } else {
-          // Regular scroll pans (good for trackpad)
-          // Smooth pan with reduced sensitivity
-          setCamera((camera) => panCamera(camera, delta[0] * 0.8, delta[1] * 0.8));
-        }
-      },
-    },
-    {
-      target: document.body,
-      eventOptions: { passive: false },
+  const handleWheelRef = useRef<Handler<"wheel">>(() => { });
+  const gestureHandlersRef = useRef({
+    onWheel: (state: Parameters<Handler<"wheel">>[0]) =>
+      handleWheelRef.current(state),
+  });
+  const gestureConfigRef = useRef({
+    target: document.body,
+    eventOptions: { passive: false },
+  });
+
+  handleWheelRef.current = (state) => {
+    const { event, delta, ctrlKey } = state;
+    event.preventDefault();
+    // Ctrl+scroll or pinch = zoom, regular scroll = pan
+    if (ctrlKey || event.metaKey) {
+      const { point } = inputs.wheel(event);
+      const z = normalizeWheel(event)[2];
+      applyZoomDelta([point[0], point[1]], z);
+    } else {
+      // Regular scroll pans (good for trackpad)
+      // Smooth pan with reduced sensitivity
+      applyCameraImmediate(
+        panCamera(cameraRef.current, delta[0] * 0.8, delta[1] * 0.8)
+      );
     }
-  );
+  };
+
+  // Gesture handling
+  useGesture(gestureHandlersRef.current, gestureConfigRef.current);
 
   // Card actions
   const drawCard = () => {
@@ -546,7 +728,7 @@ function Canvas() {
     if (isPanning && lastPanPosition) {
       const dx = e.clientX - lastPanPosition.x;
       const dy = e.clientY - lastPanPosition.y;
-      setCamera(panCamera(camera, -dx, -dy));
+      applyCameraImmediate(panCamera(cameraRef.current, -dx, -dy));
       setLastPanPosition({ x: e.clientX, y: e.clientY });
       return;
     }
@@ -755,12 +937,12 @@ function Canvas() {
       timestamp: Date.now(),
     };
 
-    addActionLogEntry(entry);
+    addActionLogEntryRef.current(entry);
 
     if (peer?.id) {
       sendMessage({ type: "action-log", payload: entry });
     }
-  }, [addActionLogEntry, cardState.actionId, lastAction, cards.length, peer?.id, sendMessage]);
+  }, [cardState.actionId, lastAction, cards.length, peer?.id, sendMessage]);
 
   // Keep card state local; do not broadcast deck/hand to peers
 
@@ -842,7 +1024,7 @@ function Canvas() {
         ...incoming,
         timestamp: incoming.timestamp ?? Date.now(),
       };
-      addActionLogEntry(entry);
+      addActionLogEntryRef.current(entry);
     });
 
     const unsubscribeRandomEvent = onMessage("random-event", (message) => {
@@ -860,7 +1042,7 @@ function Canvas() {
         cardsInHand: 0,
         timestamp: timestamp ?? Date.now(),
       };
-      addActionLogEntry(entry);
+      addActionLogEntryRef.current(entry);
     });
 
     const unsubscribeActionLogSnapshot = onMessage(
@@ -868,7 +1050,7 @@ function Canvas() {
       (message) => {
         const { entries } = message.payload as { entries: ActionLogEntry[] };
         if (Array.isArray(entries) && entries.length > 0) {
-          updateActionLog((prev) => {
+          updateActionLogRef.current((prev) => {
             const merged = [...prev, ...entries].slice(-MAX_ACTION_LOG_ENTRIES);
             return merged;
           });
@@ -891,15 +1073,11 @@ function Canvas() {
       unsubscribeCardState();
     };
   }, [
-    addActionLogEntry,
-    dispatch,
-    logActionToConsole,
     onMessage,
     peer?.id,
     sendMessage,
     setPeerNames,
     setPeerPresence,
-    updateActionLog,
   ]);
 
   useEffect(() => {
@@ -984,14 +1162,14 @@ function Canvas() {
           x: window.innerWidth / 2,
           y: window.innerHeight / 2,
         };
-        setCamera((prev) => zoomCamera(prev, [centerPoint.x, centerPoint.y], -0.2));
+        applyZoomStepRef.current([centerPoint.x, centerPoint.y], "in");
       } else if (event.key === "-" || event.key === "_") {
         // Zoom out at center of screen with smooth increment
         const centerPoint = {
           x: window.innerWidth / 2,
           y: window.innerHeight / 2,
         };
-        setCamera((prev) => zoomCamera(prev, [centerPoint.x, centerPoint.y], 0.2));
+        applyZoomStepRef.current([centerPoint.x, centerPoint.y], "out");
       } else if (
         event.key === "Backspace" &&
         selectedShapeIds.length > 0
@@ -1027,7 +1205,6 @@ function Canvas() {
     setShapes,
     setSelectedShapeIds,
     isPanning,
-    setCamera,
     undo,
     redo,
   ]);
@@ -1186,7 +1363,7 @@ function Canvas() {
           background: showHelp ? "#444" : "#fff",
           color: showHelp ? "#fff" : "#666",
         }}
-        title="Show controls (Press ?). How to play: The rules of Magic stay the same—Maginet just gives you a shared virtual table."
+        title="Show controls (Press ?). How to play: The rules of Magic stay the same - Maginet just gives you a shared virtual table."
       >
         ?
       </button>
@@ -1218,10 +1395,10 @@ function Canvas() {
               Panning
             </h4>
             <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
-              • Two-finger scroll (trackpad)<br />
-              • Middle mouse button + drag<br />
-              • Space + drag<br />
-              • Alt + drag<br />
+              - Two-finger scroll (trackpad)<br />
+              - Middle mouse button + drag<br />
+              - Space + drag<br />
+              - Alt + drag<br />
             </div>
           </div>
 
@@ -1230,9 +1407,9 @@ function Canvas() {
               Zooming
             </h4>
             <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
-              • Pinch gesture (trackpad)<br />
-              • Ctrl + scroll wheel<br />
-              • + / - keys<br />
+              - Pinch gesture (trackpad)<br />
+              - Ctrl + scroll wheel<br />
+              - + / - keys<br />
             </div>
           </div>
 
@@ -1241,9 +1418,9 @@ function Canvas() {
               Card Actions
             </h4>
             <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
-              • Shift + drag from hand = play face-down<br />
-              • Right-click card → Flip = toggle face-down<br />
-              • Ctrl + hover card = preview<br />
+              - Shift + drag from hand = play face-down<br />
+              - Right-click card {"->"} Flip = toggle face-down<br />
+              - Ctrl + hover card = preview<br />
             </div>
           </div>
 
@@ -1252,9 +1429,9 @@ function Canvas() {
               Multiplayer
             </h4>
             <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
-              • Copy your ID in Multiplayer (left sidebar) and share it<br />
-              • Paste a friend's ID into the Multiplayer field<br />
-              • Click Connect to sync boards<br />
+              - Copy your ID in Multiplayer (left sidebar) and share it<br />
+              - Paste a friend's ID into the Multiplayer field<br />
+              - Click Connect to sync boards<br />
             </div>
           </div>
 
@@ -1263,9 +1440,9 @@ function Canvas() {
               Deck
             </h4>
             <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
-              • In Deck (left sidebar)<br />
-              • Click Select Deck<br />
-              • Paste your decklist and click Submit<br />
+              - In Deck (left sidebar)<br />
+              - Click Select Deck<br />
+              - Paste your decklist and click Submit<br />
             </div>
           </div>
 
@@ -1274,8 +1451,8 @@ function Canvas() {
               Other
             </h4>
             <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
-              • Backspace = delete selected<br />
-              • ? = toggle this help<br />
+              - Backspace = delete selected<br />
+              - ? = toggle this help<br />
             </div>
           </div>
 
@@ -1284,7 +1461,7 @@ function Canvas() {
               How to Play
             </h4>
             <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
-              The rules of Magic stay the same—Maginet just gives you a shared
+              The rules of Magic stay the same - Maginet just gives you a shared
               virtual table.
             </div>
           </div>
