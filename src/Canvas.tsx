@@ -1200,7 +1200,7 @@ function Canvas() {
           justifyContent: "center",
           boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
         }}
-        title="Show controls (Press ?)"
+        title="Show controls (Press ?). How to play: The rules of Magic stay the same—Maginet just gives you a shared virtual table."
       >
         ?
       </button>
@@ -1263,11 +1263,43 @@ function Canvas() {
 
           <div style={{ marginBottom: "16px" }}>
             <h4 style={{ margin: "8px 0 6px", fontSize: "14px", color: "#aaa" }}>
+              Multiplayer
+            </h4>
+            <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
+              • Copy your ID in Multiplayer (left sidebar) and share it<br />
+              • Enter a friend's ID in "Enter peer ID"<br />
+              • Click Connect to sync boards<br />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: "16px" }}>
+            <h4 style={{ margin: "8px 0 6px", fontSize: "14px", color: "#aaa" }}>
+              Deck Management
+            </h4>
+            <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
+              • In Deck Management (left sidebar)<br />
+              • Click Select Deck<br />
+              • Paste your decklist and click Submit<br />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: "16px" }}>
+            <h4 style={{ margin: "8px 0 6px", fontSize: "14px", color: "#aaa" }}>
               Other
             </h4>
             <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
               • Backspace = delete selected<br />
               • ? = toggle this help<br />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: "16px" }}>
+            <h4 style={{ margin: "8px 0 6px", fontSize: "14px", color: "#aaa" }}>
+              How to Play
+            </h4>
+            <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
+              The rules of Magic stay the same—Maginet just gives you a shared
+              virtual table.
             </div>
           </div>
 
