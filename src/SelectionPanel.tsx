@@ -133,7 +133,8 @@ export function SelectionPanel({
             <div className={`peer-connection-status ${!showPeerStatus ? "collapsed" : ""}`}>
               <div className="peer-status-header">
                 <span>
-                  <span className="peer-status-indicator">●</span> Connected to {connections.size} peer
+                  <span className="peer-status-indicator" aria-hidden="true" />
+                  Connected to {connections.size} peer
                   {connections.size !== 1 ? "s" : ""}
                 </span>
                 <button
@@ -267,7 +268,7 @@ export function SelectionPanel({
                 onChange={() => setMode("select")}
               />
               <label htmlFor="select">
-                <span className="tool-icon">↖</span>
+                <span className="tool-icon">&gt;</span>
                 <span className="tool-label">Select</span>
               </label>
             </div>
@@ -300,7 +301,7 @@ export function SelectionPanel({
                 }}
               />
               <label htmlFor="add">
-                <span className="tool-icon">●</span>
+                <span className="tool-icon">O</span>
                 <span className="tool-label">Token</span>
               </label>
             </div>
@@ -316,7 +317,7 @@ export function SelectionPanel({
                 }}
               />
               <label htmlFor="rectangle">
-                <span className="tool-icon">▢</span>
+                <span className="tool-icon">[]</span>
                 <span className="tool-label">Rect</span>
               </label>
             </div>

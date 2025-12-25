@@ -352,9 +352,13 @@
 }
 
 .peer-status-indicator {
-  color: #22c55e;
-  font-size: 8px;
-  margin-right: 2px;
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #22c55e;
+  margin-right: 4px;
+  vertical-align: middle;
 }
 
 .peer-connection-status.collapsed {
