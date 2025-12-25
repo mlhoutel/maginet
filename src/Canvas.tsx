@@ -1131,6 +1131,18 @@ function Canvas() {
     function handleKeyDown(event: KeyboardEvent) {
       // Ignore keyboard shortcuts when editing text
       if (editingText) return;
+      const target = event.target;
+      if (target instanceof HTMLElement) {
+        const tagName = target.tagName;
+        if (
+          target.isContentEditable ||
+          tagName === "INPUT" ||
+          tagName === "TEXTAREA" ||
+          tagName === "SELECT"
+        ) {
+          return;
+        }
+      }
 
       // Platform-aware Cmd/Ctrl key
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
