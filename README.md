@@ -9,17 +9,6 @@ Maginet 2 is a realtime web table for **Magic: The Gathering**.
 
 > This project is an unofficial fan tool and is not affiliated with Wizards of the Coast or Scryfall.
 
----
-
-## Tech Stack
-
-- React 19 + TypeScript + Vite
-- Zustand for client state
-- PeerJS for peer‑to‑peer realtime sync
-- @tanstack/react-query for Scryfall API calls
-
----
-
 ## Getting Started
 
 ### Prerequisites
@@ -73,14 +62,6 @@ Steps:
 4. Paste your decklist text into the textarea.
 5. Click **Submit**.
 
-The app will:
-
-- Call the Scryfall API to fetch card data.
-- Build your deck as a face‑down stack.
-- Show a toast such as “Deck initialized with 60 cards”.
-
-If you don’t import anything, a sample **DEFAULT_DECK** is used so you can play around immediately.
-
 ---
 
 ## Multiplayer / Realtime Sync
@@ -91,16 +72,10 @@ Maginet uses PeerJS to connect browsers directly.
 2. In the **Multiplayer** section (right side):
    - Your own ID appears under **Your ID**.
    - Click **Copy** to put it in your clipboard.
-3. **Share your ID** with your friends via chat/voice.
+3. **Share your ID** with your friends via chat.
 4. Each friend:
    - Pastes your ID into **Enter peer ID**.
    - Clicks **Connect**.
-
-Once connected:
-
-- All shapes on the battlefield (cards, tokens, notes) are synced in real time.
-- Each player uses their own deck and hand, but everyone sees the same board state.
-- Toast messages show when peers connect and basic info about their actions.
 
 Voice chat is **not** built into the app—use Discord, Teams, etc. alongside Maginet.
 
