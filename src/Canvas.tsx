@@ -9,6 +9,7 @@ import "./Canvas.css";
 import { DOMVector, screenToCanvas } from "./utils/vec";
 import Hand from "./Hand";
 import ContextMenu from "./ContextMenu";
+import CounterControls from "./components/CounterControls";
 import useCards, {
   Datum,
   mapDataToCards,
@@ -33,6 +34,7 @@ import {
   Shape,
   ShapeType,
   Mode,
+  Counter,
   rotateShape,
   flipShape,
   intersect,
@@ -163,6 +165,7 @@ function Canvas() {
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPosition, setLastPanPosition] = useState<Point | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [showCounterControls, setShowCounterControls] = useState(false);
 
   // Refs
   const ref = useRef<SVGSVGElement>(null);
@@ -587,6 +590,18 @@ function Canvas() {
     }
   }
 
+  const onToggleTap = (shapeId: string) => {
+    setShapes((prevShapes) =>
+      prevShapes.map((shape) => {
+        if (shape.id === shapeId && shape.type === "image") {
+          const currentRotation = shape.rotation || 0;
+          return { ...shape, rotation: currentRotation === 90 ? 0 : 90 };
+        }
+        return shape;
+      })
+    );
+  };
+
   const onShuffleDeck = () => {
     dispatch({ type: "SHUFFLE_DECK" });
   };
@@ -610,6 +625,28 @@ function Canvas() {
         point: [shape.point[0] + 100, shape.point[1] + 100],
       }));
     setShapes((prevShapes) => [...prevShapes, ...selectedShapes]);
+  };
+
+  const updateCounters = (newCounters: Counter[]) => {
+    setShapes((prevShapes) =>
+      prevShapes.map((shape) => {
+        if (selectedShapeIds.includes(shape.id) && shape.type === "image") {
+          return { ...shape, counters: newCounters };
+        }
+        return shape;
+      })
+    );
+  };
+
+  const clearCounters = () => {
+    setShapes((prevShapes) =>
+      prevShapes.map((shape) => {
+        if (selectedShapeIds.includes(shape.id) && shape.type === "image") {
+          return { ...shape, counters: [] };
+        }
+        return shape;
+      })
+    );
   };
 
   const addCardToHand = (card: Datum) => {
@@ -1182,6 +1219,27 @@ function Canvas() {
           y: window.innerHeight / 2,
         };
         applyZoomStepRef.current([centerPoint.x, centerPoint.y], "out");
+      } else if ((event.key === "t" || event.key === "T") && !cmdKey) {
+        // T = tap/untap selected cards
+        if (selectedShapeIds.length > 0) {
+          event.preventDefault();
+          onEngageDisengageCard();
+        }
+      } else if ((event.key === "c" || event.key === "C") && !cmdKey) {
+        // C = open counter controls for exactly one selected card
+        if (selectedShapeIds.length === 1) {
+          const selectedShape = shapes.find(s => s.id === selectedShapeIds[0]);
+          if (selectedShape && selectedShape.type === "image") {
+            event.preventDefault();
+            setShowCounterControls(true);
+          }
+        }
+      } else if (event.key === "Escape") {
+        // Escape = close counter controls
+        if (showCounterControls) {
+          event.preventDefault();
+          setShowCounterControls(false);
+        }
       } else if (
         event.key === "Backspace" &&
         selectedShapeIds.length > 0
@@ -1219,6 +1277,9 @@ function Canvas() {
     isPanning,
     undo,
     redo,
+    showCounterControls,
+    shapes,
+    onEngageDisengageCard,
   ]);
 
   useEffect(() => {
@@ -1226,6 +1287,21 @@ function Canvas() {
       toast.error(error.message);
     }
   }, [error]);
+
+  // Auto-close counter controls if selection becomes invalid
+  useEffect(() => {
+    if (showCounterControls) {
+      // Close if not exactly 1 shape selected, or if selected shape is not a card
+      if (selectedShapeIds.length !== 1) {
+        setShowCounterControls(false);
+      } else {
+        const selectedShape = shapes.find(s => s.id === selectedShapeIds[0]);
+        if (!selectedShape || selectedShape.type !== "image") {
+          setShowCounterControls(false);
+        }
+      }
+    }
+  }, [selectedShapeIds, shapes, showCounterControls]);
 
   // Render preparation
   const receivedData: Shape[] = Object.values(receivedDataMap).flat();
@@ -1245,6 +1321,8 @@ function Canvas() {
         sendCardToFront={sendCardToFront}
         sendCardToBack={sendCardToBack}
         increaseSrcIndex={increaseSrcIndex}
+        onManageCounters={() => setShowCounterControls(true)}
+        onClearCounters={clearCounters}
       >
         <svg
           ref={ref}
@@ -1285,6 +1363,7 @@ function Canvas() {
                 updateDraggingRef={updateDraggingRef}
                 selected={selectedShapeIds.includes(shape.id)}
                 color={shape.color}
+                onToggleTap={onToggleTap}
               />
             ))}
 
@@ -1383,6 +1462,8 @@ function Canvas() {
       {/* Help panel */}
       {showHelp && (
         <div
+          className="help-dialog"
+          onWheel={(e) => e.stopPropagation()}
           style={{
             position: "fixed",
             top: "60px",
@@ -1390,11 +1471,14 @@ function Canvas() {
             background: "rgba(0, 0, 0, 0.9)",
             color: "#fff",
             padding: "20px",
+            paddingBottom: "16px",
             borderRadius: "8px",
             fontSize: "14px",
             fontFamily: "monospace",
             zIndex: 1001,
             maxWidth: "350px",
+            maxHeight: "calc(100vh - 120px)",
+            overflowY: "auto",
             boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
           }}
         >
@@ -1430,9 +1514,11 @@ function Canvas() {
               Card Actions
             </h4>
             <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
-              - Shift + drag from hand = play face-down<br />
-              - Right-click card {"->"} Flip = toggle face-down<br />
-              - Ctrl + hover card = preview<br />
+              - T = tap/untap selected card<br />
+              - C = manage counters on selected card<br />
+              - Double-click = tap/untap<br />
+              - Right-click = action menu<br />
+              - Ctrl + hover = preview<br />
             </div>
           </div>
 
@@ -1481,20 +1567,33 @@ function Canvas() {
           <button
             onClick={() => setShowHelp(false)}
             style={{
-              marginTop: "8px",
-              padding: "6px 12px",
-              background: "#444",
+              marginTop: "16px",
+              padding: "8px 16px",
+              background: "#1976D2",
               color: "#fff",
-              border: "1px solid #666",
+              border: "none",
               borderRadius: "4px",
               cursor: "pointer",
-              fontSize: "12px",
+              fontSize: "13px",
+              width: "100%",
             }}
           >
             Close
           </button>
         </div>
       )}
+
+      {/* Counter Controls Panel */}
+      {showCounterControls && selectedShapeIds.length === 1 && (() => {
+        const selectedShape = shapes.find(s => s.id === selectedShapeIds[0]);
+        return selectedShape && selectedShape.type === "image" ? (
+          <CounterControls
+            currentCounters={selectedShape.counters || []}
+            onUpdateCounters={updateCounters}
+            onClose={() => setShowCounterControls(false)}
+          />
+        ) : null;
+      })()}
 
     </div>
   );

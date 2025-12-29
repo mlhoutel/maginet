@@ -18,6 +18,8 @@ interface ContextMenuProps {
   sendCardToBack: () => void;
   increaseSrcIndex: () => void;
   sendBackToDeck: (position: "top" | "bottom") => void;
+  onManageCounters: () => void;
+  onClearCounters: () => void;
 }
 
 export default function ContextMenu({
@@ -31,6 +33,8 @@ export default function ContextMenu({
   sendCardToFront,
   sendCardToBack,
   increaseSrcIndex,
+  onManageCounters,
+  onClearCounters,
 }: ContextMenuProps) {
   const { contextMenu, onContextMenu } = useContextMenu(
     <div className="custom-context-menu">
@@ -63,6 +67,14 @@ export default function ContextMenu({
       {/* <ContextMenuItem>
         <button onClick={giveCardToOpponent}>Give Card to Opponent</button>
       </ContextMenuItem> */}
+      <ContextMenuDivider />
+      <ContextMenuCategory>Counters</ContextMenuCategory>
+      <ContextMenuItem>
+        <button onClick={onManageCounters}>Manage Counters...</button>
+      </ContextMenuItem>
+      <ContextMenuItem>
+        <button onClick={onClearCounters}>Clear All Counters</button>
+      </ContextMenuItem>
       <ContextMenuDivider />
       <ContextMenuCategory>Card position</ContextMenuCategory>
       <ContextMenuItem>

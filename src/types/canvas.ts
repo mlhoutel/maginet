@@ -14,6 +14,16 @@ export interface Camera {
   z: number;
 }
 
+export interface Counter {
+  label: string; // e.g., "P/T", "loyalty", "charge", or any custom text
+  // For P/T counters (power/toughness modifications)
+  power?: number;
+  toughness?: number;
+  // For single-value counters (loyalty, charge, etc.)
+  value?: number;
+  color?: string; // optional custom color (hex format like "#FF0000")
+}
+
 export interface Shape {
   id: string;
   point: number[];
@@ -25,7 +35,8 @@ export interface Shape {
   rotation?: number;
   isFlipped?: boolean;
   fontSize?: number;
-  values?: [number, number];
+  values?: [number, number]; // DEPRECATED - kept for backwards compatibility
+  counters?: Counter[]; // NEW - supports multiple counter types
   color?: string;
 }
 

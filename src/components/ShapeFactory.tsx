@@ -24,10 +24,10 @@ function ShapeFactory({
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
   setHoveredCard: React.Dispatch<React.SetStateAction<string | null>>;
   stackIndex: number;
+  onToggleTap?: (shapeId: string) => void;
 }) {
-  const transform = `rotate(${shape.rotation || 0} ${
-    shape.point[0] + shape.size[0] / 2
-  } ${shape.point[1] + shape.size[1] / 2})`;
+  const transform = `rotate(${shape.rotation || 0} ${shape.point[0] + shape.size[0] / 2
+    } ${shape.point[1] + shape.size[1] / 2})`;
 
   const editText = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();

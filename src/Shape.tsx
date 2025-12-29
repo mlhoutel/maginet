@@ -17,6 +17,7 @@ export function Shape({
   selected,
   camera,
   stackIndex = 0,
+  onToggleTap,
 }: {
   shape: ShapeType;
   mode: Mode;
@@ -34,6 +35,7 @@ export function Shape({
   readOnly: boolean;
   selected: boolean;
   stackIndex?: number;
+  onToggleTap?: (shapeId: string) => void;
 }) {
   const draggingShapeRefs = useRef<Record<string, ShapeType>>({});
 
@@ -53,11 +55,11 @@ export function Shape({
       localSelectedShapeIds.length === 1
         ? {}
         : Object.fromEntries(
-            localSelectedShapeIds.map((id) => [
-              id,
-              shapes.find((s) => s.id === id)!,
-            ])
-          );
+          localSelectedShapeIds.map((id) => [
+            id,
+            shapes.find((s) => s.id === id)!,
+          ])
+        );
   };
 
   const onPointerDown = (e: React.PointerEvent<SVGElement>) => {
@@ -97,11 +99,11 @@ export function Shape({
         s.id === rDragging.current?.shape.id
           ? { ...s, point: vec.add(rDragging.current!.shape.point, delta) }
           : draggingShapeRefs.current[s.id]
-          ? {
+            ? {
               ...s,
               point: vec.add(draggingShapeRefs.current[s.id].point, delta),
             }
-          : s
+            : s
       )
     );
   };
@@ -119,19 +121,8 @@ export function Shape({
   const handleClick = (e: React.MouseEvent<SVGElement>) => {
     if (readOnly) return;
     e.stopPropagation();
-    if (e.shiftKey) {
-      setShapes((prevShapes) =>
-        prevShapes.map((s) =>
-          s.id === shape.id
-            ? {
-                ...s,
-                rotation: s.rotation && s.rotation > 0 ? 0 : 90,
-              }
-            : s
-        )
-      );
-    }
   };
+
 
   const commonProps = {
     id: shape.id,
@@ -141,7 +132,6 @@ export function Shape({
     onClick: handleClick,
     style: {
       cursor: readOnly ? "default" : "move",
-      filter: selected ? "url(#glow)" : "none",
     },
   };
 
@@ -154,12 +144,12 @@ export function Shape({
       prevShapes.map((s) =>
         s.id === shape.id
           ? {
-              ...s,
-              size: newSize,
-              point: newPoint,
-              fontSize:
-                newFontSize && s.type === "text" ? newFontSize : s.fontSize,
-            }
+            ...s,
+            size: newSize,
+            point: newPoint,
+            fontSize:
+              newFontSize && s.type === "text" ? newFontSize : s.fontSize,
+          }
           : s
       )
     );
@@ -193,6 +183,7 @@ export function Shape({
         inputRef={inputRef}
         setHoveredCard={setHoveredCard}
         stackIndex={stackIndex}
+        onToggleTap={onToggleTap}
       />
       {selected && !readOnly && (
         <SelectionBox

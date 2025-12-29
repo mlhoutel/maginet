@@ -62,3 +62,62 @@
     left: 10px;
   }
 }
+
+/* Smooth rotation transition for cards */
+.card-image {
+  transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Help dialog scrollbar styling */
+.help-dialog::-webkit-scrollbar {
+  width: 8px;
+}
+
+.help-dialog::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.help-dialog::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.help-dialog::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Firefox scrollbar */
+.help-dialog {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 720px) {
+  .help-dialog {
+    left: 10px !important;
+    right: 10px !important;
+    top: 50px !important;
+    max-width: calc(100vw - 20px) !important;
+    max-height: calc(100vh - 100px) !important;
+  }
+}
+
+@media (max-height: 600px) {
+  .help-dialog {
+    max-height: calc(100vh - 80px) !important;
+    font-size: 12px !important;
+    top: 40px !important;
+  }
+
+  .help-dialog h3 {
+    font-size: 14px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .help-dialog h4 {
+    font-size: 12px !important;
+    margin: 6px 0 4px !important;
+  }
+}
