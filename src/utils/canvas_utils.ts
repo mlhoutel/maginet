@@ -26,8 +26,9 @@ export function zoomCamera(
 
   return { ...zoomed, x, y };
 }
-export function screenToWorld(point: number[], camera: Camera): number[] {
-  return vec.sub(vec.div(point, camera.z), [camera.x, camera.y]);
+export function screenToWorld(point: number[], camera: Camera): [number, number] {
+  const [x, y] = vec.sub(vec.div(point, camera.z), [camera.x, camera.y]);
+  return [x, y];
 }
 let canvas: HTMLCanvasElement | null = null;
 /**

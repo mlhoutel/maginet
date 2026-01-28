@@ -166,6 +166,7 @@ function Canvas() {
   const [lastPanPosition, setLastPanPosition] = useState<Point | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showCounterControls, setShowCounterControls] = useState(false);
+  const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
 
   // Refs
   const ref = useRef<SVGSVGElement>(null);
@@ -182,6 +183,30 @@ function Canvas() {
   const zoomAnchorRef = useRef<{
     screen: number[];
     world: number[];
+  } | null>(null);
+  const touchPointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const touchGestureRef = useRef<{
+    isActive: boolean;
+    startDistance: number;
+    startMidpoint: [number, number];
+    startCamera: Camera;
+    startWorldPoint: [number, number];
+  }>({
+    isActive: false,
+    startDistance: 0,
+    startMidpoint: [0, 0],
+    startCamera: { x: 0, y: 0, z: 1 },
+    startWorldPoint: [0, 0],
+  });
+  const touchPanRef = useRef<{
+    pointerId: number;
+    origin: { x: number; y: number };
+    hasMoved: boolean;
+  } | null>(null);
+  const touchPlaceRef = useRef<{
+    pointerId: number;
+    origin: { x: number; y: number };
+    hasMoved: boolean;
   } | null>(null);
 
   const applyCameraImmediate = (next: Camera) => {
@@ -483,6 +508,36 @@ function Canvas() {
   // Gesture handling
   useGesture(gestureHandlersRef.current, gestureConfigRef.current);
 
+  const getTouchGestureStats = () => {
+    const points = Array.from(touchPointersRef.current.values());
+    if (points.length < 2) return null;
+    const [p1, p2] = points.slice(0, 2);
+    const midpoint: [number, number] = [
+      (p1.x + p2.x) / 2,
+      (p1.y + p2.y) / 2,
+    ];
+    const distance = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+    if (!Number.isFinite(distance) || distance === 0) return null;
+    return { midpoint, distance };
+  };
+
+  const resetTouchInteractions = () => {
+    if (touchPanRef.current && ref.current?.hasPointerCapture(touchPanRef.current.pointerId)) {
+      ref.current.releasePointerCapture(touchPanRef.current.pointerId);
+    }
+    touchPanRef.current = null;
+    if (touchPlaceRef.current && ref.current?.hasPointerCapture(touchPlaceRef.current.pointerId)) {
+      ref.current.releasePointerCapture(touchPlaceRef.current.pointerId);
+    }
+    touchPlaceRef.current = null;
+    setIsPanning(false);
+    setLastPanPosition(null);
+    setDragVector(null);
+    setIsDragging(false);
+    rDragging.current = null;
+    useShapeStore.setState({ isDraggingShape: false });
+  };
+
   // Card actions
   const drawCard = () => {
     dispatch({ type: "DRAW_CARD" });
@@ -687,16 +742,78 @@ function Canvas() {
     setSelectedShapeIds([]);
   };
 
-  // Event handlers
-  const handleDrop = (e: React.DragEvent<SVGElement>) => {
-    e.preventDefault();
-    const cardId = e.dataTransfer.getData("text/plain");
-    const playFaceDown = e.dataTransfer.getData("playFaceDown") === "true";
-    const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
-    const card = cardState.cards.find((card) => card.id === cardId);
-    if (!card) return;
-    dispatch({ type: "PLAY_CARD", payload: [cardId] });
+  const onPointerDownCaptureCanvas = (e: React.PointerEvent<SVGElement>) => {
+    if (e.pointerType !== "touch") return;
+    touchPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
+    if (touchPointersRef.current.size >= 2) {
+      const gesture = getTouchGestureStats();
+      if (gesture) {
+        touchGestureRef.current = {
+          isActive: true,
+          startDistance: gesture.distance,
+          startMidpoint: gesture.midpoint,
+          startCamera: cameraRef.current,
+          startWorldPoint: screenToWorld(gesture.midpoint, cameraRef.current),
+        };
+        resetTouchInteractions();
+      }
+    }
+
+    if (touchGestureRef.current.isActive) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
+  const onPointerMoveCaptureCanvas = (e: React.PointerEvent<SVGElement>) => {
+    if (e.pointerType !== "touch") return;
+    if (!touchPointersRef.current.has(e.pointerId)) return;
+    touchPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (!touchGestureRef.current.isActive || touchPointersRef.current.size < 2) {
+      return;
+    }
+
+    const gesture = getTouchGestureStats();
+    if (!gesture) return;
+
+    const scale = gesture.distance / touchGestureRef.current.startDistance;
+    const nextZ = getCameraZoom(touchGestureRef.current.startCamera.z * scale);
+    const [worldX, worldY] = touchGestureRef.current.startWorldPoint;
+    const [midX, midY] = gesture.midpoint;
+    const nextX = midX / nextZ - worldX;
+    const nextY = midY / nextZ - worldY;
+
+    applyCameraImmediate({ x: nextX, y: nextY, z: nextZ });
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const onPointerUpCaptureCanvas = (e: React.PointerEvent<SVGElement>) => {
+    if (e.pointerType !== "touch") return;
+    const wasPinching = touchGestureRef.current.isActive;
+    touchPointersRef.current.delete(e.pointerId);
+    if (touchPointersRef.current.size < 2) {
+      touchGestureRef.current.isActive = false;
+    }
+
+    if (wasPinching) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
+  const playCardAt = (
+    cardId: string,
+    clientX: number,
+    clientY: number,
+    playFaceDown = false
+  ) => {
+    const { x, y } = screenToCanvas({ x: clientX, y: clientY }, cameraRef.current);
+    const card = cardStateRef.current.cards.find((c) => c.id === cardId);
+    if (!card) return false;
+    dispatch({ type: "PLAY_CARD", payload: [cardId] });
     setShapes((prevShapes) => [
       ...prevShapes,
       {
@@ -710,11 +827,46 @@ function Canvas() {
         isFlipped: playFaceDown,
       },
     ]);
+    return true;
+  };
+
+  // Event handlers
+  const handleDrop = (e: React.DragEvent<SVGElement>) => {
+    e.preventDefault();
+    const cardId = e.dataTransfer.getData("text/plain");
+    const playFaceDown = e.dataTransfer.getData("playFaceDown") === "true";
+    playCardAt(cardId, e.clientX, e.clientY, playFaceDown);
   };
 
   function onPointerDownCanvas(e: React.PointerEvent<SVGElement>) {
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
+
+    if (e.pointerType === "touch") {
+      if (touchGestureRef.current.isActive) {
+        return;
+      }
+      if (selectedHandCardId) {
+        touchPlaceRef.current = {
+          pointerId: e.pointerId,
+          origin: { x: e.clientX, y: e.clientY },
+          hasMoved: false,
+        };
+        e.currentTarget.setPointerCapture(e.pointerId);
+        return;
+      }
+      if (mode === "select" && !shapeInCreation) {
+        setIsPanning(true);
+        setLastPanPosition({ x: e.clientX, y: e.clientY });
+        touchPanRef.current = {
+          pointerId: e.pointerId,
+          origin: { x: e.clientX, y: e.clientY },
+          hasMoved: false,
+        };
+        e.currentTarget.setPointerCapture(e.pointerId);
+        return;
+      }
+    }
 
     // Handle panning with middle mouse button, Space+drag, or Alt+drag
     if (e.button === 1 || (e.button === 0 && (isSpacePressed || e.altKey))) {
@@ -761,12 +913,34 @@ function Canvas() {
   function onPointerMoveCanvas(e: React.PointerEvent<SVGElement>) {
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
 
+    if (touchPlaceRef.current?.pointerId === e.pointerId && !touchPlaceRef.current.hasMoved) {
+      const totalMove = Math.hypot(
+        e.clientX - touchPlaceRef.current.origin.x,
+        e.clientY - touchPlaceRef.current.origin.y
+      );
+      if (totalMove > 8) {
+        touchPlaceRef.current.hasMoved = true;
+        setIsPanning(true);
+        setLastPanPosition({ x: e.clientX, y: e.clientY });
+      }
+      return;
+    }
+
     // Handle panning
     if (isPanning && lastPanPosition) {
       const dx = e.clientX - lastPanPosition.x;
       const dy = e.clientY - lastPanPosition.y;
       applyCameraImmediate(panCamera(cameraRef.current, -dx, -dy));
       setLastPanPosition({ x: e.clientX, y: e.clientY });
+      if (touchPanRef.current?.pointerId === e.pointerId) {
+        const totalMove = Math.hypot(
+          e.clientX - touchPanRef.current.origin.x,
+          e.clientY - touchPanRef.current.origin.y
+        );
+        if (totalMove > 6) {
+          touchPanRef.current.hasMoved = true;
+        }
+      }
       return;
     }
 
@@ -815,6 +989,25 @@ function Canvas() {
       const nextY = h < 0 ? py + h : py;
       return { ...shape, point: [nextX, nextY], size: [Math.abs(w), Math.abs(h)] };
     };
+
+    if (touchPanRef.current?.pointerId === e.pointerId) {
+      const { hasMoved } = touchPanRef.current;
+      touchPanRef.current = null;
+      if (!hasMoved && mode === "select") {
+        setSelectedShapeIds([]);
+      }
+    }
+
+    if (touchPlaceRef.current?.pointerId === e.pointerId) {
+      const { hasMoved } = touchPlaceRef.current;
+      touchPlaceRef.current = null;
+      if (!hasMoved && selectedHandCardId) {
+        playCardAt(selectedHandCardId, e.clientX, e.clientY);
+        setSelectedHandCardId(null);
+        e.currentTarget.releasePointerCapture(e.pointerId);
+        return;
+      }
+    }
 
     // Handle panning end
     if (isPanning) {
@@ -1288,6 +1481,12 @@ function Canvas() {
     }
   }, [error]);
 
+  useEffect(() => {
+    if (selectedHandCardId && !cards.find((card) => card.id === selectedHandCardId)) {
+      setSelectedHandCardId(null);
+    }
+  }, [cards, selectedHandCardId]);
+
   // Auto-close counter controls if selection becomes invalid
   useEffect(() => {
     if (showCounterControls) {
@@ -1326,9 +1525,14 @@ function Canvas() {
       >
         <svg
           ref={ref}
+          onPointerDownCapture={onPointerDownCaptureCanvas}
+          onPointerMoveCapture={onPointerMoveCaptureCanvas}
+          onPointerUpCapture={onPointerUpCaptureCanvas}
+          onPointerCancelCapture={onPointerUpCaptureCanvas}
           onPointerDown={onPointerDownCanvas}
           onPointerMove={onPointerMoveCanvas}
           onPointerUp={onPointerUpCanvas}
+          onPointerCancel={onPointerUpCanvas}
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
         >
@@ -1437,7 +1641,12 @@ function Canvas() {
         />
       </div>
 
-      <Hand cards={cards} setHoveredCard={setHoveredCard} />
+      <Hand
+        cards={cards}
+        setHoveredCard={setHoveredCard}
+        selectedCardId={selectedHandCardId}
+        onSelectCard={setSelectedHandCardId}
+      />
 
       {/* Zoomed card preview */}
       {isCommandPressed && hoveredCard && (
@@ -1491,6 +1700,8 @@ function Canvas() {
               Panning
             </h4>
             <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
+              - One-finger drag on empty canvas (touch)<br />
+              - Two-finger drag (touch)<br />
               - Two-finger scroll (trackpad)<br />
               - Middle mouse button + drag<br />
               - Space + drag<br />
@@ -1503,6 +1714,7 @@ function Canvas() {
               Zooming
             </h4>
             <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
+              - Pinch (touch)<br />
               - Pinch gesture (trackpad)<br />
               - Ctrl + scroll wheel<br />
               - + / - keys<br />
@@ -1518,6 +1730,7 @@ function Canvas() {
               - C = manage counters on selected card<br />
               - Double-click = tap/untap<br />
               - Right-click = action menu<br />
+              - Tap card in hand, then tap canvas to play (touch)<br />
               - Ctrl + hover = preview<br />
             </div>
           </div>

@@ -56,6 +56,16 @@ export function SelectionPanel({
   const [peerId, setPeerId] = React.useState("");
   const [copied, setCopied] = React.useState(false);
   const [showPeerStatus, setShowPeerStatus] = React.useState(false);
+  const [isMobile, setIsMobile] = React.useState(() =>
+    typeof window === "undefined"
+      ? false
+      : window.matchMedia("(max-width: 720px)").matches
+  );
+  const [isCollapsed, setIsCollapsed] = React.useState(() =>
+    typeof window === "undefined"
+      ? false
+      : window.matchMedia("(max-width: 720px)").matches
+  );
 
   // Modal state
   const [modal, showModal] = useModal();
@@ -93,8 +103,34 @@ export function SelectionPanel({
     return () => window.clearInterval(intervalId);
   }, []);
 
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(max-width: 720px)");
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
+      setIsCollapsed(event.matches);
+    };
+    media.addEventListener("change", handleChange);
+    return () => media.removeEventListener("change", handleChange);
+  }, []);
+
   return (
-    <div className="selection-panel">
+    <div
+      className={`selection-panel ${isMobile && isCollapsed ? "selection-panel--collapsed" : ""}`}
+    >
+      <div className="selection-panel-mobile-bar">
+        <button className="primary" onClick={onDrawCard}>
+          Draw ({deck?.length})
+        </button>
+        <button
+          type="button"
+          className="selection-panel-collapse-toggle"
+          onClick={() => setIsCollapsed((prev) => !prev)}
+          aria-expanded={!isCollapsed}
+        >
+          {isCollapsed ? "Expand" : "Collapse"}
+        </button>
+      </div>
       <div className="selection-panel-section selection-panel-section--primary">
         <h3>Quick Actions</h3>
 

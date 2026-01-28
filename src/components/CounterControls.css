@@ -235,3 +235,22 @@
 .custom-label-input::placeholder {
   color: #666;
 }
+
+@media (max-width: 720px) {
+  .counter-controls-panel {
+    width: calc(100vw - 24px);
+    max-width: none;
+    min-width: 0;
+    max-height: calc(100vh - 24px);
+    padding: 12px;
+    overflow-y: auto;
+  }
+
+  .counter-controls-header {
+    margin-bottom: 12px;
+  }
+
+  .counter-controls-header h4 {
+    font-size: 14px;
+  }
+}

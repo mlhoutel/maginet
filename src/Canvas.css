@@ -5,19 +5,30 @@
   gap: 10px;
   padding: 10px;
   width: 100%;
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
   justify-content: center;
 }
 
-.hand img {
+.hand img,
+.hand-card {
   width: 100px;
   height: auto;
   cursor: grab;
   transition: transform 0.2s ease; /* Smooth scaling */
 }
 
-.hand img:hover {
+.hand img:hover,
+.hand-card:hover {
   transform: scale(1.1); /* Slight zoom on hover */
+}
+
+.hand-card.selected {
+  outline: 2px solid rgba(59, 130, 246, 0.9);
+  outline-offset: 2px;
+  transform: scale(1.05);
 }
 
 .zoomed-card {
@@ -58,8 +69,28 @@
 
 @media (max-width: 720px) {
   .help-button {
-    top: 10px;
-    left: 10px;
+    top: calc(10px + env(safe-area-inset-top));
+    left: calc(10px + env(safe-area-inset-left));
+  }
+
+  .hand {
+    gap: 6px;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    justify-content: flex-start;
+  }
+
+  .hand img {
+    width: 72px;
+  }
+
+  .zoomed-card {
+    height: min(45vh, 320px);
+  }
+}
+
+@media (max-width: 480px) {
+  .hand img {
+    width: 64px;
   }
 }
 

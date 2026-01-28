@@ -65,3 +65,23 @@
   color: #6b7280;
   font-variant-numeric: tabular-nums;
 }
+
+@media (max-width: 900px) {
+  .action-log-container {
+    width: 16rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .action-log-container {
+    top: calc(10px + env(safe-area-inset-top));
+    right: 10px;
+    left: 10px;
+    width: auto;
+    max-height: 30vh;
+  }
+
+  .action-log-content {
+    max-height: 22vh;
+  }
+}

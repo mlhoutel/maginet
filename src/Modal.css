@@ -99,3 +99,20 @@
   cursor: not-allowed; /* Indicate that the button is not clickable */
   opacity: 0.6; /* Reduce opacity for a disabled look */
 }
+
+@media (max-width: 720px) {
+  .Modal__overlay {
+    padding: 12px;
+  }
+
+  .Modal__modal {
+    min-width: 0;
+    width: 100%;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+  }
+
+  .modal-form {
+    padding: 16px;
+  }
+}
