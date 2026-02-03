@@ -69,8 +69,21 @@
   transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease;
 }
 
+.selection-panel__pill.is-active {
+  background: #efe2b8;
+  border-color: #5b5b5b #ffffff #ffffff #5b5b5b;
+  box-shadow:
+    inset 1px 1px 0 #9a9a9a,
+    inset -1px -1px 0 #ffffff;
+  color: #3a2b12;
+}
+
 .selection-panel__pill:hover {
   background: #e6e6e6;
+}
+
+.selection-panel__pill.is-active:hover {
+  background: #f4e6bf;
 }
 
 .selection-panel__pill:active {
@@ -338,6 +351,19 @@
 .shape-type-options--vertical {
   flex-direction: column;
   align-items: center;
+}
+
+.selection-panel__grid-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.selection-panel__grid-controls .selection-panel__pill {
+  min-width: 56px;
+  text-align: center;
+  padding: 6px 8px;
 }
 
 .shape-type-option {

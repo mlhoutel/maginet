@@ -18,6 +18,7 @@ export function Shape({
   camera,
   stackIndex = 0,
   onToggleTap,
+  snapToGrid,
 }: {
   shape: ShapeType;
   mode: Mode;
@@ -36,6 +37,7 @@ export function Shape({
   selected: boolean;
   stackIndex?: number;
   onToggleTap?: (shapeId: string) => void;
+  snapToGrid: (point: [number, number]) => [number, number];
 }) {
   const draggingShapeRefs = useRef<Record<string, ShapeType>>({});
 
@@ -93,15 +95,18 @@ export function Shape({
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y];
     const delta = vec.sub(point, rDragging.current.origin);
+    const rawPoint = vec.add(rDragging.current.shape.point, delta) as [number, number];
+    const snappedPoint = snapToGrid(rawPoint);
+    const snappedDelta = vec.sub(snappedPoint, rDragging.current.shape.point);
 
     setShapes((prevShapes) =>
       prevShapes.map((s) =>
         s.id === rDragging.current?.shape.id
-          ? { ...s, point: vec.add(rDragging.current!.shape.point, delta) }
+          ? { ...s, point: vec.add(rDragging.current!.shape.point, snappedDelta) }
           : draggingShapeRefs.current[s.id]
             ? {
               ...s,
-              point: vec.add(draggingShapeRefs.current[s.id].point, delta),
+              point: vec.add(draggingShapeRefs.current[s.id].point, snappedDelta),
             }
             : s
       )

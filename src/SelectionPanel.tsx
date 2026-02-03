@@ -298,6 +298,10 @@ export function SelectionPanel({
   deck,
   shapeType,
   setShapeType,
+  isGridVisible,
+  isSnapEnabled,
+  onToggleGrid,
+  onToggleSnap,
 }: {
   onDrawCard: () => void;
   setCamera: React.Dispatch<React.SetStateAction<Camera>>;
@@ -321,6 +325,10 @@ export function SelectionPanel({
   rollD20: () => void;
   pickStarter: () => void;
   untapAll: () => void;
+  isGridVisible: boolean;
+  isSnapEnabled: boolean;
+  onToggleGrid: () => void;
+  onToggleSnap: () => void;
 }) {
   // Peer connection state
   const connectToPeer = usePeerStore((state) => state.connectToPeer);
@@ -551,6 +559,26 @@ export function SelectionPanel({
               <span className="tool-label">Rect</span>
             </label>
           </div>
+        </div>
+        <div className="selection-panel__grid-controls">
+          <button
+            type="button"
+            className={`selection-panel__pill ${isGridVisible ? "is-active" : ""}`}
+            onClick={onToggleGrid}
+            aria-pressed={isGridVisible}
+            title="Toggle grid"
+          >
+            Grid
+          </button>
+          <button
+            type="button"
+            className={`selection-panel__pill ${isSnapEnabled ? "is-active" : ""}`}
+            onClick={onToggleSnap}
+            aria-pressed={isSnapEnabled}
+            title="Toggle snapping"
+          >
+            Snap
+          </button>
         </div>
       </div>
 

@@ -3,6 +3,14 @@
   box-shadow: none;
 }
 
+.canvas-grid {
+  pointer-events: none;
+}
+
+.canvas-grid line {
+  shape-rendering: crispEdges;
+}
+
 .setup-screen {
   position: fixed;
   inset: 0;

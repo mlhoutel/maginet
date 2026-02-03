@@ -1,11 +1,12 @@
 import * as React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Handler, useGesture } from "@use-gesture/react";
 
 import { Shape as ShapeComponent } from "./Shape";
 import "./Canvas.css";
+import Grid from "./Grid";
 import { DOMVector, screenToCanvas } from "./utils/vec";
 import Hand from "./Hand";
 import ContextMenu from "./ContextMenu";
@@ -69,6 +70,7 @@ const CARD_ACTION_DESCRIPTIONS: Record<string, string> = {
   ADD_TO_HAND: "searched a card",
   SHUFFLE_DECK: "shuffled the deck",
 };
+const GRID_SIZE = 50;
 
 type ShortcutSection = {
   title: string;
@@ -251,6 +253,12 @@ function Canvas() {
   const [lastPanPosition, setLastPanPosition] = useState<Point | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [isShortcutDockOpen, setIsShortcutDockOpen] = useState(true);
+  const [isGridVisible, setIsGridVisible] = useState(false);
+  const [isSnapEnabled, setIsSnapEnabled] = useState(false);
+  const [viewportSize, setViewportSize] = useState(() => ({
+    width: typeof window === "undefined" ? 0 : window.innerWidth,
+    height: typeof window === "undefined" ? 0 : window.innerHeight,
+  }));
   const [showCounterControls, setShowCounterControls] = useState(false);
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
 
@@ -674,6 +682,28 @@ function Canvas() {
     useShapeStore.setState({ isDraggingShape: false });
   };
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => {
+      setViewportSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  const snapPointToGrid = useCallback(
+    (point: [number, number]) => {
+      if (!isSnapEnabled) return point;
+      const [x, y] = point;
+      const snappedX = Math.round(x / GRID_SIZE) * GRID_SIZE;
+      const snappedY = Math.round(y / GRID_SIZE) * GRID_SIZE;
+      return [snappedX, snappedY] as [number, number];
+    },
+    [isSnapEnabled]
+  );
+
   // Card actions
   const drawCard = () => {
     dispatch({ type: "DRAW_CARD" });
@@ -688,12 +718,13 @@ function Canvas() {
       { x: window.innerWidth / 2, y: window.innerHeight / 2 },
       camera
     );
+    const [snappedX, snappedY] = snapPointToGrid([center.x, center.y]);
     setShapes((prev) => [
       ...prev,
       {
         id: generateId(),
         type: "token",
-        point: [center.x, center.y],
+        point: [snappedX, snappedY],
         size: [55, 55],
         srcIndex: 0,
         fontSize: 12,
@@ -947,6 +978,7 @@ function Canvas() {
     playFaceDown = false
   ) => {
     const { x, y } = screenToCanvas({ x: clientX, y: clientY }, cameraRef.current);
+    const [snappedX, snappedY] = snapPointToGrid([x, y]);
     const card = cardStateRef.current.cards.find((c) => c.id === cardId);
     if (!card) return false;
     dispatch({ type: "PLAY_CARD", payload: [cardId] });
@@ -954,7 +986,7 @@ function Canvas() {
       ...prevShapes,
       {
         id: generateId(),
-        point: [x, y],
+        point: [snappedX, snappedY],
         size: [100, 100],
         type: "image",
         src: card.src,
@@ -976,7 +1008,8 @@ function Canvas() {
 
   function onPointerDownCanvas(e: React.PointerEvent<SVGElement>) {
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
-    const point = [x, y];
+    const point = [x, y] as [number, number];
+    const snappedPoint = snapPointToGrid(point);
 
     if (e.pointerType === "touch") {
       if (touchGestureRef.current.isActive) {
@@ -1021,7 +1054,7 @@ function Canvas() {
           ...prevShapes,
           {
             id,
-            point,
+            point: snappedPoint,
             size: [0, 0],
             type: "text",
             text: "",
@@ -1035,7 +1068,7 @@ function Canvas() {
           inputRef.current?.setSelectionRange(0, inputRef.current.value.length);
         }, 0);
       } else {
-        createShape(shapeType, point);
+        createShape(shapeType, snappedPoint);
       }
       return;
     }
@@ -1084,7 +1117,7 @@ function Canvas() {
 
     // Handle shape creation
     if (mode === "create" && shapeInCreation) {
-      updateShapeInCreation([x, y]);
+      updateShapeInCreation(snapPointToGrid([x, y]));
     }
     // Handle selection
     else if (mode === "select" && dragVector) {
@@ -1675,6 +1708,31 @@ function Canvas() {
     </div>
   );
 
+  const gridBounds = useMemo(() => {
+    if (!isGridVisible || viewportSize.width === 0 || viewportSize.height === 0) {
+      return null;
+    }
+    const topLeft = screenToWorld([0, 0], camera);
+    const bottomRight = screenToWorld(
+      [viewportSize.width, viewportSize.height],
+      camera
+    );
+    const minX = Math.min(topLeft[0], bottomRight[0]);
+    const maxX = Math.max(topLeft[0], bottomRight[0]);
+    const minY = Math.min(topLeft[1], bottomRight[1]);
+    const maxY = Math.max(topLeft[1], bottomRight[1]);
+    const startX = Math.floor(minX / GRID_SIZE) * GRID_SIZE;
+    const startY = Math.floor(minY / GRID_SIZE) * GRID_SIZE;
+    const endX = Math.ceil(maxX / GRID_SIZE) * GRID_SIZE;
+    const endY = Math.ceil(maxY / GRID_SIZE) * GRID_SIZE;
+    return {
+      startX,
+      startY,
+      width: Math.max(endX - startX, GRID_SIZE),
+      height: Math.max(endY - startY, GRID_SIZE),
+    };
+  }, [camera, isGridVisible, viewportSize]);
+
   if (!isSetupComplete) {
     return (
       <div className="setup-screen">
@@ -1861,6 +1919,21 @@ function Canvas() {
           onDragOver={(e) => e.preventDefault()}
         >
           <g style={{ transform }}>
+            {isGridVisible && gridBounds && (
+              <g
+                className="canvas-grid"
+                transform={`translate(${gridBounds.startX} ${gridBounds.startY})`}
+                pointerEvents="none"
+              >
+                <Grid
+                  width={gridBounds.width}
+                  height={gridBounds.height}
+                  gridSize={GRID_SIZE}
+                  stroke="#6f5b3d"
+                  opacity={0.25}
+                />
+              </g>
+            )}
             {/* Render other players' shapes */}
             {others.map((shape) => (
               <ShapeComponent
@@ -1874,6 +1947,7 @@ function Canvas() {
                 setHoveredCard={setHoveredCard}
                 updateDraggingRef={() => { }}
                 selected={selectedShapeIds.includes(shape.id)}
+                snapToGrid={snapPointToGrid}
               />
             ))}
 
@@ -1892,6 +1966,7 @@ function Canvas() {
                 selected={selectedShapeIds.includes(shape.id)}
                 color={shape.color}
                 onToggleTap={onToggleTap}
+                snapToGrid={snapPointToGrid}
               />
             ))}
 
@@ -1908,6 +1983,7 @@ function Canvas() {
                 setHoveredCard={setHoveredCard}
                 updateDraggingRef={updateDraggingRef}
                 selected={selectedShapeIds.includes(shapeInCreation.shape.id)}
+                snapToGrid={snapPointToGrid}
               />
             )}
 
@@ -1962,6 +2038,10 @@ function Canvas() {
           rollD20={() => rollDie(20)}
           pickStarter={pickStarter}
           untapAll={untapAll}
+          isGridVisible={isGridVisible}
+          isSnapEnabled={isSnapEnabled}
+          onToggleGrid={() => setIsGridVisible((prev) => !prev)}
+          onToggleSnap={() => setIsSnapEnabled((prev) => !prev)}
         />
       </div>
 
