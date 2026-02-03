@@ -70,6 +70,90 @@ const CARD_ACTION_DESCRIPTIONS: Record<string, string> = {
   SHUFFLE_DECK: "shuffled the deck",
 };
 
+type ShortcutSection = {
+  title: string;
+  items: string[];
+};
+
+const HELP_SHORTCUT_SECTIONS: ShortcutSection[] = [
+  {
+    title: "Panning",
+    items: [
+      "One-finger drag on empty canvas (touch)",
+      "Two-finger drag (touch)",
+      "Two-finger scroll (trackpad)",
+      "Middle mouse button + drag",
+      "Space + drag",
+      "Alt + drag",
+    ],
+  },
+  {
+    title: "Zooming",
+    items: [
+      "Pinch (touch)",
+      "Pinch gesture (trackpad)",
+      "Ctrl + scroll wheel",
+      "+ / - keys",
+    ],
+  },
+  {
+    title: "Card Actions",
+    items: [
+      "T = tap/untap selected card",
+      "C = manage counters on selected card",
+      "D = draw a card",
+      "Right-click = action menu",
+      "Tap card in hand, then tap canvas to play (touch)",
+      "Ctrl + hover = preview",
+    ],
+  },
+  {
+    title: "Other",
+    items: [
+      "Cmd/Ctrl + Z = undo",
+      "Shift + Cmd/Ctrl + Z = redo",
+      "Backspace = delete selected",
+      "? = toggle this help",
+    ],
+  },
+];
+
+const PRIMARY_HELP_SHORTCUT_SECTIONS = HELP_SHORTCUT_SECTIONS.filter(
+  (section) => section.title !== "Other"
+);
+const OTHER_HELP_SHORTCUT_SECTION = HELP_SHORTCUT_SECTIONS.find(
+  (section) => section.title === "Other"
+);
+
+const KEYBOARD_SHORTCUT_SECTIONS: ShortcutSection[] = [
+  {
+    title: "Panning",
+    items: ["Space + drag", "Alt + drag"],
+  },
+  {
+    title: "Zooming",
+    items: ["Ctrl + scroll wheel", "+ / - keys"],
+  },
+  {
+    title: "Card Actions",
+    items: [
+      "T = tap/untap selected card",
+      "C = manage counters on selected card",
+      "D = draw a card",
+      "Ctrl + hover = preview",
+    ],
+  },
+  {
+    title: "Other",
+    items: [
+      "Cmd/Ctrl + Z = undo",
+      "Shift + Cmd/Ctrl + Z = redo",
+      "Backspace = delete selected",
+      "? = toggle this help",
+    ],
+  },
+];
+
 type RandomEventType = "coin" | "d6" | "d20" | "starter";
 
 function generatePlayerName() {
@@ -166,6 +250,7 @@ function Canvas() {
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPosition, setLastPanPosition] = useState<Point | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [isShortcutDockOpen, setIsShortcutDockOpen] = useState(true);
   const [showCounterControls, setShowCounterControls] = useState(false);
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
 
@@ -1480,6 +1565,10 @@ function Canvas() {
             setShowCounterControls(true);
           }
         }
+      } else if ((event.key === "d" || event.key === "D") && !cmdKey) {
+        // D = draw a card
+        event.preventDefault();
+        drawCard();
       } else if (event.key === "Escape") {
         // Escape = close counter controls
         if (showCounterControls) {
@@ -1572,6 +1661,19 @@ function Canvas() {
         ? `Loading ${deckCardCount} cards...`
         : `Deck ready: ${deckCardCount} cards`
       : "No deck selected";
+
+  const renderShortcutSection = (section: ShortcutSection) => (
+    <div key={section.title} style={{ marginBottom: "16px" }}>
+      <h4 style={{ margin: "8px 0 6px", fontSize: "14px", color: "#aaa" }}>
+        {section.title}
+      </h4>
+      <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
+        {section.items.map((item) => (
+          <div key={`${section.title}-${item}`}>- {item}</div>
+        ))}
+      </div>
+    </div>
+  );
 
   if (!isSetupComplete) {
     return (
@@ -1890,6 +1992,52 @@ function Canvas() {
         ?
       </button>
 
+      {isShortcutDockOpen ? (
+        <div
+          className="shortcut-dock"
+          onPointerDown={(event) => event.stopPropagation()}
+          onWheel={(event) => event.stopPropagation()}
+        >
+          <div className="shortcut-dock__header">
+            <span>Shortcuts</span>
+            <button
+              type="button"
+              className="shortcut-dock__close"
+              onClick={() => setIsShortcutDockOpen(false)}
+              aria-label="Hide shortcuts"
+              title="Hide shortcuts"
+            >
+              ×
+            </button>
+          </div>
+          <div className="shortcut-dock__content">
+            {KEYBOARD_SHORTCUT_SECTIONS.map((section) => (
+              <div key={section.title} className="shortcut-dock__section">
+                <div className="shortcut-dock__title">{section.title}</div>
+                <div className="shortcut-dock__items">
+                  {section.items.map((item) => (
+                    <div
+                      key={`${section.title}-${item}`}
+                      className="shortcut-dock__item"
+                    >
+                      - {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="shortcut-dock-toggle"
+          onClick={() => setIsShortcutDockOpen(true)}
+        >
+          Shortcuts
+        </button>
+      )}
+
       {/* Help panel */}
       {showHelp && (
         <div
@@ -1900,45 +2048,7 @@ function Canvas() {
             Canvas Controls
           </h3>
 
-          <div style={{ marginBottom: "16px" }}>
-            <h4 style={{ margin: "8px 0 6px", fontSize: "14px", color: "#aaa" }}>
-              Panning
-            </h4>
-            <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
-              - One-finger drag on empty canvas (touch)<br />
-              - Two-finger drag (touch)<br />
-              - Two-finger scroll (trackpad)<br />
-              - Middle mouse button + drag<br />
-              - Space + drag<br />
-              - Alt + drag<br />
-            </div>
-          </div>
-
-          <div style={{ marginBottom: "16px" }}>
-            <h4 style={{ margin: "8px 0 6px", fontSize: "14px", color: "#aaa" }}>
-              Zooming
-            </h4>
-            <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
-              - Pinch (touch)<br />
-              - Pinch gesture (trackpad)<br />
-              - Ctrl + scroll wheel<br />
-              - + / - keys<br />
-            </div>
-          </div>
-
-          <div style={{ marginBottom: "16px" }}>
-            <h4 style={{ margin: "8px 0 6px", fontSize: "14px", color: "#aaa" }}>
-              Card Actions
-            </h4>
-            <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
-              - T = tap/untap selected card<br />
-              - C = manage counters on selected card<br />
-              - Double-click = tap/untap<br />
-              - Right-click = action menu<br />
-              - Tap card in hand, then tap canvas to play (touch)<br />
-              - Ctrl + hover = preview<br />
-            </div>
-          </div>
+          {PRIMARY_HELP_SHORTCUT_SECTIONS.map(renderShortcutSection)}
 
           <div style={{ marginBottom: "16px" }}>
             <h4 style={{ margin: "8px 0 6px", fontSize: "14px", color: "#aaa" }}>
@@ -1962,15 +2072,7 @@ function Canvas() {
             </div>
           </div>
 
-          <div style={{ marginBottom: "16px" }}>
-            <h4 style={{ margin: "8px 0 6px", fontSize: "14px", color: "#aaa" }}>
-              Other
-            </h4>
-            <div style={{ marginLeft: "8px", lineHeight: "1.6" }}>
-              - Backspace = delete selected<br />
-              - ? = toggle this help<br />
-            </div>
-          </div>
+          {OTHER_HELP_SHORTCUT_SECTION && renderShortcutSection(OTHER_HELP_SHORTCUT_SECTION)}
 
           <div style={{ marginBottom: "16px" }}>
             <h4 style={{ margin: "8px 0 6px", fontSize: "14px", color: "#aaa" }}>

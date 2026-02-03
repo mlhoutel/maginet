@@ -302,6 +302,123 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
+.shortcut-dock {
+  position: fixed;
+  right: calc(16px + env(safe-area-inset-right));
+  bottom: calc(120px + env(safe-area-inset-bottom));
+  width: 280px;
+  max-height: calc(100vh - 240px);
+  padding: 10px;
+  background: #e6e6e6;
+  color: #000000;
+  border: 2px solid #000000;
+  border-color: #ffffff #5b5b5b #5b5b5b #ffffff;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: "Tahoma", "Verdana", "Trebuchet MS", "Geneva", sans-serif;
+  z-index: 800;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-shadow: none;
+}
+
+.shortcut-dock__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -10px -10px 8px -10px;
+  padding: 6px 8px;
+  background: #000080;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  border-bottom: 2px solid #000000;
+}
+
+.shortcut-dock__close {
+  width: 18px;
+  height: 18px;
+  border: 1px solid #000000;
+  border-color: #ffffff #5b5b5b #5b5b5b #ffffff;
+  border-radius: 2px;
+  background: #dcdcdc;
+  color: #000000;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.shortcut-dock__close:hover {
+  background: #efefef;
+}
+
+.shortcut-dock__close:active {
+  border-color: #5b5b5b #ffffff #ffffff #5b5b5b;
+  box-shadow: inset 1px 1px 0 #9a9a9a, inset -1px -1px 0 #ffffff;
+}
+
+.shortcut-dock__content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shortcut-dock__section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.shortcut-dock__title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.shortcut-dock__items {
+  margin-left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.4;
+}
+
+.shortcut-dock__item {
+  font-size: 11px;
+}
+
+.shortcut-dock-toggle {
+  position: fixed;
+  right: calc(16px + env(safe-area-inset-right));
+  bottom: calc(120px + env(safe-area-inset-bottom));
+  padding: 6px 10px;
+  border: 2px solid #000000;
+  border-color: #ffffff #5b5b5b #5b5b5b #ffffff;
+  border-radius: 4px;
+  background: #dcdcdc;
+  color: #000000;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 800;
+  font-family: "Tahoma", "Verdana", "Trebuchet MS", "Geneva", sans-serif;
+  box-shadow: inset 1px 1px 0 #f6f6f6, inset -1px -1px 0 #8a8a8a;
+}
+
+.shortcut-dock-toggle:hover {
+  background: #efefef;
+}
+
+.shortcut-dock-toggle:active {
+  border-color: #5b5b5b #ffffff #ffffff #5b5b5b;
+  box-shadow: inset 1px 1px 0 #8a8a8a, inset -1px -1px 0 #f6f6f6;
+}
+
 @media (max-width: 720px) {
   .setup-card {
     width: 100%;
@@ -336,6 +453,21 @@
   .help-button {
     top: calc(10px + env(safe-area-inset-top));
     left: calc(10px + env(safe-area-inset-left));
+  }
+
+  .shortcut-dock {
+    right: calc(10px + env(safe-area-inset-right));
+    left: calc(10px + env(safe-area-inset-left));
+    bottom: calc(120px + env(safe-area-inset-bottom));
+    width: auto;
+    max-height: calc(100vh - 200px);
+  }
+
+  .shortcut-dock-toggle {
+    right: calc(10px + env(safe-area-inset-right));
+    left: calc(10px + env(safe-area-inset-left));
+    bottom: calc(120px + env(safe-area-inset-bottom));
+    width: auto;
   }
 
   .hand {

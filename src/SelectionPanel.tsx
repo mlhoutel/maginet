@@ -479,7 +479,10 @@ export function SelectionPanel({
         )}
         <button className="deck-draw-button" onClick={onDrawCard}>
           <span className="deck-count">{deckCount}</span>
-          <span className="deck-label">Draw</span>
+          <span className="deck-label">
+            Draw
+            <span className="deck-shortcut">D</span>
+          </span>
         </button>
       </div>
 

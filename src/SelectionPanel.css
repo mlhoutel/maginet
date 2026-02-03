@@ -152,10 +152,31 @@
 }
 
 .deck-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #000000;
+}
+
+.deck-shortcut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  padding: 1px 5px;
+  border: 1px solid #000000;
+  border-color: #ffffff #5b5b5b #5b5b5b #ffffff;
+  border-radius: 4px;
+  background: #e8e0cf;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: #000000;
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #9a9a9a;
 }
 
 .selection-panel-mobile-bar {
