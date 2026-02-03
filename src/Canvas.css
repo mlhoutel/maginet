@@ -11,6 +11,27 @@
   shape-rendering: crispEdges;
 }
 
+body.hand-dragging svg,
+body.hand-dragging .selection-panel,
+body.hand-dragging .action-log-container,
+body.hand-dragging .help-button,
+body.hand-dragging .shortcut-dock,
+body.hand-dragging .shortcut-dock-toggle {
+  pointer-events: none;
+}
+
+.card-drop-preview image {
+  opacity: 0.75;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.25));
+}
+
+.card-drop-preview rect {
+  fill: none;
+  stroke: rgba(90, 68, 40, 0.6);
+  stroke-width: 2px;
+  stroke-dasharray: 6 4;
+}
+
 .setup-screen {
   position: fixed;
   inset: 0;
@@ -253,6 +274,12 @@
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
   justify-content: center;
+  z-index: 700;
+}
+
+.hand--dragging {
+  cursor: grabbing;
+  overflow-y: visible;
 }
 
 .hand img,
@@ -263,9 +290,48 @@
   transition: transform 0.2s ease; /* Smooth scaling */
 }
 
+.hand--dragging .hand-card {
+  opacity: 0.55;
+  filter: saturate(0.7);
+}
+
+.hand-card.is-dragging {
+  opacity: 1;
+  transform: translateY(-6px) scale(1.05);
+  outline: 2px dashed rgba(58, 43, 18, 0.85);
+  outline-offset: 2px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  cursor: grabbing;
+}
+
 .hand img:hover,
 .hand-card:hover {
   transform: scale(1.1); /* Slight zoom on hover */
+}
+
+.hand-card.is-dragging:hover {
+  transform: translateY(-6px) scale(1.05);
+}
+
+.hand-drag-ghost {
+  position: fixed;
+  z-index: 2200;
+  pointer-events: none;
+  transform: translate(-50%, -70%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hand-drag-ghost__card {
+  width: 180px;
+  height: auto;
+  transform: rotate(-2deg);
+  border-radius: 6px;
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.35),
+    0 0 0 2px rgba(255, 255, 255, 0.65);
+  background: #ffffff;
 }
 
 .hand-card.selected {

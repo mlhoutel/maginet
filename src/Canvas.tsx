@@ -71,10 +71,29 @@ const CARD_ACTION_DESCRIPTIONS: Record<string, string> = {
   SHUFFLE_DECK: "shuffled the deck",
 };
 const GRID_SIZE = 50;
+const CARD_PREVIEW_SIZE: [number, number] = [100, 100];
+const CARD_BACK_URL = "https://i.imgur.com/LdOBU1I.jpeg";
 
 type ShortcutSection = {
   title: string;
   items: string[];
+};
+
+type DragCardMeta = {
+  id: string;
+  src: string;
+  faceDown: boolean;
+};
+
+type HandDragState = DragCardMeta & {
+  pointerId: number;
+  clientX: number;
+  clientY: number;
+  target: HTMLElement | null;
+};
+
+type DragPreview = DragCardMeta & {
+  point: [number, number];
 };
 
 const HELP_SHORTCUT_SECTIONS: ShortcutSection[] = [
@@ -259,13 +278,22 @@ function Canvas() {
     width: typeof window === "undefined" ? 0 : window.innerWidth,
     height: typeof window === "undefined" ? 0 : window.innerHeight,
   }));
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window === "undefined"
+      ? false
+      : window.matchMedia("(max-width: 720px)").matches
+  );
   const [showCounterControls, setShowCounterControls] = useState(false);
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
+  const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
+  const [draggingHandCardId, setDraggingHandCardId] = useState<string | null>(null);
+  const [handDrag, setHandDrag] = useState<HandDragState | null>(null);
 
   // Refs
   const ref = useRef<SVGSVGElement>(null);
   const rDragging = useRef<{ shape: Shape; origin: number[] } | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const handDragRef = useRef<HandDragState | null>(null);
   const lastLoggedActionId = useRef<number | undefined>(undefined);
   const playerNameRef = useRef<string>(generatePlayerName());
   const actionLogRef = useRef<ActionLogEntry[]>([]);
@@ -693,6 +721,28 @@ function Canvas() {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(max-width: 720px)");
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
+    };
+    media.addEventListener("change", handleChange);
+    return () => media.removeEventListener("change", handleChange);
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (handDrag) {
+      document.body.classList.add("hand-dragging");
+    } else {
+      document.body.classList.remove("hand-dragging");
+    }
+    return () => {
+      document.body.classList.remove("hand-dragging");
+    };
+  }, [handDrag]);
+
   const snapPointToGrid = useCallback(
     (point: [number, number]) => {
       if (!isSnapEnabled) return point;
@@ -702,6 +752,85 @@ function Canvas() {
       return [snappedX, snappedY] as [number, number];
     },
     [isSnapEnabled]
+  );
+
+  const clearDragPreview = useCallback(() => {
+    setDragPreview(null);
+  }, []);
+
+  const resetHandDragState = useCallback(() => {
+    const current = handDragRef.current;
+    if (current?.target && current.pointerId != null) {
+      try {
+        current.target.releasePointerCapture(current.pointerId);
+      } catch {
+        // Ignore release errors if capture is already gone.
+      }
+    }
+    handDragRef.current = null;
+    setHandDrag(null);
+    setDraggingHandCardId(null);
+    clearDragPreview();
+  }, [clearDragPreview]);
+
+  const isPointerOverCanvas = useCallback((clientX: number, clientY: number) => {
+    if (typeof document === "undefined") return false;
+    const svg = ref.current;
+    if (!svg) return false;
+    const rect = svg.getBoundingClientRect();
+    return (
+      clientX >= rect.left &&
+      clientX <= rect.right &&
+      clientY >= rect.top &&
+      clientY <= rect.bottom
+    );
+  }, []);
+
+  const updateDragPreviewAt = useCallback(
+    (clientX: number, clientY: number, meta: DragCardMeta) => {
+      if (!isPointerOverCanvas(clientX, clientY)) {
+        clearDragPreview();
+        return;
+      }
+      const { x, y } = screenToCanvas(
+        { x: clientX, y: clientY },
+        cameraRef.current
+      );
+      const [snappedX, snappedY] = snapPointToGrid([x, y]);
+      const nextPreview: DragPreview = {
+        ...meta,
+        point: [snappedX, snappedY],
+      };
+      setDragPreview((prev) => {
+        if (
+          prev &&
+          prev.id === nextPreview.id &&
+          prev.faceDown === nextPreview.faceDown &&
+          prev.point[0] === nextPreview.point[0] &&
+          prev.point[1] === nextPreview.point[1]
+        ) {
+          return prev;
+        }
+        return nextPreview;
+      });
+    },
+    [clearDragPreview, isPointerOverCanvas, snapPointToGrid]
+  );
+
+  const handleHandDragStart = useCallback(
+    (payload: HandDragState) => {
+      const meta: DragCardMeta = {
+        id: payload.id,
+        src: payload.src,
+        faceDown: payload.faceDown,
+      };
+      handDragRef.current = payload;
+      setHandDrag(payload);
+      setDraggingHandCardId(payload.id);
+      setSelectedHandCardId(null);
+      updateDragPreviewAt(payload.clientX, payload.clientY, meta);
+    },
+    [updateDragPreviewAt]
   );
 
   // Card actions
@@ -971,42 +1100,82 @@ function Canvas() {
     }
   };
 
-  const playCardAt = (
-    cardId: string,
-    clientX: number,
-    clientY: number,
-    playFaceDown = false
-  ) => {
-    const { x, y } = screenToCanvas({ x: clientX, y: clientY }, cameraRef.current);
-    const [snappedX, snappedY] = snapPointToGrid([x, y]);
-    const card = cardStateRef.current.cards.find((c) => c.id === cardId);
-    if (!card) return false;
-    dispatch({ type: "PLAY_CARD", payload: [cardId] });
-    setShapes((prevShapes) => [
-      ...prevShapes,
-      {
-        id: generateId(),
-        point: [snappedX, snappedY],
-        size: [100, 100],
-        type: "image",
-        src: card.src,
-        srcIndex: 0,
-        rotation: 0,
-        isFlipped: playFaceDown,
-      },
-    ]);
-    return true;
-  };
+  const playCardAt = useCallback(
+    (
+      cardId: string,
+      clientX: number,
+      clientY: number,
+      playFaceDown = false
+    ) => {
+      const { x, y } = screenToCanvas({ x: clientX, y: clientY }, cameraRef.current);
+      const [snappedX, snappedY] = snapPointToGrid([x, y]);
+      const card = cardStateRef.current.cards.find((c) => c.id === cardId);
+      if (!card) return false;
+      dispatch({ type: "PLAY_CARD", payload: [cardId] });
+      setShapes((prevShapes) => [
+        ...prevShapes,
+        {
+          id: generateId(),
+          point: [snappedX, snappedY],
+          size: [100, 100],
+          type: "image",
+          src: card.src,
+          srcIndex: 0,
+          rotation: 0,
+          isFlipped: playFaceDown,
+        },
+      ]);
+      return true;
+    },
+    [snapPointToGrid, dispatch, setShapes]
+  );
 
-  // Event handlers
-  const handleDrop = (e: React.DragEvent<SVGElement>) => {
-    e.preventDefault();
-    const cardId = e.dataTransfer.getData("text/plain");
-    const playFaceDown = e.dataTransfer.getData("playFaceDown") === "true";
-    playCardAt(cardId, e.clientX, e.clientY, playFaceDown);
-  };
+  useEffect(() => {
+    const handlePointerMove = (event: PointerEvent) => {
+      const current = handDragRef.current;
+      if (!current || event.pointerId !== current.pointerId) return;
+      const next: HandDragState = {
+        ...current,
+        clientX: event.clientX,
+        clientY: event.clientY,
+      };
+      handDragRef.current = next;
+      setHandDrag(next);
+      updateDragPreviewAt(event.clientX, event.clientY, current);
+    };
+
+    const handlePointerUp = (event: PointerEvent) => {
+      const current = handDragRef.current;
+      if (!current || event.pointerId !== current.pointerId) return;
+      if (isPointerOverCanvas(event.clientX, event.clientY)) {
+        playCardAt(current.id, event.clientX, event.clientY, current.faceDown);
+      }
+      resetHandDragState();
+    };
+
+    const handleBlur = () => {
+      if (handDragRef.current) {
+        resetHandDragState();
+      }
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
+    window.addEventListener("blur", handleBlur);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, [isPointerOverCanvas, playCardAt, resetHandDragState, updateDragPreviewAt]);
 
   function onPointerDownCanvas(e: React.PointerEvent<SVGElement>) {
+    if (handDragRef.current) {
+      e.preventDefault();
+      return;
+    }
     const { x, y } = screenToCanvas({ x: e.clientX, y: e.clientY }, camera);
     const point = [x, y] as [number, number];
     const snappedPoint = snapPointToGrid(point);
@@ -1915,8 +2084,6 @@ function Canvas() {
           onPointerMove={onPointerMoveCanvas}
           onPointerUp={onPointerUpCanvas}
           onPointerCancel={onPointerUpCanvas}
-          onDrop={handleDrop}
-          onDragOver={(e) => e.preventDefault()}
         >
           <g style={{ transform }}>
             {isGridVisible && gridBounds && (
@@ -1999,6 +2166,24 @@ function Canvas() {
               />
             )}
 
+            {dragPreview && (
+              <g className="card-drop-preview" pointerEvents="none">
+                <image
+                  href={dragPreview.faceDown ? CARD_BACK_URL : dragPreview.src}
+                  x={dragPreview.point[0]}
+                  y={dragPreview.point[1]}
+                  width={CARD_PREVIEW_SIZE[0]}
+                  height={CARD_PREVIEW_SIZE[1]}
+                />
+                <rect
+                  x={dragPreview.point[0]}
+                  y={dragPreview.point[1]}
+                  width={CARD_PREVIEW_SIZE[0]}
+                  height={CARD_PREVIEW_SIZE[1]}
+                />
+              </g>
+            )}
+
             {/* Render selection rectangle */}
             {selectionRect && (
               <rect
@@ -2050,7 +2235,22 @@ function Canvas() {
         setHoveredCard={setHoveredCard}
         selectedCardId={selectedHandCardId}
         onSelectCard={setSelectedHandCardId}
+        onDragStartCard={handleHandDragStart}
+        draggingCardId={draggingHandCardId}
       />
+
+      {handDrag && (
+        <div
+          className="hand-drag-ghost"
+          style={{ left: handDrag.clientX, top: handDrag.clientY }}
+        >
+          <img
+            className="hand-drag-ghost__card"
+            src={handDrag.faceDown ? CARD_BACK_URL : handDrag.src}
+            alt="Dragging card"
+          />
+        </div>
+      )}
 
       {/* Zoomed card preview */}
       {isCommandPressed && hoveredCard && (
@@ -2072,7 +2272,7 @@ function Canvas() {
         ?
       </button>
 
-      {isShortcutDockOpen ? (
+      {!isMobile && isShortcutDockOpen ? (
         <div
           className="shortcut-dock"
           onPointerDown={(event) => event.stopPropagation()}
@@ -2108,7 +2308,7 @@ function Canvas() {
             ))}
           </div>
         </div>
-      ) : (
+      ) : !isMobile ? (
         <button
           type="button"
           className="shortcut-dock-toggle"
@@ -2116,7 +2316,7 @@ function Canvas() {
         >
           Shortcuts
         </button>
-      )}
+      ) : null}
 
       {/* Help panel */}
       {showHelp && (
