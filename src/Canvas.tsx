@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Handler, useGesture } from "@use-gesture/react";
@@ -66,6 +66,7 @@ const CARD_ACTION_DESCRIPTIONS: Record<string, string> = {
   MULLIGAN: "took a mulligan",
   SEND_TO_HAND: "moved cards to hand",
   SEND_TO_DECK: "returned cards to the deck",
+  MOVE_HAND_TO_DECK: "returned a card to the deck",
   PLAY_CARD: "played a card",
   ADD_TO_HAND: "searched a card",
   SHUFFLE_DECK: "shuffled the deck",
@@ -294,6 +295,18 @@ function Canvas() {
   const rDragging = useRef<{ shape: Shape; origin: number[] } | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const handDragRef = useRef<HandDragState | null>(null);
+  const playCardAtRef = useRef<
+    (cardId: string, clientX: number, clientY: number, playFaceDown?: boolean) => boolean
+  >(() => false);
+  const updateDragPreviewAtRef = useRef<
+    (clientX: number, clientY: number, meta: DragCardMeta) => void
+  >(() => {});
+  const isPointerOverCanvasRef = useRef<(clientX: number, clientY: number) => boolean>(
+    () => false
+  );
+  const resetHandDragStateRef = useRef(() => {});
+  const drawCardRef = useRef<() => void>(() => {});
+  const engageCardRef = useRef<() => void>(() => {});
   const lastLoggedActionId = useRef<number | undefined>(undefined);
   const playerNameRef = useRef<string>(generatePlayerName());
   const actionLogRef = useRef<ActionLogEntry[]>([]);
@@ -743,22 +756,19 @@ function Canvas() {
     };
   }, [handDrag]);
 
-  const snapPointToGrid = useCallback(
-    (point: [number, number]) => {
-      if (!isSnapEnabled) return point;
-      const [x, y] = point;
-      const snappedX = Math.round(x / GRID_SIZE) * GRID_SIZE;
-      const snappedY = Math.round(y / GRID_SIZE) * GRID_SIZE;
-      return [snappedX, snappedY] as [number, number];
-    },
-    [isSnapEnabled]
-  );
+  const snapPointToGrid = (point: [number, number]) => {
+    if (!isSnapEnabled) return point;
+    const [x, y] = point;
+    const snappedX = Math.round(x / GRID_SIZE) * GRID_SIZE;
+    const snappedY = Math.round(y / GRID_SIZE) * GRID_SIZE;
+    return [snappedX, snappedY] as [number, number];
+  };
 
-  const clearDragPreview = useCallback(() => {
+  const clearDragPreview = () => {
     setDragPreview(null);
-  }, []);
+  };
 
-  const resetHandDragState = useCallback(() => {
+  const resetHandDragState = () => {
     const current = handDragRef.current;
     if (current?.target && current.pointerId != null) {
       try {
@@ -771,9 +781,9 @@ function Canvas() {
     setHandDrag(null);
     setDraggingHandCardId(null);
     clearDragPreview();
-  }, [clearDragPreview]);
+  };
 
-  const isPointerOverCanvas = useCallback((clientX: number, clientY: number) => {
+  const isPointerOverCanvas = (clientX: number, clientY: number) => {
     if (typeof document === "undefined") return false;
     const svg = ref.current;
     if (!svg) return false;
@@ -784,54 +794,90 @@ function Canvas() {
       clientY >= rect.top &&
       clientY <= rect.bottom
     );
-  }, []);
+  };
 
-  const updateDragPreviewAt = useCallback(
-    (clientX: number, clientY: number, meta: DragCardMeta) => {
-      if (!isPointerOverCanvas(clientX, clientY)) {
-        clearDragPreview();
-        return;
+  const updateDragPreviewAt = (clientX: number, clientY: number, meta: DragCardMeta) => {
+    if (!isPointerOverCanvas(clientX, clientY)) {
+      clearDragPreview();
+      return;
+    }
+    const { x, y } = screenToCanvas(
+      { x: clientX, y: clientY },
+      cameraRef.current
+    );
+    const [snappedX, snappedY] = snapPointToGrid([x, y]);
+    const nextPreview: DragPreview = {
+      ...meta,
+      point: [snappedX, snappedY],
+    };
+    setDragPreview((prev) => {
+      if (
+        prev &&
+        prev.id === nextPreview.id &&
+        prev.faceDown === nextPreview.faceDown &&
+        prev.point[0] === nextPreview.point[0] &&
+        prev.point[1] === nextPreview.point[1]
+      ) {
+        return prev;
       }
-      const { x, y } = screenToCanvas(
-        { x: clientX, y: clientY },
-        cameraRef.current
-      );
-      const [snappedX, snappedY] = snapPointToGrid([x, y]);
-      const nextPreview: DragPreview = {
-        ...meta,
-        point: [snappedX, snappedY],
-      };
-      setDragPreview((prev) => {
-        if (
-          prev &&
-          prev.id === nextPreview.id &&
-          prev.faceDown === nextPreview.faceDown &&
-          prev.point[0] === nextPreview.point[0] &&
-          prev.point[1] === nextPreview.point[1]
-        ) {
-          return prev;
-        }
-        return nextPreview;
-      });
-    },
-    [clearDragPreview, isPointerOverCanvas, snapPointToGrid]
-  );
+      return nextPreview;
+    });
+  };
 
-  const handleHandDragStart = useCallback(
-    (payload: HandDragState) => {
-      const meta: DragCardMeta = {
-        id: payload.id,
-        src: payload.src,
-        faceDown: payload.faceDown,
-      };
-      handDragRef.current = payload;
-      setHandDrag(payload);
-      setDraggingHandCardId(payload.id);
-      setSelectedHandCardId(null);
-      updateDragPreviewAt(payload.clientX, payload.clientY, meta);
-    },
-    [updateDragPreviewAt]
-  );
+  const handleHandDragStart = (payload: HandDragState) => {
+    const meta: DragCardMeta = {
+      id: payload.id,
+      src: payload.src,
+      faceDown: payload.faceDown,
+    };
+    handDragRef.current = payload;
+    setHandDrag(payload);
+    setDraggingHandCardId(payload.id);
+    setSelectedHandCardId(null);
+    updateDragPreviewAt(payload.clientX, payload.clientY, meta);
+  };
+
+  const playCardAt = (
+    cardId: string,
+    clientX: number,
+    clientY: number,
+    playFaceDown = false
+  ) => {
+    const { x, y } = screenToCanvas({ x: clientX, y: clientY }, cameraRef.current);
+    const [snappedX, snappedY] = snapPointToGrid([x, y]);
+    const card = cardStateRef.current.cards.find((c) => c.id === cardId);
+    if (!card) return false;
+    dispatch({ type: "PLAY_CARD", payload: [cardId] });
+    setShapes((prevShapes) => [
+      ...prevShapes,
+      {
+        id: generateId(),
+        point: [snappedX, snappedY],
+        size: [100, 100],
+        type: "image",
+        src: card.src,
+        srcIndex: 0,
+        rotation: 0,
+        isFlipped: playFaceDown,
+      },
+    ]);
+    return true;
+  };
+
+  const playHandCardFromMenu = (
+    cardId: string,
+    _point: { x: number; y: number } | null,
+    faceDown: boolean
+  ) => {
+    const rect = ref.current?.getBoundingClientRect();
+    const clientX = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+    const clientY = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
+    playCardAt(cardId, clientX, clientY, faceDown);
+  };
+
+  const moveHandCardToDeck = (cardId: string, position: "top" | "bottom") => {
+    dispatch({ type: "MOVE_HAND_TO_DECK", payload: { cardId, position } });
+  };
 
   // Card actions
   const drawCard = () => {
@@ -1100,35 +1146,12 @@ function Canvas() {
     }
   };
 
-  const playCardAt = useCallback(
-    (
-      cardId: string,
-      clientX: number,
-      clientY: number,
-      playFaceDown = false
-    ) => {
-      const { x, y } = screenToCanvas({ x: clientX, y: clientY }, cameraRef.current);
-      const [snappedX, snappedY] = snapPointToGrid([x, y]);
-      const card = cardStateRef.current.cards.find((c) => c.id === cardId);
-      if (!card) return false;
-      dispatch({ type: "PLAY_CARD", payload: [cardId] });
-      setShapes((prevShapes) => [
-        ...prevShapes,
-        {
-          id: generateId(),
-          point: [snappedX, snappedY],
-          size: [100, 100],
-          type: "image",
-          src: card.src,
-          srcIndex: 0,
-          rotation: 0,
-          isFlipped: playFaceDown,
-        },
-      ]);
-      return true;
-    },
-    [snapPointToGrid, dispatch, setShapes]
-  );
+  drawCardRef.current = drawCard;
+  engageCardRef.current = onEngageDisengageCard;
+  playCardAtRef.current = playCardAt;
+  updateDragPreviewAtRef.current = updateDragPreviewAt;
+  isPointerOverCanvasRef.current = isPointerOverCanvas;
+  resetHandDragStateRef.current = resetHandDragState;
 
   useEffect(() => {
     const handlePointerMove = (event: PointerEvent) => {
@@ -1141,21 +1164,26 @@ function Canvas() {
       };
       handDragRef.current = next;
       setHandDrag(next);
-      updateDragPreviewAt(event.clientX, event.clientY, current);
+      updateDragPreviewAtRef.current(event.clientX, event.clientY, current);
     };
 
     const handlePointerUp = (event: PointerEvent) => {
       const current = handDragRef.current;
       if (!current || event.pointerId !== current.pointerId) return;
-      if (isPointerOverCanvas(event.clientX, event.clientY)) {
-        playCardAt(current.id, event.clientX, event.clientY, current.faceDown);
+      if (isPointerOverCanvasRef.current(event.clientX, event.clientY)) {
+        playCardAtRef.current(
+          current.id,
+          event.clientX,
+          event.clientY,
+          current.faceDown
+        );
       }
-      resetHandDragState();
+      resetHandDragStateRef.current();
     };
 
     const handleBlur = () => {
       if (handDragRef.current) {
-        resetHandDragState();
+        resetHandDragStateRef.current();
       }
     };
 
@@ -1169,7 +1197,7 @@ function Canvas() {
       window.removeEventListener("pointercancel", handlePointerUp);
       window.removeEventListener("blur", handleBlur);
     };
-  }, [isPointerOverCanvas, playCardAt, resetHandDragState, updateDragPreviewAt]);
+  }, []);
 
   function onPointerDownCanvas(e: React.PointerEvent<SVGElement>) {
     if (handDragRef.current) {
@@ -1756,7 +1784,7 @@ function Canvas() {
         // T = tap/untap selected cards
         if (selectedShapeIds.length > 0) {
           event.preventDefault();
-          onEngageDisengageCard();
+          engageCardRef.current();
         }
       } else if ((event.key === "c" || event.key === "C") && !cmdKey) {
         // C = open counter controls for exactly one selected card
@@ -1770,7 +1798,7 @@ function Canvas() {
       } else if ((event.key === "d" || event.key === "D") && !cmdKey) {
         // D = draw a card
         event.preventDefault();
-        drawCard();
+        drawCardRef.current();
       } else if (event.key === "Escape") {
         // Escape = close counter controls
         if (showCounterControls) {
@@ -1818,7 +1846,6 @@ function Canvas() {
     redo,
     showCounterControls,
     shapes,
-    onEngageDisengageCard,
     isSetupComplete,
   ]);
 
@@ -2236,6 +2263,8 @@ function Canvas() {
         selectedCardId={selectedHandCardId}
         onSelectCard={setSelectedHandCardId}
         onDragStartCard={handleHandDragStart}
+        onPlayCardFromMenu={playHandCardFromMenu}
+        onMoveCardToDeck={moveHandCardToDeck}
         draggingCardId={draggingHandCardId}
       />
 

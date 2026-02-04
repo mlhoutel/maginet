@@ -6,7 +6,7 @@
  *
  */
 
-import React, { useCallback, useState } from "react";
+import React, { useState } from "react";
 
 import Modal from "../Modal";
 
@@ -24,9 +24,9 @@ export default function useModal(): [
     title: string;
   }>(null);
 
-  const onClose = useCallback(() => {
+  const onClose = () => {
     setModalContent(null);
-  }, []);
+  };
 
   const modal =
     modalContent === null ? null : (
@@ -39,20 +39,17 @@ export default function useModal(): [
       </Modal>
     );
 
-  const showModal = useCallback(
-    (
-      title: string,
-      getContent: (onClose: () => void) => React.ReactElement,
-      closeOnClickOutside = false
-    ) => {
-      setModalContent({
-        closeOnClickOutside,
-        getContent,
-        title,
-      });
-    },
-    [onClose]
-  );
+  const showModal = (
+    title: string,
+    getContent: (onClose: () => void) => React.ReactElement,
+    closeOnClickOutside = false
+  ) => {
+    setModalContent({
+      closeOnClickOutside,
+      getContent,
+      title,
+    });
+  };
 
   return [modal, showModal];
 }

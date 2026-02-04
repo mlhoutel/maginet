@@ -1,4 +1,10 @@
 import * as React from "react";
+import {
+  ContextMenuCategory,
+  ContextMenuDivider,
+  ContextMenuItem,
+  useContextMenu,
+} from "use-context-menu";
 import { Card } from "./types/canvas";
 
 interface HandProps {
@@ -15,6 +21,12 @@ interface HandProps {
     clientY: number;
     target: HTMLElement | null;
   }) => void;
+  onPlayCardFromMenu?: (
+    cardId: string,
+    point: { x: number; y: number } | null,
+    faceDown: boolean
+  ) => void;
+  onMoveCardToDeck?: (cardId: string, position: "top" | "bottom") => void;
   draggingCardId?: string | null;
 }
 
@@ -24,8 +36,63 @@ export default function Hand({
   selectedCardId,
   onSelectCard,
   onDragStartCard,
+  onPlayCardFromMenu,
+  onMoveCardToDeck,
   draggingCardId,
 }: HandProps) {
+  const [contextCardId, setContextCardId] = React.useState<string | null>(null);
+  const [contextPoint, setContextPoint] = React.useState<{ x: number; y: number } | null>(
+    null
+  );
+
+  const { contextMenu, onContextMenu } = useContextMenu(
+    <div className="custom-context-menu">
+      <ContextMenuCategory>Hand</ContextMenuCategory>
+      <ContextMenuItem>
+        <button
+          onClick={() => {
+            if (!contextCardId) return;
+            onPlayCardFromMenu?.(contextCardId, contextPoint, false);
+          }}
+        >
+          Play to table
+        </button>
+      </ContextMenuItem>
+      <ContextMenuItem>
+        <button
+          onClick={() => {
+            if (!contextCardId) return;
+            onPlayCardFromMenu?.(contextCardId, contextPoint, true);
+          }}
+        >
+          Play face down
+        </button>
+      </ContextMenuItem>
+      <ContextMenuDivider />
+      <ContextMenuCategory>Deck</ContextMenuCategory>
+      <ContextMenuItem>
+        <button
+          onClick={() => {
+            if (!contextCardId) return;
+            onMoveCardToDeck?.(contextCardId, "top");
+          }}
+        >
+          Put on top of deck
+        </button>
+      </ContextMenuItem>
+      <ContextMenuItem>
+        <button
+          onClick={() => {
+            if (!contextCardId) return;
+            onMoveCardToDeck?.(contextCardId, "bottom");
+          }}
+        >
+          Put on bottom of deck
+        </button>
+      </ContextMenuItem>
+    </div>
+  );
+
   return (
     <div className={`hand${draggingCardId ? " hand--dragging" : ""}`}>
       {cards.map((card) => {
@@ -63,6 +130,12 @@ export default function Hand({
                 target: e.currentTarget,
               });
             }}
+            onContextMenu={(e) => {
+              e.stopPropagation();
+              setContextCardId(card.id);
+              setContextPoint({ x: e.clientX, y: e.clientY });
+              onContextMenu(e);
+            }}
             onDragStart={(e) => {
               e.preventDefault();
             }}
@@ -71,6 +144,7 @@ export default function Hand({
           />
         );
       })}
+      {contextMenu}
     </div>
   );
 }

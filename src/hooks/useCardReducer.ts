@@ -19,6 +19,10 @@ export type CardAction =
       type: "SEND_TO_DECK";
       payload: { cards: Card[]; position: "top" | "bottom" };
     }
+  | {
+      type: "MOVE_HAND_TO_DECK";
+      payload: { cardId: string; position: "top" | "bottom" };
+    }
   | { type: "PLAY_CARD"; payload: string[] }
   | { type: "ADD_TO_HAND"; payload: Datum }
   | { type: "SHUFFLE_DECK" }
@@ -75,6 +79,22 @@ export function cardReducer(state: CardState, action: CardAction): CardState {
         ...baseState,
         deck: [...state.deck, ...action.payload.cards],
       };
+    case "MOVE_HAND_TO_DECK": {
+      const card = state.cards.find((c) => c.id === action.payload.cardId);
+      if (!card) return baseState;
+      const remainingCards = state.cards.filter(
+        (c) => c.id !== action.payload.cardId
+      );
+      const nextDeck =
+        action.payload.position === "top"
+          ? [card, ...state.deck]
+          : [...state.deck, card];
+      return {
+        ...baseState,
+        cards: remainingCards,
+        deck: nextDeck,
+      };
+    }
     case "PLAY_CARD":
       return {
         ...baseState,

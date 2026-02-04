@@ -1,3 +1,8 @@
+.useContextMenu_Backdrop {
+  --context-menu-z-index: 2500;
+  z-index: var(--context-menu-z-index);
+}
+
 .useContextMenu_ContextMenu {
   --context-menu-z-index: 1500;
   --context-menu-border-radius: 2px;
@@ -23,6 +28,7 @@
 .useContextMenu_ContextMenu {
   border-color: #ffffff #5b5b5b #5b5b5b #ffffff;
   box-shadow: none;
+  z-index: var(--context-menu-z-index, 2500);
 }
 
 .useContextMenu_ContextMenuCategory {
